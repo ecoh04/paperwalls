@@ -30,8 +30,8 @@ async function getStitchToken(): Promise<string> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      client_id: STITCH_CLIENT_ID,
-      client_secret: STITCH_CLIENT_SECRET,
+      clientId: STITCH_CLIENT_ID,
+      clientSecret: STITCH_CLIENT_SECRET,
     }),
   });
   if (!res.ok) {
