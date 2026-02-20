@@ -51,14 +51,15 @@ async function getStitchToken(): Promise<string> {
     const text = await res.text();
     throw new Error(`Stitch token error: ${res.status} ${text}`);
   }
-  const data = (await res.json()) as Record<string, unknown>;
+  const body = (await res.json()) as Record<string, unknown>;
+  const inner = (typeof body.data === "object" && body.data !== null ? body.data : body) as Record<string, unknown>;
   const token =
-    (data.access_token as string) ??
-    (data.accessToken as string) ??
-    (data.token as string);
+    (inner.access_token as string) ??
+    (inner.accessToken as string) ??
+    (inner.token as string);
   if (!token || typeof token !== "string") {
     throw new Error(
-      `Stitch token response missing access_token. Response keys: ${Object.keys(data).join(", ") || "(none)"}`
+      `Stitch token response missing access_token. Response keys: ${Object.keys(body).join(", ") || "(none)"}`
     );
   }
   return token;
