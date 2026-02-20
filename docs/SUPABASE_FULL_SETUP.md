@@ -62,7 +62,19 @@ After it runs successfully, Supabase is fully set up for:
 
 ---
 
+## Migrations (admin + order management)
+
+If you need **factory ops** (factories, profiles, order activity, assigned factory, shipped/delivered dates) and **full order management** (cancel, refund, archive, last activity), run these **in order** in the SQL Editor:
+
+1. **`supabase/full-setup.sql`** – base orders table, storage, RLS (if not already run).
+2. **`supabase/migrations/20260221_factory_ops.sql`** – factories, profiles, `order_activity`, orders columns (`assigned_factory_id`, `shipped_at`, `delivered_at`), RLS for admin/factory.
+3. **`supabase/migrations/20260222_order_management_full.sql`** – orders: `refunded_at`, `deleted_at`, `last_activity_at`, `last_activity_preview`, status `cancelled`; `order_activity` new action types.
+
+Each migration is safe to run once (uses `IF NOT EXISTS` / `DROP IF EXISTS` where needed).
+
+---
+
 ## Summary
 
 - **Planned and implemented:** One order row = one customer + one address + that order’s print image(s). No extra “image → user” table.
-- **What you do:** Run **`supabase/full-setup.sql`** once in the SQL Editor. After that, Supabase is fully set up for the current app and roadmap; you only need to keep env vars (and optional future migrations) in sync.
+- **What you do:** Run **`supabase/full-setup.sql`** once in the SQL Editor. For admin and full order management, then run **`20260221_factory_ops.sql`** and **`20260222_order_management_full.sql`** in that order (see Migrations above). Keep env vars in sync.

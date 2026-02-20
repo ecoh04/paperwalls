@@ -6,7 +6,8 @@ export type OrderStatus =
   | "new"
   | "in_production"
   | "shipped"
-  | "delivered";
+  | "delivered"
+  | "cancelled";
 
 /**
  * Wallpaper finish (affects price).

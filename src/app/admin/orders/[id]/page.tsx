@@ -16,6 +16,8 @@ import {
   assignOrderFactory,
   addOrderNote,
 } from "@/app/admin/orders/actions";
+import { OrderEditForm } from "@/components/admin/OrderEditForm";
+import { OrderActionButtons } from "@/components/admin/OrderActionButtons";
 import type { OrderStatus, WallpaperStyle, ApplicationMethod, ShippingProvince } from "@/types/order";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +52,8 @@ type Row = {
   delivered_at: string | null;
   created_at: string;
   updated_at: string;
+  refunded_at: string | null;
+  deleted_at: string | null;
   factories: { code: string; name: string } | null;
 };
 
@@ -77,6 +81,20 @@ function formatActivity(action: string, oldVal: string | null, newVal: string | 
       return `Factory: ${oldVal ?? "Unassigned"} → ${newVal ?? "Unassigned"}`;
     case "note":
       return newVal ?? "";
+    case "address_edit":
+    case "customer_edit":
+    case "spec_edit":
+      return `Updated: ${newVal ?? ""}`;
+    case "print_file_replaced":
+      return newVal ?? "Print file replaced";
+    case "cancelled":
+      return `Cancelled${newVal ? `: ${newVal}` : ""}`;
+    case "archived":
+      return "Archived";
+    case "restored":
+      return "Restored";
+    case "refunded":
+      return "Marked refunded";
     default:
       return newVal ?? "";
   }
@@ -153,9 +171,15 @@ export default async function AdminOrderDetailPage({
           )}
           <div className="flex items-center gap-2">
             <span className="text-sm text-stone-500">Status</span>
-            {status === "pending" ? (
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800">
-                {ORDER_STATUS_LABELS.pending}
+            {status === "pending" || status === "cancelled" ? (
+              <span
+                className={
+                  status === "cancelled"
+                    ? "rounded-full bg-stone-200 px-3 py-1 text-sm font-medium text-stone-700"
+                    : "rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800"
+                }
+              >
+                {ORDER_STATUS_LABELS[status]}
               </span>
             ) : (
               <OrderStatusSelect
@@ -167,6 +191,38 @@ export default async function AdminOrderDetailPage({
           </div>
         </div>
       </div>
+
+      <div className="flex flex-wrap gap-2">
+        <OrderActionButtons
+          orderId={id}
+          status={status}
+          refundedAt={row.refunded_at ?? null}
+          deletedAt={row.deleted_at ?? null}
+          wallCount={row.wall_count}
+          isAdmin={!!isAdmin}
+        />
+      </div>
+
+      <OrderEditForm
+        orderId={id}
+        initial={{
+          customer_name: row.customer_name,
+          customer_email: row.customer_email,
+          customer_phone: row.customer_phone,
+          address_line1: row.address_line1,
+          address_line2: row.address_line2,
+          city: row.city,
+          province: row.province,
+          postal_code: row.postal_code,
+          wall_width_m: Number(row.wall_width_m),
+          wall_height_m: Number(row.wall_height_m),
+          wall_count: row.wall_count,
+          total_sqm: Number(row.total_sqm),
+          wallpaper_style: row.wallpaper_style,
+          application_method: row.application_method,
+          walls_spec: row.walls_spec ?? null,
+        }}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-xl border-2 border-amber-200 bg-amber-50/50 p-6">

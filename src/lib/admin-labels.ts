@@ -6,6 +6,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   in_production: "In production",
   shipped: "Shipped",
   delivered: "Delivered",
+  cancelled: "Cancelled",
 };
 
 export const STYLE_LABELS: Record<WallpaperStyle, string> = {
