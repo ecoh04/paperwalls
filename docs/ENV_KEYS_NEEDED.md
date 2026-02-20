@@ -36,11 +36,24 @@ Use the **anon public** key only (not the service_role key) for the app.
 
 ---
 
-## 3. Your site URL (redirects)
+## 3. Factory admin (optional)
+
+**Where:** Set in Vercel (or `.env.local`) if you use the factory dashboard at `/admin`.
+
+| Env variable | What to paste | Notes |
+|--------------|----------------|--------|
+| `ADMIN_PASSWORD` | Password factory staff enter to sign in. | Keep strong; only for trusted users. |
+| `ADMIN_SECRET` | A long random string (e.g. `openssl rand -hex 32`). | Used as the session cookie value; never share. |
+
+Without these, `/admin` redirects to `/admin/login` but login will fail (503). Set both for the factory to access orders.
+
+---
+
+## 4. Your site URL (redirects)
 
 | Env variable | What to paste | Example (local) | Example (live) |
 |--------------|----------------|------------------|----------------|
-| `NEXT_PUBLIC_APP_URL` | The URL where your app is reachable (no trailing slash). | `http://localhost:3000` | `https://paperwalls.co.za` |
+| `NEXT_PUBLIC_APP_URL` | The URL where your app is reachable (no trailing slash). | `http://localhost:3000` | `https://paperwalls.vercel.app` |
 
 Used for: “Proceed to payment” redirect and “Back to your site” / success URL after payment.
 
@@ -62,6 +75,10 @@ STITCH_CLIENT_SECRET=
 
 # Your site URL (no trailing slash)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Factory admin (optional): password for /admin login and a random secret for the session cookie
+# ADMIN_PASSWORD=your-secure-password
+# ADMIN_SECRET=run: openssl rand -hex 32
 ```
 
 **Example filled in (fake values):**

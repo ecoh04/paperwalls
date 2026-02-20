@@ -31,6 +31,8 @@ Run the app on your machine with `npm run dev`. Use `.env.local` with:
 
 Stitch: if you leave `STITCH_API_URL` / `STITCH_CLIENT_SECRET` empty in `.env.local`, checkout will skip payment and send you straight to the success page so you can test the rest of the flow.
 
+**Stitch test vs Stripe:** Stitch does not publish test card numbers like Stripe (e.g. 4242…). With a test Client ID you can create payment links and reach the “Select payment method” step. Completing an actual card payment in test usually requires either Stitch-provided test instructions (ask their support) or completing their card verification so you can use a real card in a test context. If “Pay by Card” fails, it’s often because the merchant isn’t yet verified for cards—contact Stitch support to confirm and to ask for test/sandbox card options.
+
 ---
 
 ## 3. Staging Supabase (optional)

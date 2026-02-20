@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "Design your custom wallpaper. Upload your image, enter dimensions, choose your style. Printed in South Africa.",
 };
 
+import { RootLayoutClient } from "@/components/RootLayoutClient";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -17,11 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col bg-white text-stone-900 antialiased">
-        <Header />
-        <main className="flex-1">
-          <CartProvider>{children}</CartProvider>
-        </main>
-        <Footer />
+        <RootLayoutClient>{children}</RootLayoutClient>
       </body>
     </html>
   );

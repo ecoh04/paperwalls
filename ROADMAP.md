@@ -11,12 +11,12 @@ Evaluation and phased next steps for the consumer front-end, factory ops, and an
 | **Site & content** | Home, Shop, Custom wallpaper, About, FAQ, Contact, Shipping, Returns, Privacy, Terms, 404 |
 | **Configurator** | Dimensions (1–4 walls, same/different), image upload, preview & crop (frame = print area), style, installation, live pricing |
 | **Cart** | CartProvider, localStorage, items with cropped image(s), “Proceed to checkout” |
-| **Checkout** | Placeholder page only – no form, no payment, no order creation |
-| **Data** | Supabase client wired; `orders` table in schema; no Stitch Express yet; no image upload (R2/Supabase Storage) |
-| **Admin / factory** | None |
+| **Checkout** | Full flow: address form, province-based shipping (ZAR), Stitch Express payment (ZAR cents), image upload to Supabase Storage, order creation with `stitch_payment_id` and `image_urls`, success page, cart cleared. Webhook updates order status. |
+| **Data** | Supabase client; `orders` table with RLS; Stitch Express (token + payment-links); Supabase Storage for print images |
+| **Admin / factory** | Password-protected `/admin`: orders list (filter by status), order detail with print specs and download links, status workflow. See `docs/FACTORY_SOP.md`. |
 | **Analytics** | None |
 
-So: **consumer flow is complete up to “Proceed to checkout”.** The missing piece for an MVP front-end is a real checkout that collects details, takes payment, uploads the print image(s), and creates an order.
+So: **consumer flow is complete end-to-end.** Next is factory ops (admin dashboard) and optional analytics.
 
 ---
 
@@ -60,11 +60,11 @@ Goal: a customer can complete an order end-to-end (cart → checkout → payment
 
 ### 1.6 MVP “done” checklist (front-end)
 
-- [ ] Checkout form (address + summary).
-- [ ] Shipping calculation (fixed or by province).
-- [ ] Stitch Express payment in ZAR; order created/updated from webhook after success.
-- [ ] Upload print image(s) to storage; order stores URL(s).
-- [ ] Success page and cart cleared after payment.
+- [x] Checkout form (address + summary).
+- [x] Shipping calculation (fixed or by province).
+- [x] Stitch Express payment in ZAR; order created/updated from webhook after success.
+- [x] Upload print image(s) to storage; order stores URL(s).
+- [x] Success page and cart cleared after payment.
 
 **See also:** `docs/CHECKOUT_DEPLOY_AND_OPS.md` – data/tracking/security, one domain + logins, when to deploy to Vercel, how to make edits after go-live.
 
@@ -91,11 +91,11 @@ Goal: ops/factory can see orders, update status, and use the same print assets y
 - **Show:** Full address, dimensions, style, application, image URL(s), Stitch payment id, timestamps.
 - **Print specs:** Clear display of wall size(s), finish, and **link/button to open or download the print file** (the image URL from checkout). Factory uses this exact asset to print.
 
-### 2.4 Status workflow
+### 2.4 Status workflow ✅
 
-- **Actions:** Buttons or dropdown to set status: `new` → `in_production` → `shipped` → `delivered`.
-- **Persistence:** Update `orders` in Supabase; optional `updated_at` (you already have a trigger in schema).
-- **Optional:** Simple “notes” or “internal ref” field on the order for factory use (add column if needed).
+- **Actions:** Dropdown on order detail to set status: `new` → `in_production` → `shipped` → `delivered`.
+- **Persistence:** PATCH `/api/admin/orders/[id]` updates `orders` in Supabase; `updated_at` auto-updates via trigger.
+- **SOP:** See `docs/FACTORY_SOP.md` for factory staff instructions.
 
 ### 2.5 Optional: email to factory
 
@@ -129,10 +129,10 @@ Goal: understand business and product performance (not just “did the site load
 
 ## Summary: what’s next
 
-| Phase | Next step |
-|-------|-----------|
-| **1 – MVP front-end** | Implement checkout: form, shipping, Stitch Express (ZAR), image upload to storage, order creation, success page. |
-| **2 – Factory ops** | Add `/admin` (password or auth), orders list, order detail with print URL(s), status updates. |
-| **3 – Analytics** | Add `/admin/analytics` using `orders`: revenue, order count, optional breakdowns. |
+| Phase | Status | Next step |
+|-------|--------|-----------|
+| **1 – MVP front-end** | Done | Checkout is live (form, shipping, Stitch, upload, orders, success). |
+| **2 – Factory ops** | Done | `/admin` (password + cookie), orders list with status filter, order detail with print specs + download links, status dropdown. See `docs/FACTORY_SOP.md`. |
+| **3 – Analytics** | Later | Add `/admin/analytics` using `orders`: revenue, order count, optional breakdowns. |
 
-Dependencies: Phase 2 and 3 assume Phase 1 is in place (orders exist in DB and have `image_url` and payment id). You can build the admin UI to read “test” orders before go-live if you seed the DB manually.
+Phase 2 and 3 use the existing `orders` data (image_url, image_urls, stitch_payment_id). You can build the admin UI against current orders now.
