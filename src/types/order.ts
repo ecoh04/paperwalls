@@ -77,8 +77,8 @@ export interface Order {
   total_cents: number;
 
   status: OrderStatus;
-  /** Stitch Express payment/transaction id (stored in stripe_payment_id column). */
-  stripe_payment_id: string | null;
+  /** Stitch Express payment/transaction id. */
+  stitch_payment_id: string | null;
 
   /** Per-wall dimensions when wall_count > 1 and walls differ. */
   walls_spec?: { widthM: number; heightM: number }[];

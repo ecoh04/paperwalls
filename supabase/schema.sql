@@ -32,7 +32,7 @@ create table if not exists orders (
   total_cents bigint not null,
 
   status text not null default 'pending' check (status in ('pending', 'new', 'in_production', 'shipped', 'delivered')),
-  stripe_payment_id text,
+  stitch_payment_id text,
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

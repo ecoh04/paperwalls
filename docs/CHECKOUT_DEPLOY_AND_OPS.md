@@ -19,7 +19,7 @@ This doc covers: (1) data/tracking/security, (2) one domain + logins, (3) when t
 
 - **Server-side (recommended for “truth”):** When an order is created or status changes, you already have that in the DB. Use the same DB for analytics (e.g. `/admin/analytics` reading from `orders`). Optionally emit a **server-side event** (e.g. to PostHog, Mixpanel, or a small internal log) on order creation so you have a clean event stream without relying on the client.
 - **Client-side (optional):** If you add marketing/UX analytics (e.g. “reached checkout”, “payment started”), use a single place (e.g. one script or one provider), respect consent (e.g. cookie banner), and keep event names and payloads consistent (e.g. `order_created` with `order_number`, `total_cents`).
-- **Payment:** Rely on **Stitch webhooks** for payment confirmation, not only on the client redirect. Store the Stitch payment/transaction id on the order (e.g. in the existing `stripe_payment_id` column or a new `stitch_payment_id` column) so you have a clear audit trail.
+- **Payment:** Rely on **Stitch webhooks** for payment confirmation, not only on the client redirect. Store the Stitch payment/transaction id on the order in `stitch_payment_id` so you have a clear audit trail.
 
 ### Security
 
@@ -107,7 +107,7 @@ So: **making small edits is easy: edit in Cursor, commit, push; Vercel handles t
 - **Flow for our checkout:**  
   1. **Server:** Create a payment (or payment request) via Stitch API in ZAR; get a payment URL (and optionally payment/transaction id).  
   2. **Client:** Redirect the customer to that URL to pay (Stitch hosts the payment UI).  
-  3. **Webhook:** Stitch sends payment outcome to your HTTPS endpoint (they use Svix). Your handler verifies the signature, then creates/updates the order in Supabase (status, `stripe_payment_id` → we’ll name it `stitch_payment_id` or similar in schema).  
+  3. **Webhook:** Stitch sends payment outcome to your HTTPS endpoint (they use Svix). Your handler verifies the signature, then creates/updates the order in Supabase (status, `stitch_payment_id`).  
   4. **Redirect:** After payment, Stitch redirects the user back to your success URL (e.g. `/checkout/success?order=PW-...`). Optionally show “We’ve received your payment” and order number; the webhook is the source of truth for “paid”.
 
 - **Security:** Store Stitch API keys in env; only server-side. Verify webhook signatures before updating orders.

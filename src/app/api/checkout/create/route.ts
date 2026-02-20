@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       shipping_cents: number;
       total_cents: number;
       status: string;
-      stripe_payment_id: string | null;
+      stitch_payment_id: string | null;
     }[] = [];
 
     for (let i = 0; i < cart.length; i++) {
@@ -144,7 +144,7 @@ export async function POST(request: Request) {
         shipping_cents: itemShipping,
         total_cents: totalCents,
         status: "pending",
-        stripe_payment_id: null,
+        stitch_payment_id: null,
       });
     }
 
@@ -158,8 +158,9 @@ export async function POST(request: Request) {
 
     if (insertError) {
       console.error("Orders insert error:", insertError);
+      const message = insertError.message ?? "Failed to create order. Please try again.";
       return NextResponse.json(
-        { error: "Failed to create order. Please try again." },
+        { error: message.includes("row-level security") ? "Database permission error. Check Supabase RLS policies on orders." : "Failed to create order. Please try again." },
         { status: 500 }
       );
     }

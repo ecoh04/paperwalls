@@ -2,10 +2,12 @@
 
 To go live with the full checkout flow (Stitch Express + Supabase):
 
-## 1. Database
+## 1. Database and storage (Supabase)
 
-- **New project:** Run `supabase/schema.sql` in Supabase SQL Editor (creates `orders` with `pending`, `image_urls`, `walls_spec`).
-- **Existing project:** Run `supabase/migrations/20260216_checkout.sql` to add `pending` status and `image_urls`, `walls_spec` columns.
+**Recommended:** Run **`supabase/full-setup.sql`** once in Supabase → SQL Editor. It creates the `orders` table (with all columns), RLS policies, the `print-files` bucket, and storage policies. See **`docs/SUPABASE_FULL_SETUP.md`** for the full walkthrough.
+
+- **New project:** Running `full-setup.sql` is enough.
+- **Existing project:** Running `full-setup.sql` adds any missing columns and policies (safe to run again).
 
 ## 2. Storage bucket (print images)
 

@@ -19,7 +19,7 @@ export default function PrivacyPage() {
           with you, and improve our service. We do not sell your data to third parties.
         </p>
         <p>
-          Payment is processed by Stripe; their privacy policy applies to payment data. We store 
+          Payment is processed by Stitch Express; their privacy policy applies to payment data. We store 
           order details and image references in our systems to produce and ship your wallpaper 
           and for support and legal record-keeping.
         </p>

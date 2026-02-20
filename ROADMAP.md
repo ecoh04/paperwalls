@@ -88,7 +88,7 @@ Goal: ops/factory can see orders, update status, and use the same print assets y
 ### 2.3 Order detail and print specs
 
 - **Route:** e.g. `/admin/orders/[id]`.
-- **Show:** Full address, dimensions, style, application, image URL(s), Stripe payment id, timestamps.
+- **Show:** Full address, dimensions, style, application, image URL(s), Stitch payment id, timestamps.
 - **Print specs:** Clear display of wall size(s), finish, and **link/button to open or download the print file** (the image URL from checkout). Factory uses this exact asset to print.
 
 ### 2.4 Status workflow
@@ -131,7 +131,7 @@ Goal: understand business and product performance (not just “did the site load
 
 | Phase | Next step |
 |-------|-----------|
-| **1 – MVP front-end** | Implement checkout: form, shipping, Stripe (ZAR), image upload to storage, order creation, success page. |
+| **1 – MVP front-end** | Implement checkout: form, shipping, Stitch Express (ZAR), image upload to storage, order creation, success page. |
 | **2 – Factory ops** | Add `/admin` (password or auth), orders list, order detail with print URL(s), status updates. |
 | **3 – Analytics** | Add `/admin/analytics` using `orders`: revenue, order count, optional breakdowns. |
 

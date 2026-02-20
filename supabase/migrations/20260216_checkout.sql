@@ -15,4 +15,4 @@ alter table orders add column if not exists image_urls jsonb default '[]';
 -- Add walls_spec (per-wall dimensions when different)
 alter table orders add column if not exists walls_spec jsonb;
 
--- Comment: stripe_payment_id is used to store Stitch Express payment/transaction id.
+-- Use stitch_payment_id column for Stitch Express payment/transaction id.

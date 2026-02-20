@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       .from("orders")
       .update({
         status: "new",
-        stripe_payment_id: paymentId ?? null,
+        stitch_payment_id: paymentId ?? null,
       })
       .in("order_number", orderNumbers);
 
