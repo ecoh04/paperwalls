@@ -169,6 +169,9 @@ export async function POST(request: Request) {
       amountCents: totalPaymentCents,
       orderNumbers,
       reference: orderNumbers[0],
+      payerName: a.customer_name.trim(),
+      payerEmailAddress: a.customer_email.trim(),
+      payerPhoneNumber: a.customer_phone.trim(),
     });
 
     return NextResponse.json({ redirectUrl, orderNumbers });

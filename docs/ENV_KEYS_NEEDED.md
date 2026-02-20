@@ -19,24 +19,18 @@ Use the **anon public** key only (not the service_role key) for the app.
 
 ## 2. Stitch Express (payments)
 
-**Where:** Stitch Express dashboard / developer or API section.  
-If you don’t have these yet, use their docs or support to get:
+**Where:** Stitch dashboard → **API Details** (the section with Client ID and Client Secret).
 
-- The **base URL** for the API (e.g. `https://api.express.stitch.money` or whatever they give you).
-- An **API key** or **secret key** for creating payments (server-side only).
+| Env variable | What to paste | Where to get it |
+|--------------|----------------|------------------|
+| `STITCH_API_BASE_URL` | Stitch API base URL **with no trailing slash**. | Use **`https://express.stitch.money`** (same origin as the API docs). |
+| `STITCH_CLIENT_ID` | Your **Client ID**. | Copy from Stitch → API Details (e.g. `test-e1a603b6-0115-4538-a347-c03f101c0e46`). |
+| `STITCH_CLIENT_SECRET` | Your **Client Secret**. | In API Details click **View Client Secret**, then copy the value. |
 
-| Env variable | What to paste | Example |
-|--------------|----------------|---------|
-| `STITCH_API_URL` | Full URL of the endpoint that **creates a payment** (e.g. “Create payment” or “Payment request”). Include path, no trailing slash. | `https://api.express.stitch.money/v1/payments` (replace with Stitch’s real URL) |
-| `STITCH_API_KEY` | Your Stitch **API key** or **secret** (the one used in the `Authorization` header). | `sk_live_...` or whatever format Stitch uses |
+**In Stitch you also need to:**
 
-If you’re not sure of the exact URL or key name, send me:
-
-- The **exact API base URL** (e.g. `https://...`).
-- The **exact endpoint path** for “create payment” (e.g. `/v1/payment-requests`).
-- The **key value** and how they say to send it (e.g. “Bearer token” or “X-API-Key: …”).
-
-I can then tell you the exact `STITCH_API_URL` and `STITCH_API_KEY` values to put in `.env.local` and adjust the code if their request/response format differs.
+- **Redirect URLs:** Add your success URL, e.g. `https://paperwalls.vercel.app/checkout/success` (and optionally cancel: `https://paperwalls.vercel.app/checkout`).
+- **Webhooks:** Click **Configure webhooks** and set the webhook URL to `https://paperwalls.vercel.app/api/webhooks/stitch`.
 
 ---
 
@@ -59,9 +53,10 @@ Create or edit `.env.local` in the project root and paste the block below. Repla
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
-# Stitch Express (from Stitch dashboard / API docs)
-STITCH_API_URL=
-STITCH_API_KEY=
+# Stitch Express (from Stitch → API Details). Base URL = https://express.stitch.money
+STITCH_API_BASE_URL=https://express.stitch.money
+STITCH_CLIENT_ID=
+STITCH_CLIENT_SECRET=
 
 # Your site URL (no trailing slash)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -72,9 +67,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xyzcompany.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5emNvbXBhbnkiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MDAwMDAwMCwiZXhwIjoxOTU1NTU1NTU1fQ.xxx
-STITCH_API_URL=https://api.express.stitch.money/v1/payments
-STITCH_API_KEY=sk_live_abc123
-NEXT_PUBLIC_APP_URL=https://paperwalls.co.za
+STITCH_API_BASE_URL=https://express.stitch.money
+STITCH_CLIENT_ID=test-xxxx
+STITCH_CLIENT_SECRET=your-secret-from-view-button
+NEXT_PUBLIC_APP_URL=https://paperwalls.vercel.app
 ```
 
 ---
@@ -92,8 +88,4 @@ NEXT_PUBLIC_APP_URL=https://paperwalls.co.za
 
 1. Restart the dev server: `npm run dev`.
 2. Ensure the Supabase **print-files** bucket exists (see `docs/CHECKOUT_SETUP.md`).
-3. In Stitch, set the **webhook URL** to:  
-   `https://YOUR_DOMAIN/api/webhooks/stitch`  
-   (use your real `NEXT_PUBLIC_APP_URL` + `/api/webhooks/stitch`).
-
-If you send me the exact Stitch “create payment” URL and how they want the key (e.g. header name and value format), I can confirm the exact `STITCH_API_URL` and `STITCH_API_KEY` format and adjust the code if needed.
+3. In Stitch: add **Redirect URL** `https://paperwalls.vercel.app/checkout/success`, and set **webhook** to `https://paperwalls.vercel.app/api/webhooks/stitch`.
