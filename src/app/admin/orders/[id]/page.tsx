@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 import {
   ORDER_STATUS_LABELS,
   STYLE_LABELS,
@@ -9,6 +9,13 @@ import {
   formatZarCents,
 } from "@/lib/admin-labels";
 import { OrderStatusSelect } from "@/components/admin/OrderStatusSelect";
+import { OrderFactorySelect } from "@/components/admin/OrderFactorySelect";
+import { OrderNoteForm } from "@/components/admin/OrderNoteForm";
+import {
+  updateOrderStatus,
+  assignOrderFactory,
+  addOrderNote,
+} from "@/app/admin/orders/actions";
 import type { OrderStatus, WallpaperStyle, ApplicationMethod, ShippingProvince } from "@/types/order";
 
 export const dynamic = "force-dynamic";
@@ -38,8 +45,21 @@ type Row = {
   total_cents: number;
   status: string;
   stitch_payment_id: string | null;
+  assigned_factory_id: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
   created_at: string;
   updated_at: string;
+  factories: { code: string; name: string } | null;
+};
+
+type ActivityRow = {
+  id: string;
+  action: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: string;
+  profiles: { full_name: string | null; email: string } | { full_name: string | null; email: string }[] | null;
 };
 
 function parseImageUrls(urls: unknown): string[] {
@@ -49,24 +69,30 @@ function parseImageUrls(urls: unknown): string[] {
   return [];
 }
 
+function formatActivity(action: string, oldVal: string | null, newVal: string | null): string {
+  switch (action) {
+    case "status_change":
+      return `Status: ${oldVal ?? "—"} → ${newVal ?? "—"}`;
+    case "assigned":
+      return `Factory: ${oldVal ?? "Unassigned"} → ${newVal ?? "Unassigned"}`;
+    case "note":
+      return newVal ?? "";
+    default:
+      return newVal ?? "";
+  }
+}
+
 export default async function AdminOrderDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-
-  if (!supabase) {
-    return (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-800">
-        <p className="font-medium">Database not configured.</p>
-      </div>
-    );
-  }
+  const supabase = await createClient();
 
   const { data: order, error } = await supabase
     .from("orders")
-    .select("*")
+    .select("*, factories(code, name)")
     .eq("id", id)
     .single();
 
@@ -74,11 +100,30 @@ export default async function AdminOrderDetailPage({
     notFound();
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .single();
+  const isAdmin = profile?.role === "admin";
+
+  const { data: factories } = isAdmin
+    ? await supabase.from("factories").select("id, code, name").order("code")
+    : { data: [] };
+
+  const { data: activity } = await supabase
+    .from("order_activity")
+    .select("id, action, old_value, new_value, created_at, profiles(full_name, email)")
+    .eq("order_id", id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
   const row = order as Row;
   const imageUrls = parseImageUrls(row.image_urls);
   const urls = imageUrls.length > 0 ? imageUrls : [row.image_url];
   const status = (row.status ?? "new") as OrderStatus;
   const provinceLabel = PROVINCE_LABELS[(row.province as ShippingProvince) ?? "other"] ?? row.province;
+  const activityList = ((activity ?? []) as unknown) as ActivityRow[];
 
   return (
     <div className="space-y-8">
@@ -94,20 +139,36 @@ export default async function AdminOrderDetailPage({
             {row.order_number}
           </h1>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-stone-500">Status</span>
-          {status === "pending" ? (
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800">
-              {ORDER_STATUS_LABELS.pending}
-            </span>
-          ) : (
-            <OrderStatusSelect orderId={id} currentStatus={status} />
+        <div className="flex flex-wrap items-center gap-4">
+          {isAdmin && factories && factories.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-stone-500">Factory</span>
+              <OrderFactorySelect
+                orderId={id}
+                currentFactoryId={row.assigned_factory_id}
+                factories={factories}
+                assignFactory={assignOrderFactory}
+              />
+            </div>
           )}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-stone-500">Status</span>
+            {status === "pending" ? (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800">
+                {ORDER_STATUS_LABELS.pending}
+              </span>
+            ) : (
+              <OrderStatusSelect
+                orderId={id}
+                currentStatus={status}
+                updateStatus={updateOrderStatus}
+              />
+            )}
+          </div>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Print specs – primary for factory */}
         <section className="rounded-xl border-2 border-amber-200 bg-amber-50/50 p-6">
           <h2 className="text-lg font-semibold text-stone-900">Print specs</h2>
           <dl className="mt-4 space-y-3">
@@ -142,7 +203,6 @@ export default async function AdminOrderDetailPage({
               </dd>
             </div>
           </dl>
-
           <div className="mt-6">
             <h3 className="text-sm font-semibold text-stone-700">Print files</h3>
             <p className="mt-1 text-xs text-stone-500">
@@ -168,7 +228,6 @@ export default async function AdminOrderDetailPage({
           </div>
         </section>
 
-        {/* Customer & address */}
         <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-stone-900">Customer & delivery</h2>
           <dl className="mt-4 space-y-3">
@@ -205,10 +264,9 @@ export default async function AdminOrderDetailPage({
         </section>
       </div>
 
-      {/* Totals & meta */}
       <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-stone-900">Order totals</h2>
-        <dl className="mt-4 grid gap-2 sm:grid-cols-3">
+        <h2 className="text-lg font-semibold text-stone-900">Order totals & dates</h2>
+        <dl className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <dt className="text-xs text-stone-500">Subtotal</dt>
             <dd className="font-medium text-stone-900">{formatZarCents(Number(row.subtotal_cents))}</dd>
@@ -221,14 +279,74 @@ export default async function AdminOrderDetailPage({
             <dt className="text-xs text-stone-500">Total</dt>
             <dd className="font-semibold text-stone-900">{formatZarCents(Number(row.total_cents))}</dd>
           </div>
+          <div>
+            <dt className="text-xs text-stone-500">Payment ID</dt>
+            <dd className="font-mono text-xs text-stone-600">{row.stitch_payment_id ?? "—"}</dd>
+          </div>
         </dl>
-        <div className="mt-4 flex flex-wrap gap-4 border-t border-stone-200 pt-4 text-sm text-stone-500">
-          <span>Created {new Date(row.created_at).toLocaleString("en-ZA")}</span>
-          <span>Updated {new Date(row.updated_at).toLocaleString("en-ZA")}</span>
-          {row.stitch_payment_id && (
-            <span className="font-mono">Payment: {row.stitch_payment_id}</span>
-          )}
+        <div className="mt-4 grid gap-2 border-t border-stone-200 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <span className="text-stone-500">Created</span>
+            <span className="ml-2 font-medium text-stone-900">
+              {new Date(row.created_at).toLocaleString("en-ZA")}
+            </span>
+          </div>
+          <div>
+            <span className="text-stone-500">Updated</span>
+            <span className="ml-2 font-medium text-stone-900">
+              {new Date(row.updated_at).toLocaleString("en-ZA")}
+            </span>
+          </div>
+          <div>
+            <span className="text-stone-500">Shipped</span>
+            <span className="ml-2 font-medium text-stone-900">
+              {row.shipped_at
+                ? new Date(row.shipped_at).toLocaleString("en-ZA")
+                : "—"}
+            </span>
+          </div>
+          <div>
+            <span className="text-stone-500">Delivered</span>
+            <span className="ml-2 font-medium text-stone-900">
+              {row.delivered_at
+                ? new Date(row.delivered_at).toLocaleString("en-ZA")
+                : "—"}
+            </span>
+          </div>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-stone-900">Activity log</h2>
+        <p className="mt-1 text-sm text-stone-500">
+          Status changes, factory assignments, and notes. Newest first.
+        </p>
+        <div className="mt-4">
+          <OrderNoteForm orderId={id} addNote={addOrderNote} />
+        </div>
+        <ul className="mt-6 space-y-3">
+          {activityList.length === 0 ? (
+            <li className="text-sm text-stone-500">No activity yet.</li>
+          ) : (
+            activityList.map((a) => (
+              <li
+                key={a.id}
+                className="flex flex-col gap-0.5 border-l-2 border-stone-200 pl-4 py-1"
+              >
+                <span className="text-sm font-medium text-stone-900">
+                  {formatActivity(a.action, a.old_value, a.new_value)}
+                </span>
+                <span className="text-xs text-stone-500">
+                  {(Array.isArray(a.profiles) ? a.profiles[0] : a.profiles)?.full_name ||
+                    (Array.isArray(a.profiles) ? a.profiles[0] : a.profiles)?.email ||
+                    "Someone"}{" "}
+                  ·{" "}
+                  {new Date(a.created_at).toLocaleString("en-ZA")}
+                </span>
+              </li>
+            ))
+          )}
+        </ul>
       </section>
     </div>
   );

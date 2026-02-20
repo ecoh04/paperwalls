@@ -59,6 +59,29 @@ export async function POST(request: Request) {
     }
 
     const shippingCents = getShippingCents(a.province as ShippingProvince);
+
+    const PROVINCE_TO_FACTORY_CODE: Partial<Record<ShippingProvince, string>> = {
+      gauteng: "jhb",
+      limpopo: "jhb",
+      mpumalanga: "jhb",
+      north_west: "jhb",
+      free_state: "jhb",
+      western_cape: "cpt",
+      kwaZulu_natal: "kzn",
+      eastern_cape: "kzn",
+      northern_cape: "kzn",
+      other: "kzn",
+    };
+    let factoryIdByCode: Record<string, string> = {};
+    try {
+      const { data: factories } = await supabase.from("factories").select("id, code");
+      if (factories) {
+        factoryIdByCode = Object.fromEntries(factories.map((f) => [f.code, f.id]));
+      }
+    } catch {
+      // factories table or RLS may not exist yet; leave assigned_factory_id null
+    }
+
     const orderNumbers: string[] = [];
     const orderRows: {
       order_number: string;
@@ -84,6 +107,7 @@ export async function POST(request: Request) {
       total_cents: number;
       status: string;
       stitch_payment_id: string | null;
+      assigned_factory_id: string | null;
     }[] = [];
 
     for (let i = 0; i < cart.length; i++) {
@@ -145,6 +169,10 @@ export async function POST(request: Request) {
         total_cents: totalCents,
         status: "pending",
         stitch_payment_id: null,
+        assigned_factory_id: (() => {
+          const code = PROVINCE_TO_FACTORY_CODE[a.province as ShippingProvince];
+          return code ? (factoryIdByCode[code] ?? null) : null;
+        })(),
       });
     }
 

@@ -36,16 +36,9 @@ Use the **anon public** key only (not the service_role key) for the app.
 
 ---
 
-## 3. Factory admin (optional)
+## 3. Factory admin
 
-**Where:** Set in Vercel (or `.env.local`) if you use the factory dashboard at `/admin`.
-
-| Env variable | What to paste | Notes |
-|--------------|----------------|--------|
-| `ADMIN_PASSWORD` | Password factory staff enter to sign in. | Keep strong; only for trusted users. |
-| `ADMIN_SECRET` | A long random string (e.g. `openssl rand -hex 32`). | Used as the session cookie value; never share. |
-
-Without these, `/admin` redirects to `/admin/login` but login will fail (503). Set both for the factory to access orders.
+The factory dashboard at `/admin` uses **Supabase Auth** (same Supabase project). No extra env vars are needed. Create users in **Supabase Dashboard → Authentication → Users**, then set their **role** and **factory_id** in the **profiles** table. See **`docs/ADMIN_AND_USERS.md`** for step-by-step setup.
 
 ---
 
@@ -76,9 +69,7 @@ STITCH_CLIENT_SECRET=
 # Your site URL (no trailing slash)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# Factory admin (optional): password for /admin login and a random secret for the session cookie
-# ADMIN_PASSWORD=your-secure-password
-# ADMIN_SECRET=run: openssl rand -hex 32
+# Factory admin: uses Supabase Auth. See docs/ADMIN_AND_USERS.md for user setup.
 ```
 
 **Example filled in (fake values):**
