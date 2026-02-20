@@ -171,12 +171,14 @@ export default async function AdminOrderDetailPage({
           )}
           <div className="flex items-center gap-2">
             <span className="text-sm text-stone-500">Status</span>
-            {status === "pending" || status === "cancelled" ? (
+            {status === "pending" || status === "cancelled" || !isAdmin ? (
               <span
                 className={
                   status === "cancelled"
                     ? "rounded-full bg-stone-200 px-3 py-1 text-sm font-medium text-stone-700"
-                    : "rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800"
+                    : status === "pending"
+                      ? "rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800"
+                      : "rounded-full bg-stone-200 px-3 py-1 text-sm font-medium text-stone-700"
                 }
               >
                 {ORDER_STATUS_LABELS[status]}
@@ -203,6 +205,7 @@ export default async function AdminOrderDetailPage({
         />
       </div>
 
+      {isAdmin && (
       <OrderEditForm
         orderId={id}
         initial={{
@@ -223,6 +226,7 @@ export default async function AdminOrderDetailPage({
           walls_spec: row.walls_spec ?? null,
         }}
       />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-xl border-2 border-amber-200 bg-amber-50/50 p-6">

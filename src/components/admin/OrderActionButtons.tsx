@@ -79,7 +79,7 @@ export function OrderActionButtons({
         )
       ) : (
         <>
-          {canChange && (
+          {isAdmin && canChange && (
             <>
               <button
                 type="button"
@@ -99,66 +99,67 @@ export function OrderActionButtons({
                   Mark refunded
                 </button>
               )}
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={handleArchive}
-                  disabled={isPending}
-                  className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
-                >
-                  Archive
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleArchive}
+                disabled={isPending}
+                className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+              >
+                Archive
+              </button>
+              <span className="text-stone-300">|</span>
             </>
           )}
-          <span className="ml-2 text-stone-400">|</span>
-          <span className="inline-flex items-center gap-2">
-            {wallCount > 1 && (
-              <select
-                id={`replace-wall-${orderId}`}
-                className="rounded border border-stone-300 bg-white px-2 py-1.5 text-sm text-stone-700"
-                defaultValue={0}
-              >
-                {Array.from({ length: wallCount }, (_, i) => (
-                  <option key={i} value={i}>
-                    Wall {i + 1}
-                  </option>
-                ))}
-              </select>
-            )}
-            <label className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50">
-              Replace print file
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const wallIndex =
-                      wallCount > 1
-                        ? parseInt(
-                            (document.getElementById(`replace-wall-${orderId}`) as HTMLSelectElement)
-                              ?.value ?? "0",
-                            10
-                          )
-                        : 0;
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      const dataUrl = reader.result as string;
-                      startTransition(async () => {
-                        await replaceOrderPrintFile(orderId, dataUrl, wallIndex);
-                        router.refresh();
-                      });
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                  e.target.value = "";
-                }}
-                disabled={isPending}
-              />
-            </label>
-          </span>
+          {isAdmin && (
+            <span className="inline-flex items-center gap-2">
+              {wallCount > 1 && (
+                <select
+                  id={`replace-wall-${orderId}`}
+                  className="rounded border border-stone-300 bg-white px-2 py-1.5 text-sm text-stone-700"
+                  defaultValue={0}
+                >
+                  {Array.from({ length: wallCount }, (_, i) => (
+                    <option key={i} value={i}>
+                      Wall {i + 1}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <label className="cursor-pointer rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50">
+                Replace print file
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const wallIndex =
+                        wallCount > 1
+                          ? parseInt(
+                              (document.getElementById(`replace-wall-${orderId}`) as HTMLSelectElement)
+                                ?.value ?? "0",
+                              10
+                            )
+                          : 0;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const dataUrl = reader.result as string;
+                        startTransition(async () => {
+                          await replaceOrderPrintFile(orderId, dataUrl, wallIndex);
+                          router.refresh();
+                        });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                    e.target.value = "";
+                  }}
+                  disabled={isPending}
+                />
+              </label>
+              <span className="text-stone-300">|</span>
+            </span>
+          )}
           <Link
             href={`/admin/orders/${orderId}/print`}
             target="_blank"

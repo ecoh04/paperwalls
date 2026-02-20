@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { ORDER_STATUS_LABELS, formatZarCents } from "@/lib/admin-labels";
+import { ORDER_STATUS_LABELS } from "@/lib/admin-labels";
 import type { OrderStatus } from "@/types/order";
 import { OrdersTableWithBulk } from "@/components/admin/OrdersTableWithBulk";
+import { OrdersFiltersCollapse } from "@/components/admin/OrdersFiltersCollapse";
 
 export const dynamic = "force-dynamic";
 
@@ -151,85 +152,52 @@ export default async function AdminOrdersPage({
   }).toString()}`;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-stone-900">Orders</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          {isAdmin && (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Link href="/admin" className="text-sm font-medium text-stone-500 hover:text-stone-900">
+            ← Overview
+          </Link>
+          <h1 className="mt-0.5 text-2xl font-bold text-stone-900">Orders</h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Link
+            href={buildHref({ status: undefined })}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+              !validStatus ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+            }`}
+          >
+            All
+          </Link>
+          {(["new", "in_production", "shipped", "delivered", "pending", "cancelled"] as const).map((s) => (
             <Link
-              href={buildHref({ show_archived: showArchived ? undefined : "1" })}
-              className={`rounded-full px-4 py-2 text-sm font-medium ${
-                showArchived ? "bg-stone-900 text-white" : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50"
+              key={s}
+              href={buildHref({ status: s })}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                validStatus === s ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
               }`}
             >
-              Show archived
+              {ORDER_STATUS_LABELS[s]}
             </Link>
-          )}
-          {isAdmin && factories && (
-            <div className="flex flex-wrap gap-1 rounded-lg border border-stone-200 bg-white p-1">
-              <Link href={buildHref({ factory: undefined })} className={`rounded-md px-3 py-1.5 text-sm font-medium ${!factoryFilter ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-stone-100"}`}>
-                All
-              </Link>
-              <Link href={buildHref({ factory: "unassigned" })} className={`rounded-md px-3 py-1.5 text-sm font-medium ${factoryFilter === "unassigned" ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-stone-100"}`}>
-                Unassigned
-              </Link>
-              {factories.map((f) => (
-                <Link key={f.id} href={buildHref({ factory: f.id })} className={`rounded-md px-3 py-1.5 text-sm font-medium ${factoryFilter === f.id ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-stone-100"}`}>
-                  {f.name}
-                </Link>
-              ))}
-            </div>
-          )}
-          <div className="flex flex-wrap gap-2">
-            <Link href={buildHref({ status: undefined })} className={`rounded-full px-4 py-2 text-sm font-medium ${!validStatus ? "bg-stone-900 text-white" : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50"}`}>
-              All
-            </Link>
-            {(["new", "in_production", "shipped", "delivered", "pending", "cancelled"] as const).map((s) => (
-              <Link key={s} href={buildHref({ status: s })} className={`rounded-full px-4 py-2 text-sm font-medium ${validStatus === s ? "bg-stone-900 text-white" : "bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50"}`}>
-                {ORDER_STATUS_LABELS[s]}
-              </Link>
-            ))}
-          </div>
-          <a
-            href={exportHref}
-            className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
-          >
-            Export CSV
-          </a>
+          ))}
         </div>
       </div>
 
-      <form method="get" className="flex flex-wrap items-end gap-3 rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-        <input type="hidden" name="status" value={statusFilter ?? ""} />
-        <input type="hidden" name="factory" value={factoryFilter ?? ""} />
-        <input type="hidden" name="show_archived" value={showArchived ? "1" : ""} />
-        <div className="min-w-[180px]">
-          <label htmlFor="q" className="block text-xs font-medium text-stone-500">Search</label>
-          <input id="q" name="q" type="search" defaultValue={searchQ} placeholder="Order # or customer" className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label htmlFor="from" className="block text-xs font-medium text-stone-500">From</label>
-          <input id="from" name="from" type="date" defaultValue={fromDate ?? ""} className="mt-1 rounded-lg border border-stone-300 px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label htmlFor="to" className="block text-xs font-medium text-stone-500">To</label>
-          <input id="to" name="to" type="date" defaultValue={toDate ?? ""} className="mt-1 rounded-lg border border-stone-300 px-3 py-2 text-sm" />
-        </div>
-        <div>
-          <label htmlFor="sort" className="block text-xs font-medium text-stone-500">Sort</label>
-          <select id="sort" name="sort" defaultValue={sortBy} className="mt-1 rounded-lg border border-stone-300 px-3 py-2 text-sm">
-            <option value="created_desc">Newest first</option>
-            <option value="created_asc">Oldest first</option>
-            <option value="updated_desc">Recently updated</option>
-            <option value="updated_asc">Least recently updated</option>
-            <option value="total_desc">Total high → low</option>
-            <option value="status">Status</option>
-          </select>
-        </div>
-        <button type="submit" className="rounded-lg bg-stone-800 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700">
-          Apply
-        </button>
-      </form>
+      <OrdersFiltersCollapse
+        buildHref={buildHref}
+        validStatus={validStatus}
+        statusFilter={statusFilter}
+        factoryFilter={factoryFilter}
+        factories={factories?.map((f) => ({ id: f.id, name: f.name })) ?? []}
+        fromDate={fromDate}
+        toDate={toDate}
+        searchQ={searchQ}
+        sortBy={sortBy}
+        showArchived={showArchived}
+        refundedOnly={refundedOnly}
+        isAdmin={!!isAdmin}
+        exportHref={exportHref}
+      />
 
       <OrdersTableWithBulk
         orders={list as Parameters<typeof OrdersTableWithBulk>[0]["orders"]}

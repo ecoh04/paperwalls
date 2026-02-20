@@ -19,12 +19,25 @@ async function setLastActivity(
     .eq("id", orderId);
 }
 
-export async function updateOrderStatus(orderId: string, status: string) {
+/** Returns supabase + userId if current user is admin; otherwise { error }. */
+async function requireAdmin(): Promise<
+  | { supabase: Awaited<ReturnType<typeof createClient>>; userId: string }
+  | { error: string }
+> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") return { error: "Admin only" };
+  return { supabase, userId: user.id };
+}
+
+export async function updateOrderStatus(orderId: string, status: string) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
 
   if (!VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
     return { error: "Invalid status" };
@@ -54,7 +67,7 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: user.id,
+    user_id: userId,
     action: "status_change",
     old_value: order.status,
     new_value: status,
@@ -67,11 +80,9 @@ export async function updateOrderStatus(orderId: string, status: string) {
 }
 
 export async function assignOrderFactory(orderId: string, factoryId: string | null) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
 
   const { data: order } = await supabase
     .from("orders")
@@ -100,7 +111,7 @@ export async function assignOrderFactory(orderId: string, factoryId: string | nu
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: user.id,
+    user_id: userId,
     action: "assigned",
     old_value: oldName,
     new_value: newName,
@@ -162,11 +173,9 @@ export async function updateOrderDetails(
     walls_spec?: { widthM: number; heightM: number }[] | null;
   }
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
 
   const { data: order } = await supabase.from("orders").select("*").eq("id", orderId).single();
   if (!order) return { error: "Order not found" };
@@ -205,7 +214,7 @@ export async function updateOrderDetails(
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: user.id,
+    user_id: userId,
     action: actionType,
     new_value: JSON.stringify(Object.keys(allowed)),
   });
@@ -217,11 +226,9 @@ export async function updateOrderDetails(
 }
 
 export async function cancelOrder(orderId: string, reason?: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
 
   const { data: order } = await supabase.from("orders").select("status").eq("id", orderId).single();
   if (!order) return { error: "Order not found" };
@@ -234,7 +241,7 @@ export async function cancelOrder(orderId: string, reason?: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: user.id,
+    user_id: userId,
     action: "cancelled",
     old_value: order.status,
     new_value: reason ?? "Cancelled",
@@ -247,11 +254,9 @@ export async function cancelOrder(orderId: string, reason?: string) {
 }
 
 export async function markOrderRefunded(orderId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
 
   const { error: updateError } = await supabase
     .from("orders")
@@ -261,7 +266,7 @@ export async function markOrderRefunded(orderId: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: user.id,
+    user_id: userId,
     action: "refunded",
     new_value: "Refunded",
   });
@@ -273,11 +278,9 @@ export async function markOrderRefunded(orderId: string) {
 }
 
 export async function archiveOrder(orderId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
 
   const { error: updateError } = await supabase
     .from("orders")
@@ -287,7 +290,7 @@ export async function archiveOrder(orderId: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: user.id,
+    user_id: userId,
     action: "archived",
     new_value: "Archived",
   });
@@ -299,11 +302,9 @@ export async function archiveOrder(orderId: string) {
 }
 
 export async function restoreOrder(orderId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
 
   const { error: updateError } = await supabase
     .from("orders")
@@ -313,7 +314,7 @@ export async function restoreOrder(orderId: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: user.id,
+    user_id: userId,
     action: "restored",
     new_value: "Restored",
   });
@@ -329,11 +330,9 @@ export async function replaceOrderPrintFile(
   dataUrl: string,
   wallIndex: number
 ): Promise<{ ok?: true; error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
 
   const { data: order } = await supabase
     .from("orders")
@@ -365,7 +364,7 @@ export async function replaceOrderPrintFile(
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: user.id,
+    user_id: userId,
     action: "print_file_replaced",
     new_value: `Wall ${wallIndex + 1} replaced`,
   });
@@ -376,11 +375,8 @@ export async function replaceOrderPrintFile(
 }
 
 export async function bulkUpdateStatus(orderIds: string[], status: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
   if (!VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) return { error: "Invalid status" };
   for (const id of orderIds) {
     await updateOrderStatus(id, status);
@@ -390,11 +386,8 @@ export async function bulkUpdateStatus(orderIds: string[], status: string) {
 }
 
 export async function bulkAssignFactory(orderIds: string[], factoryId: string | null) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
   for (const id of orderIds) {
     await assignOrderFactory(id, factoryId);
   }
