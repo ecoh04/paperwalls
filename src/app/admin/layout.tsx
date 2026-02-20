@@ -26,18 +26,12 @@ export default async function AdminLayout({
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-6">
             <Link
-              href="/admin"
+              href="/admin/orders"
               className="text-lg font-semibold text-stone-900 hover:text-stone-700"
             >
               PaperWalls Factory
             </Link>
             <nav className="flex gap-4">
-              <Link
-                href="/admin"
-                className="text-sm font-medium text-stone-600 hover:text-stone-900"
-              >
-                Overview
-              </Link>
               <Link
                 href="/admin/orders"
                 className="text-sm font-medium text-stone-600 hover:text-stone-900"

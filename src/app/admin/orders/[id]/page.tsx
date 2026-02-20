@@ -118,10 +118,11 @@ export default async function AdminOrderDetailPage({
     notFound();
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
-    .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .eq("id", user?.id ?? "")
     .single();
   const isAdmin = profile?.role === "admin";
 
