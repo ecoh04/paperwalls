@@ -27,6 +27,8 @@ Use the **anon public** key only (not the service_role key) for the app.
 | `STITCH_CLIENT_ID` | Your **Client ID**. | Copy from Stitch → API Details (e.g. `test-e1a603b6-0115-4538-a347-c03f101c0e46`). |
 | `STITCH_CLIENT_SECRET` | Your **Client Secret**. | In API Details click **View Client Secret**, then copy the value. |
 
+**Test vs live:** Stitch uses the same API for test and live. Use **test** credentials (Client ID often starts with `test-`) from the Stitch dashboard for development; you can run test payments without full card verification. For live card payments, complete Stitch’s verification in the dashboard.
+
 **In Stitch you also need to:**
 
 - **Redirect URLs:** Add your success URL, e.g. `https://paperwalls.vercel.app/checkout/success` (and optionally cancel: `https://paperwalls.vercel.app/checkout`).

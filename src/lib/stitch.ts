@@ -82,7 +82,7 @@ export async function createStitchPayment(params: CreatePaymentParams): Promise<
     const url = `${STITCH_API_BASE_URL}/api/v1/payment-links`;
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const body: Record<string, unknown> = {
-      amount: amountCents / 100,
+      amount: amountCents, // Stitch expects ZAR cents (e.g. 145000 = R1,450)
       merchantReference: params.reference ?? orderNumbers[0],
       expiresAt,
       payerName: params.payerName ?? "Customer",
