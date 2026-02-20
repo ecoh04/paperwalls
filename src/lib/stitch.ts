@@ -106,10 +106,12 @@ export async function createStitchPayment(params: CreatePaymentParams): Promise<
       throw new Error(`Stitch payment-links error: ${res.status} ${text}`);
     }
 
-    const data = (await res.json()) as { link?: string };
-    const link = data.link;
+    const raw = (await res.json()) as Record<string, unknown>;
+    const payload = (typeof raw.data === "object" && raw.data !== null ? raw.data : raw) as Record<string, unknown>;
+    const payment = (typeof payload.payment === "object" && payload.payment !== null ? payload.payment : payload) as Record<string, unknown>;
+    const link = (payment.link ?? payload.link ?? payload.url ?? payload.paymentLink ?? payload.payment_link) as string | undefined;
     if (!link || typeof link !== "string") {
-      throw new Error("Stitch API did not return a link. Response: " + JSON.stringify(data));
+      throw new Error("Stitch API did not return a link. Response keys: " + Object.keys(raw).join(", "));
     }
     const separator = link.includes("?") ? "&" : "?";
     const redirectUrl = `${link}${separator}redirect_url=${encodeURIComponent(successUrl)}`;
