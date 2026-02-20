@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ORDER_STATUS_LABELS } from "@/lib/admin-labels";
 import type { OrderStatus } from "@/types/order";
 
-type SearchParams = {
+type Params = {
   status?: string;
   factory?: string;
   from?: string;
@@ -16,8 +16,22 @@ type SearchParams = {
   refunded?: string;
 };
 
+function buildHref(current: Params, overrides: Partial<Params>): string {
+  const p = { ...current, ...overrides };
+  const q = new URLSearchParams();
+  if (p.status) q.set("status", p.status);
+  if (p.factory) q.set("factory", p.factory);
+  if (p.from) q.set("from", p.from);
+  if (p.to) q.set("to", p.to);
+  if (p.q) q.set("q", p.q);
+  if (p.sort && p.sort !== "created_desc") q.set("sort", p.sort);
+  if (p.show_archived === "1") q.set("show_archived", "1");
+  if (p.refunded === "1") q.set("refunded", "1");
+  const s = q.toString();
+  return s ? `/admin/orders?${s}` : "/admin/orders";
+}
+
 type Props = {
-  buildHref: (overrides: Partial<SearchParams>) => string;
   validStatus: OrderStatus | null;
   statusFilter: string | undefined;
   factoryFilter: string | undefined;
@@ -33,7 +47,6 @@ type Props = {
 };
 
 export function OrdersFiltersCollapse({
-  buildHref,
   validStatus,
   statusFilter,
   factoryFilter,
@@ -48,6 +61,22 @@ export function OrdersFiltersCollapse({
   exportHref,
 }: Props) {
   const [open, setOpen] = useState(false);
+
+  const currentParams: Params = useMemo(
+    () => ({
+      status: statusFilter ?? undefined,
+      factory: factoryFilter ?? undefined,
+      from: fromDate ?? undefined,
+      to: toDate ?? undefined,
+      q: searchQ || undefined,
+      sort: sortBy !== "created_desc" ? sortBy : undefined,
+      show_archived: showArchived ? "1" : undefined,
+      refunded: refundedOnly ? "1" : undefined,
+    }),
+    [statusFilter, factoryFilter, fromDate, toDate, searchQ, sortBy, showArchived, refundedOnly]
+  );
+
+  const href = (overrides: Partial<Params>) => buildHref(currentParams, overrides);
 
   return (
     <div className="rounded-xl border border-stone-200 bg-white shadow-sm">
@@ -127,7 +156,7 @@ export function OrdersFiltersCollapse({
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-xs font-medium text-stone-500">Status</span>
               <Link
-                href={buildHref({ status: undefined })}
+                href={href({ status: undefined })}
                 className={`rounded-full px-3 py-1.5 text-xs font-medium ${
                   !validStatus ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                 }`}
@@ -137,7 +166,7 @@ export function OrdersFiltersCollapse({
               {(["new", "in_production", "shipped", "delivered", "pending", "cancelled"] as const).map((s) => (
                 <Link
                   key={s}
-                  href={buildHref({ status: s })}
+                  href={href({ status: s })}
                   className={`rounded-full px-3 py-1.5 text-xs font-medium ${
                     validStatus === s ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                   }`}
@@ -149,7 +178,7 @@ export function OrdersFiltersCollapse({
             {isAdmin && (
               <div className="flex flex-wrap items-center gap-3 border-t border-stone-200 pt-3">
                 <Link
-                  href={buildHref({ show_archived: showArchived ? undefined : "1" })}
+                  href={href({ show_archived: showArchived ? undefined : "1" })}
                   className={`rounded-full px-3 py-1.5 text-xs font-medium ${
                     showArchived ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                   }`}
@@ -160,7 +189,7 @@ export function OrdersFiltersCollapse({
                   <>
                     <span className="text-xs text-stone-400">Factory:</span>
                     <Link
-                      href={buildHref({ factory: undefined })}
+                      href={href({ factory: undefined })}
                       className={`rounded-full px-3 py-1.5 text-xs font-medium ${
                         !factoryFilter ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                       }`}
@@ -168,7 +197,7 @@ export function OrdersFiltersCollapse({
                       All
                     </Link>
                     <Link
-                      href={buildHref({ factory: "unassigned" })}
+                      href={href({ factory: "unassigned" })}
                       className={`rounded-full px-3 py-1.5 text-xs font-medium ${
                         factoryFilter === "unassigned" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                       }`}
@@ -178,7 +207,7 @@ export function OrdersFiltersCollapse({
                     {factories.map((f) => (
                       <Link
                         key={f.id}
-                        href={buildHref({ factory: f.id })}
+                        href={href({ factory: f.id })}
                         className={`rounded-full px-3 py-1.5 text-xs font-medium ${
                           factoryFilter === f.id ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                         }`}

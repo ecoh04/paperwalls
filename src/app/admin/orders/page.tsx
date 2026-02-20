@@ -239,7 +239,6 @@ export default async function AdminOrdersPage({
         </div>
 
         <OrdersFiltersCollapse
-          buildHref={buildHref}
           validStatus={validStatus}
           statusFilter={statusFilter}
           factoryFilter={factoryFilter}
