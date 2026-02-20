@@ -5,10 +5,14 @@
  * See https://express.stitch.money/api-docs
  */
 
-const STITCH_API_BASE_URL = (process.env.STITCH_API_BASE_URL ?? process.env.STITCH_API_URL ?? "").replace(/\/$/, "");
-const STITCH_CLIENT_ID = process.env.STITCH_CLIENT_ID ?? "";
-const STITCH_CLIENT_SECRET = process.env.STITCH_CLIENT_SECRET ?? process.env.STITCH_API_KEY ?? "";
-const NEXT_PUBLIC_APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+function env(key: string, fallback = ""): string {
+  const v = process.env[key] ?? fallback;
+  return typeof v === "string" ? v.trim() : "";
+}
+const STITCH_API_BASE_URL = (env("STITCH_API_BASE_URL") || env("STITCH_API_URL")).replace(/\/$/, "");
+const STITCH_CLIENT_ID = env("STITCH_CLIENT_ID");
+const STITCH_CLIENT_SECRET = env("STITCH_CLIENT_SECRET") || env("STITCH_API_KEY");
+const NEXT_PUBLIC_APP_URL = (env("NEXT_PUBLIC_APP_URL") || "http://localhost:3000").replace(/\/$/, "");
 
 export interface CreatePaymentParams {
   /** Total amount in ZAR cents. */
@@ -25,6 +29,15 @@ export interface CreatePaymentParams {
 
 /** Get a short-lived access token (Stitch uses 15min). */
 async function getStitchToken(): Promise<string> {
+  if (!STITCH_CLIENT_ID || !STITCH_CLIENT_SECRET) {
+    const missing = [
+      !STITCH_CLIENT_ID && "STITCH_CLIENT_ID",
+      !STITCH_CLIENT_SECRET && "STITCH_CLIENT_SECRET",
+    ].filter(Boolean);
+    throw new Error(
+      `Stitch env not set: ${missing.join(", ")}. In Vercel: Project → Settings → Environment Variables (exact names), then Redeploy.`
+    );
+  }
   const url = `${STITCH_API_BASE_URL}/api/v1/token`;
   const res = await fetch(url, {
     method: "POST",
@@ -38,10 +51,15 @@ async function getStitchToken(): Promise<string> {
     const text = await res.text();
     throw new Error(`Stitch token error: ${res.status} ${text}`);
   }
-  const data = (await res.json()) as { access_token?: string; token?: string };
-  const token = data.access_token ?? data.token;
+  const data = (await res.json()) as Record<string, unknown>;
+  const token =
+    (data.access_token as string) ??
+    (data.accessToken as string) ??
+    (data.token as string);
   if (!token || typeof token !== "string") {
-    throw new Error("Stitch token response missing access_token");
+    throw new Error(
+      `Stitch token response missing access_token. Response keys: ${Object.keys(data).join(", ") || "(none)"}`
+    );
   }
   return token;
 }
