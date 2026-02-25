@@ -20,6 +20,10 @@ const OVERFLOW_SCALE = 1.2;
 const FRAME_PCT = 100 / OVERFLOW_SCALE;
 const OVERFLOW_PCT = ((OVERFLOW_SCALE - 1) / 2 / OVERFLOW_SCALE) * 100;
 
+// Photowall-style rule: at least 1 pixel per millimetre of wallpaper.
+// 1 px / mm ≈ 25.4 dpi. We treat this as the minimum safe threshold.
+const MIN_PX_PER_MM = 1;
+
 /** Generate tick positions for a ruler (0 to max in m). */
 function rulerTicks(maxM: number): number[] {
   if (maxM <= 0) return [0];
@@ -32,6 +36,33 @@ function rulerTicks(maxM: number): number[] {
   }
   ticks.push(maxM);
   return ticks;
+}
+
+function describeQuality(
+  imgW: number,
+  imgH: number,
+  widthM: number,
+  heightM: number
+): {
+  pxPerMm: number;
+  maxWidthM: number;
+  maxHeightM: number;
+  level: "too_low" | "borderline" | "good";
+} {
+  const widthMm = widthM * 1000;
+  const heightMm = heightM * 1000;
+  const pxPerMmW = imgW / widthMm;
+  const pxPerMmH = imgH / heightMm;
+  const pxPerMm = Math.min(pxPerMmW, pxPerMmH);
+  const maxWidthM = imgW / MIN_PX_PER_MM / 1000;
+  const maxHeightM = imgH / MIN_PX_PER_MM / 1000;
+
+  let level: "too_low" | "borderline" | "good";
+  if (pxPerMm < MIN_PX_PER_MM * 0.7) level = "too_low";
+  else if (pxPerMm < MIN_PX_PER_MM * 1.1) level = "borderline";
+  else level = "good";
+
+  return { pxPerMm, maxWidthM, maxHeightM, level };
 }
 
 export function PreviewEditStep({
@@ -126,11 +157,30 @@ export function PreviewEditStep({
   const widthTicks = rulerTicks(widthM);
   const heightTicks = rulerTicks(heightM);
 
+  const quality =
+    imgSize && widthM > 0 && heightM > 0
+      ? describeQuality(imgSize.w, imgSize.h, widthM, heightM)
+      : null;
+
   return (
     <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
       <h2 className="text-lg font-semibold text-stone-900">3. Preview & adjust</h2>
       <p className="mt-2 text-sm text-stone-600">
         Drag to position and use the slider to zoom. The white frame is your exact print area.
+        {quality && (
+          <>
+            {" "}
+            Your image is{" "}
+            <span className="font-medium">
+              {imgSize!.w}×{imgSize!.h} px
+            </span>
+            , which gives about{" "}
+            <span className="font-medium">
+              {quality.pxPerMm.toFixed(2)} px/mm
+            </span>{" "}
+            at {widthM.toFixed(2)}×{heightM.toFixed(2)} m.
+          </>
+        )}
       </p>
 
       {/* Optional ruler + preview area */}
@@ -275,6 +325,20 @@ export function PreviewEditStep({
           className="mt-2 w-full accent-stone-800 h-3 touch-manipulation"
           aria-label="Zoom in or out"
         />
+        {quality && (
+          <p className="mt-3 text-xs text-stone-600">
+            {quality.level === "good" && "Quality looks good for this size."}
+            {quality.level === "borderline" &&
+              "Quality is on the edge for this size. Consider reducing the wall size a bit for a crisper print."}
+            {quality.level === "too_low" &&
+              "Image resolution is low for this size. We recommend using a higher-resolution file or reducing the wall size."}
+            {" Max recommended size at 1 px/mm is roughly "}
+            <span className="font-medium">
+              {quality.maxWidthM.toFixed(2)}×{quality.maxHeightM.toFixed(2)} m
+            </span>
+            .
+          </p>
+        )}
       </div>
     </section>
   );
