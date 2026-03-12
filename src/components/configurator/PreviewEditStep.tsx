@@ -203,6 +203,9 @@ export function PreviewEditStep({
       ? Math.max(frameSize.w / imgSize.w, frameSize.h / imgSize.h)
       : 1;
 
+  const widthCm = widthM * 100;
+  const heightCm = heightM * 100;
+
   const quality =
     imgSize && widthM > 0 && heightM > 0
       ? describeQuality(imgSize.w, imgSize.h, widthM, heightM)
