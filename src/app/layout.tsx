@@ -18,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col bg-white text-stone-900 antialiased">
+      <body className="min-h-screen flex flex-col bg-stone-950 text-stone-50 antialiased">
         <RootLayoutClient>{children}</RootLayoutClient>
       </body>
     </html>
