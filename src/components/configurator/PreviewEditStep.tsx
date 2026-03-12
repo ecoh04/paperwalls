@@ -229,44 +229,81 @@ export function PreviewEditStep({
         )}
       </p>
 
-      {/* Wall preview and crop area */}
+      {/* Wall preview and crop area – Photowall-style grey grid with centred wall */}
       <div className="mt-6 flex flex-col">
-        <div className="mx-auto w-full max-w-2xl">
+        <div className="mx-auto w-full max-w-4xl">
           <div
-            className="relative w-full bg-stone-200/90 rounded-lg"
-            style={{ aspectRatio: `${widthM} / ${heightM}` }}
+            className="relative w-full rounded-xl border border-stone-200 bg-stone-100/90 overflow-hidden"
+            style={{
+              // Subtle diagonal grid in the outer area, similar to Photowall's guides
+              backgroundImage:
+                "repeating-linear-gradient(135deg, rgba(148,148,148,0.18) 0, rgba(148,148,148,0.18) 1px, transparent 1px, transparent 16px)",
+            }}
           >
-            <div
-              ref={frameRef}
-              className="absolute inset-0 rounded-md border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.08),inset_0_0_0_1px_rgba(255,255,255,0.15)] overflow-hidden"
-            >
-              <img
-                ref={imgRef}
-                src={imageUrl}
-                alt="Your design"
-                onLoad={handleImgLoad}
-                draggable={false}
-                className="absolute left-1/2 top-1/2 max-w-none select-none pointer-events-none object-cover"
-                style={{
-                  width: imgSize ? imgSize.w * displayScale : "100%",
-                  height: imgSize ? imgSize.h * displayScale : "100%",
-                  transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
-                }}
-              />
+            {/* Centre guidelines (faint diagonals) */}
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute left-0 top-0 h-px w-full bg-stone-300/40" />
+              <div className="absolute right-0 bottom-0 h-px w-full bg-stone-300/40" />
             </div>
 
-            <div
-              className="absolute inset-0 cursor-grab active:cursor-grabbing touch-manipulation rounded-lg"
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerLeave={handlePointerUp}
-            />
+            {/* Wall frame */}
+            <div className="relative mx-auto my-10 w-[72%] max-w-[720px]">
+              <div
+                className="relative w-full bg-stone-200/95 rounded-md shadow-sm"
+                style={{ aspectRatio: `${widthM} / ${heightM}` }}
+              >
+                <div
+                  ref={frameRef}
+                  className="absolute inset-0 rounded-md border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.08),inset_0_0_0_1px_rgba(255,255,255,0.15)] overflow-hidden bg-stone-100"
+                >
+                  <img
+                    ref={imgRef}
+                    src={imageUrl}
+                    alt="Your design"
+                    onLoad={handleImgLoad}
+                    draggable={false}
+                    className="absolute left-1/2 top-1/2 max-w-none select-none pointer-events-none object-cover"
+                    style={{
+                      width: imgSize ? imgSize.w * displayScale : "100%",
+                      height: imgSize ? imgSize.h * displayScale : "100%",
+                      transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
+                    }}
+                  />
+                </div>
+
+                {/* Drag overlay */}
+                <div
+                  className="absolute inset-0 cursor-grab active:cursor-grabbing touch-manipulation rounded-md"
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerLeave={handlePointerUp}
+                />
+              </div>
+
+              {/* Bottom width ruler-style label */}
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <div className="h-px flex-1 bg-stone-400" />
+                <span className="text-xs font-medium text-stone-700">
+                  {widthCm.toFixed(0)} cm
+                </span>
+                <div className="h-px flex-1 bg-stone-400" />
+              </div>
+
+              {/* Right-hand height label */}
+              <div className="absolute inset-y-0 -right-10 hidden md:flex flex-col items-center justify-center gap-2">
+                <div className="w-px flex-1 bg-stone-400" />
+                <span className="text-xs font-medium text-stone-700 rotate-90 whitespace-nowrap">
+                  {heightCm.toFixed(0)} cm
+                </span>
+                <div className="w-px flex-1 bg-stone-400" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <p className="mt-3 text-xs text-stone-500">
-          Only what is visible inside the outlined area is saved and printed.
+        <p className="mt-3 text-xs text-stone-500 text-center">
+          Only what is visible inside the inner framed wall area is saved and printed.
         </p>
       </div>
 
