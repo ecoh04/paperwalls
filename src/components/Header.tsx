@@ -7,10 +7,10 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-stone-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <header className="sticky top-0 z-50 border-b border-stone-800/70 bg-stone-950/80 backdrop-blur supports-[backdrop-filter]:bg-stone-950/70">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="text-xl font-semibold tracking-tight text-stone-900">
+        <Link href="/" className="text-xl font-semibold tracking-tight text-white">
           PaperWalls
         </Link>
 
@@ -18,19 +18,19 @@ export function Header() {
         <nav className="hidden items-center gap-1 md:flex">
           <Link
             href="/shop/custom-wallpaper"
-            className="rounded-md px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+            className="rounded-md px-3 py-2 text-sm font-medium text-stone-200 hover:bg-stone-800/80 hover:text-white"
           >
             How it works
           </Link>
           <Link
             href="/faq"
-            className="rounded-md px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+            className="rounded-md px-3 py-2 text-sm font-medium text-stone-300 hover:bg-stone-800/80 hover:text-white"
           >
             FAQ
           </Link>
           <Link
             href="/contact"
-            className="rounded-md px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+            className="rounded-md px-3 py-2 text-sm font-medium text-stone-300 hover:bg-stone-800/80 hover:text-white"
           >
             Contact
           </Link>
@@ -40,13 +40,13 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Link
             href="/config"
-            className="hidden rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 sm:inline-block"
+            className="hidden btn-primary px-5 py-2 sm:inline-flex"
           >
             Design your wallpaper
           </Link>
           <Link
             href="/cart"
-            className="flex items-center gap-1.5 rounded-md p-2 text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+            className="flex items-center gap-1.5 rounded-md p-2 text-stone-200 hover:bg-stone-800/80 hover:text-white"
             aria-label="Cart"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,7 +57,7 @@ export function Header() {
           {/* Mobile menu button */}
           <button
             type="button"
-            className="rounded-md p-2 text-stone-600 hover:bg-stone-100 md:hidden"
+            className="rounded-md p-2 text-stone-200 hover:bg-stone-800/80 md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-expanded={mobileMenuOpen}
             aria-label="Toggle menu"

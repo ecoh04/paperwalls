@@ -4,17 +4,29 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-stone-100 px-4 py-16 sm:py-24 sm:px-6">
+      <section className="relative overflow-hidden bg-gradient-to-br from-stone-900 via-stone-950 to-rose-900 px-4 py-16 sm:py-24 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-10 text-center md:flex-row md:text-left">
           <div className="max-w-xl">
-            <h1 className="text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-rose-100/90 md:justify-start">
+              <span className="pill-soft bg-rose-500/15 border-rose-400/40 text-rose-100">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                Printed in South Africa
+              </span>
+              <span className="pill-soft">
+                Nationwide delivery
+              </span>
+              <span className="pill-soft">
+                No minimum order
+              </span>
+            </div>
+            <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
               Turn any photo into wall‑size wallpaper.
             </h1>
-            <p className="mt-5 text-base sm:text-lg text-stone-600">
+            <p className="mt-4 text-base sm:text-lg text-stone-200">
               Upload your image, enter your wall size in cm, and see exactly how it will crop on your wall.
               Printed in South Africa with finishes for homes, offices, and shops.
             </p>
-            <ul className="mt-4 space-y-1 text-sm text-stone-600">
+            <ul className="mt-4 space-y-1 text-sm text-stone-200/90">
               <li>• Exact fit for your wall, no guessing</li>
               <li>• Clear pricing in ZAR as you design</li>
               <li>• Delivery nationwide, installer option available</li>
@@ -22,25 +34,26 @@ export default function HomePage() {
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
               <Link
                 href="/config"
-                className="inline-flex items-center justify-center rounded-full bg-stone-900 px-7 py-3 text-sm sm:text-base font-medium text-white hover:bg-stone-800 transition-colors w-full sm:w-auto"
+                className="btn-primary w-full sm:w-auto"
               >
                 Start with your image
               </Link>
               <Link
                 href="/shop/custom-wallpaper"
-                className="text-sm font-medium text-stone-700 underline underline-offset-4 hover:no-underline"
+                className="text-sm font-medium text-stone-100 underline underline-offset-4 hover:no-underline"
               >
                 Learn more about custom wallpaper
               </Link>
             </div>
           </div>
-          <div className="hidden h-full w-full max-w-md flex-1 items-center justify-center rounded-2xl border border-stone-200 bg-white/70 p-4 shadow-sm md:flex">
-            <div className="w-full rounded-xl border border-stone-200 bg-stone-100/80 p-4">
-              <div className="relative w-full rounded-lg bg-stone-200/90" style={{ aspectRatio: "16 / 9" }}>
-                <div className="absolute inset-[8%] rounded-md border-[3px] border-stone-800/80 shadow-[0_0_0_1px_rgba(0,0,0,0.25)]" />
+          <div className="hidden h-full w-full max-w-md flex-1 items-center justify-center rounded-2xl border border-rose-500/40 bg-stone-900/60 p-4 shadow-2xl shadow-rose-900/40 md:flex">
+            <div className="w-full rounded-xl border border-stone-700/70 bg-stone-900/80 p-4">
+              <div className="relative w-full overflow-hidden rounded-lg bg-stone-200/5" style={{ aspectRatio: "16 / 9" }}>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(244,114,182,0.35),transparent_55%),radial-gradient(circle_at_bottom,_rgba(248,250,252,0.14),transparent_55%)]" />
+                <div className="absolute inset-[9%] rounded-md border-[3px] border-stone-50/90 shadow-[0_0_0_1px_rgba(15,23,42,0.9)] bg-stone-900/60" />
               </div>
-              <p className="mt-3 text-xs text-stone-600">
-                Live preview shows exactly what will be printed on your wall.
+              <p className="mt-3 text-xs text-stone-200">
+                Live crop preview shows exactly what lands on your wall before you order.
               </p>
             </div>
           </div>
