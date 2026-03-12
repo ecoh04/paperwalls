@@ -7,30 +7,31 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-stone-800/70 bg-stone-950/80 backdrop-blur supports-[backdrop-filter]:bg-stone-950/70">
+    <header className="sticky top-0 z-50 border-b border-[rgba(26,23,20,0.10)] bg-[#F8F4EF]/90 backdrop-blur supports-[backdrop-filter]:bg-[#F8F4EF]/85">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="text-xl font-semibold tracking-tight text-white">
-          PaperWalls
+        <Link href="/" className="text-xl font-semibold tracking-tight text-[#1A1714]">
+          <span className="font-[\'DM_Serif_Display\',_serif] tracking-tight">Paper</span>
+          <span className="font-[\'DM_Serif_Display\',_serif] tracking-tight text-[#C4622D]">Walls</span>
         </Link>
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
           <Link
             href="/shop/custom-wallpaper"
-            className="rounded-md px-3 py-2 text-sm font-medium text-stone-200 hover:bg-stone-800/80 hover:text-white"
+            className="rounded-md px-3 py-2 text-sm font-medium text-[#8A8175] hover:bg-[#F2E8E1] hover:text-[#1A1714]"
           >
             How it works
           </Link>
           <Link
             href="/faq"
-            className="rounded-md px-3 py-2 text-sm font-medium text-stone-300 hover:bg-stone-800/80 hover:text-white"
+            className="rounded-md px-3 py-2 text-sm font-medium text-[#8A8175] hover:bg-[#F2E8E1] hover:text-[#1A1714]"
           >
             FAQ
           </Link>
           <Link
             href="/contact"
-            className="rounded-md px-3 py-2 text-sm font-medium text-stone-300 hover:bg-stone-800/80 hover:text-white"
+            className="rounded-md px-3 py-2 text-sm font-medium text-[#8A8175] hover:bg-[#F2E8E1] hover:text-[#1A1714]"
           >
             Contact
           </Link>
@@ -40,13 +41,13 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Link
             href="/config"
-            className="hidden btn-primary px-5 py-2 sm:inline-flex"
+            className="hidden pw-btn-primary sm:inline-flex"
           >
             Design your wallpaper
           </Link>
           <Link
             href="/cart"
-            className="flex items-center gap-1.5 rounded-md p-2 text-stone-200 hover:bg-stone-800/80 hover:text-white"
+            className="flex items-center gap-1.5 rounded-md p-2 text-[#8A8175] hover:bg-[#F2E8E1] hover:text-[#1A1714]"
             aria-label="Cart"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,7 +58,7 @@ export function Header() {
           {/* Mobile menu button */}
           <button
             type="button"
-            className="rounded-md p-2 text-stone-200 hover:bg-stone-800/80 md:hidden"
+            className="rounded-md p-2 text-[#8A8175] hover:bg-[#F2E8E1] md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-expanded={mobileMenuOpen}
             aria-label="Toggle menu"

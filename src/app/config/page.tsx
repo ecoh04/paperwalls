@@ -17,21 +17,21 @@ export default function ConfigPage() {
           { label: "Design" },
         ]}
       />
-      <h1 className="text-3xl font-bold text-stone-900">Design your wallpaper</h1>
-      <p className="mt-2 text-stone-600">
-        Upload your image, set your wall size in cm, and adjust the crop. Your price updates automatically.
+      <h1 className="text-3xl font-normal text-[#1A1714]">Design your wallpaper</h1>
+      <p className="mt-2 pw-section-sub">
+        Upload your image, enter your wall size in centimetres, and adjust the crop. Your price updates as you go.
       </p>
-      <div className="mt-6 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-xs sm:text-sm text-stone-700 flex flex-wrap items-center gap-3">
-        <span className="font-semibold text-stone-900 mr-1">Steps:</span>
+      <div className="mt-5 flex flex-wrap items-center gap-2 rounded-xl border border-[rgba(26,23,20,0.10)] bg-white px-4 py-3 text-[11px] sm:text-xs text-[#8A8175]">
+        <span className="font-medium text-[#1A1714] mr-1 uppercase tracking-[0.14em]">Flow</span>
         <span>1. Upload image</span>
-        <span className="h-1 w-1 rounded-full bg-stone-400 inline-block" />
+        <span className="h-1 w-1 rounded-full bg-[#C4622D]/60 inline-block" />
         <span>2. Wall size (cm)</span>
-        <span className="h-1 w-1 rounded-full bg-stone-400 inline-block" />
+        <span className="h-1 w-1 rounded-full bg-[#C4622D]/60 inline-block" />
         <span>3. Crop on wall</span>
-        <span className="h-1 w-1 rounded-full bg-stone-400 inline-block" />
-        <span>4. Finish & installation</span>
-        <span className="h-1 w-1 rounded-full bg-stone-400 inline-block" />
-        <span>5. Price & add to cart</span>
+        <span className="h-1 w-1 rounded-full bg-[#C4622D]/60 inline-block" />
+        <span>4. Finish &amp; installation</span>
+        <span className="h-1 w-1 rounded-full bg-[#C4622D]/60 inline-block" />
+        <span>5. Price &amp; add to cart</span>
       </div>
       <div className="mt-8">
         <Configurator />

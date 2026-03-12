@@ -1,27 +1,55 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-stone-950 text-stone-50;
+    @apply bg-[#F8F4EF] text-[#1A1714];
+    font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: "DM Serif Display", Georgia, "Times New Roman", serif;
+    letter-spacing: -0.03em;
   }
 
   ::selection {
-    @apply bg-rose-500 text-white;
+    background-color: #C4622D;
+    color: #FFFFFF;
   }
 }
 
 @layer components {
-  .btn-primary {
-    @apply inline-flex items-center justify-center rounded-full bg-rose-500 px-7 py-3 text-sm sm:text-base font-medium text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-400 hover:shadow-rose-400/40;
+  .pw-btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-[#1A1714] px-6 py-3 text-sm font-medium text-white shadow-md transition duration-200 hover:bg-[#2E2A26];
   }
 
-  .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-full border border-stone-500/60 bg-transparent px-6 py-2.5 text-sm font-medium text-stone-100 hover:bg-stone-800/60 transition;
+  .pw-btn-outline {
+    @apply inline-flex items-center justify-center rounded-lg border border-[rgba(26,23,20,0.18)] bg-transparent px-5 py-2.5 text-sm font-medium text-[#1A1714] transition duration-200 hover:border-[#1A1714] hover:bg-[rgba(26,23,20,0.03)];
   }
 
-  .pill-soft {
-    @apply inline-flex items-center gap-2 rounded-full bg-stone-900/70 px-3 py-1 text-xs font-medium text-stone-100 border border-stone-700/70;
+  .pw-chip {
+    @apply inline-flex items-center rounded-full border border-[rgba(26,23,20,0.18)] bg-white px-3 py-1.5 text-xs font-medium text-[#8A8175] transition duration-150;
+  }
+
+  .pw-chip-active {
+    @apply border-[#1A1714] bg-[#1A1714] text-white;
+  }
+
+  .pw-eyebrow {
+    @apply inline-flex items-center gap-1 rounded-md bg-[#F2E8E1] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#C4622D];
+  }
+
+  .pw-section-sub {
+    @apply text-[15px] text-[#8A8175] leading-relaxed font-light;
+  }
+
+  .pw-card {
+    @apply rounded-2xl border border-[rgba(26,23,20,0.10)] bg-white shadow-sm;
   }
 }

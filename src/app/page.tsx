@@ -2,59 +2,63 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <div>
+    <div className="bg-[#F8F4EF]">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-stone-900 via-stone-950 to-rose-900 px-4 py-16 sm:py-24 sm:px-6">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-10 text-center md:flex-row md:text-left">
+      <section className="relative overflow-hidden px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-10 md:flex-row md:items-start">
           <div className="max-w-xl">
-            <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-rose-100/90 md:justify-start">
-              <span className="pill-soft bg-rose-500/15 border-rose-400/40 text-rose-100">
-                <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-                Printed in South Africa
-              </span>
-              <span className="pill-soft">
-                Nationwide delivery
-              </span>
-              <span className="pill-soft">
-                No minimum order
-              </span>
-            </div>
-            <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Turn any photo into wall‑size wallpaper.
+            <div className="pw-eyebrow mb-6">Custom wallpaper printing</div>
+            <h1 className="text-4xl sm:text-5xl font-normal leading-tight text-[#1A1714]">
+              Your image.<br />
+              <span className="italic text-[#C4622D]">Your walls.</span><br />
+              Flawlessly printed.
             </h1>
-            <p className="mt-4 text-base sm:text-lg text-stone-200">
-              Upload your image, enter your wall size in cm, and see exactly how it will crop on your wall.
-              Printed in South Africa with finishes for homes, offices, and shops.
+            <p className="mt-4 text-[15px] text-[#8A8175] leading-relaxed max-w-md">
+              Upload any photo, pattern, or artwork. We print it on premium substrates, cut to your exact wall size,
+              and deliver across South Africa.
             </p>
-            <ul className="mt-4 space-y-1 text-sm text-stone-200/90">
-              <li>• Exact fit for your wall, no guessing</li>
-              <li>• Clear pricing in ZAR as you design</li>
-              <li>• Delivery nationwide, installer option available</li>
-            </ul>
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
-              <Link
-                href="/config"
-                className="btn-primary w-full sm:w-auto"
-              >
-                Start with your image
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <Link href="/config" className="pw-btn-primary">
+                Upload your design ↗
               </Link>
-              <Link
-                href="/shop/custom-wallpaper"
-                className="text-sm font-medium text-stone-100 underline underline-offset-4 hover:no-underline"
+              <button
+                type="button"
+                className="text-sm text-[#8A8175] underline underline-offset-4 hover:text-[#1A1714]"
               >
-                Learn more about custom wallpaper
-              </Link>
+                See how it works
+              </button>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-8 border-t border-[rgba(26,23,20,0.10)] pt-6 text-xs">
+              <div>
+                <p className="font-[\"DM_Serif_Display\",_serif] text-lg text-[#1A1714]">72hr</p>
+                <p className="uppercase tracking-[0.12em] text-[#8A8175]">Production time</p>
+              </div>
+              <div>
+                <p className="font-[\"DM_Serif_Display\",_serif] text-lg text-[#1A1714]">4</p>
+                <p className="uppercase tracking-[0.12em] text-[#8A8175]">Substrate options</p>
+              </div>
+              <div>
+                <p className="font-[\"DM_Serif_Display\",_serif] text-lg text-[#1A1714]">Any size</p>
+                <p className="uppercase tracking-[0.12em] text-[#8A8175]">Cut to dimension</p>
+              </div>
             </div>
           </div>
-          <div className="hidden h-full w-full max-w-md flex-1 items-center justify-center rounded-2xl border border-rose-500/40 bg-stone-900/60 p-4 shadow-2xl shadow-rose-900/40 md:flex">
-            <div className="w-full rounded-xl border border-stone-700/70 bg-stone-900/80 p-4">
-              <div className="relative w-full overflow-hidden rounded-lg bg-stone-200/5" style={{ aspectRatio: "16 / 9" }}>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(244,114,182,0.35),transparent_55%),radial-gradient(circle_at_bottom,_rgba(248,250,252,0.14),transparent_55%)]" />
-                <div className="absolute inset-[9%] rounded-md border-[3px] border-stone-50/90 shadow-[0_0_0_1px_rgba(15,23,42,0.9)] bg-stone-900/60" />
-              </div>
-              <p className="mt-3 text-xs text-stone-200">
-                Live crop preview shows exactly what lands on your wall before you order.
+          <div className="w-full max-w-md flex-1">
+            <div className="pw-card p-5">
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#8A8175] mb-3">
+                Live configurator preview
               </p>
+              <div className="relative w-full rounded-xl border border-[rgba(26,23,20,0.15)] bg-[#E6DFD8] p-3">
+                <div
+                  className="relative w-full rounded-lg bg-[#D4C9BE]"
+                  style={{ aspectRatio: "16 / 9" }}
+                >
+                  <div className="absolute inset-[9%] rounded-md border-[3px] border-[#1A1714] shadow-[0_0_0_1px_rgba(26,23,20,0.25)] bg-[#F8F4EF]/70" />
+                </div>
+                <p className="mt-3 text-[11px] text-[#8A8175]">
+                  See exactly what lands on your wall before you add to cart.
+                </p>
+              </div>
             </div>
           </div>
         </div>

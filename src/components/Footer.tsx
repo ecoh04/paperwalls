@@ -35,12 +35,12 @@ const footerSections = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-stone-800 bg-stone-950">
+    <footer className="border-t border-[rgba(26,23,20,0.10)] bg-[#F8F4EF]">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:gap-12">
           {footerSections.map((section) => (
             <div key={section.title}>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-stone-200">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-[#1A1714]">
                 {section.title}
               </h3>
               <ul className="mt-4 space-y-3">
@@ -48,7 +48,7 @@ export function Footer() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-stone-400 hover:text-stone-100"
+                      className="text-sm text-[#8A8175] hover:text-[#1A1714]"
                     >
                       {link.label}
                     </Link>
@@ -60,11 +60,11 @@ export function Footer() {
         </div>
         <div className="mt-12 flex flex-col gap-4 border-t border-stone-200 pt-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-          <Link href="/" className="font-semibold text-stone-100">
-              PaperWalls
+          <Link href="/" className="font-semibold text-[#1A1714]">
+            PaperWalls
             </Link>
           <span className="text-sm text-stone-500">·</span>
-          <span className="text-sm text-stone-400">Custom wallpaper, South Africa</span>
+          <span className="text-sm text-stone-500">Custom wallpaper, South Africa</span>
           </div>
         <p className="text-xs text-stone-500">
             © {new Date().getFullYear()} PaperWalls. All prices in ZAR.
