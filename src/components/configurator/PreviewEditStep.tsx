@@ -215,26 +215,12 @@ export function PreviewEditStep({
     <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
       <h2 className="text-lg font-semibold text-stone-900">3. Preview & crop</h2>
       <p className="mt-2 text-sm text-stone-600">
-        Drag to position your image inside the wall area. What you see here is exactly what will be printed.
-        {quality && (
-          <>
-            {" "}
-            Your image is{" "}
-            <span className="font-medium">
-              {imgSize!.w}×{imgSize!.h} px
-            </span>
-            , which gives about{" "}
-            <span className="font-medium">
-              {quality.pxPerMm.toFixed(2)} px/mm
-            </span>{" "}
-            at {widthM.toFixed(2)}×{heightM.toFixed(2)} m.
-          </>
-        )}
+        Drag the photo to decide exactly what lands on your wall. Only the area inside the dark frame will be printed.
       </p>
 
       {/* Wall preview and crop area – Photowall-style grey grid with centred wall */}
       <div className="mt-6 flex flex-col">
-        <div className="mx-auto w-full max-w-4xl">
+        <div className="mx-auto w-full max-w-5xl">
           <div
             className="relative w-full rounded-xl border border-stone-200 bg-stone-100/90 overflow-hidden"
             style={{
@@ -245,7 +231,7 @@ export function PreviewEditStep({
           >
             {/* Faint full-image backdrop so users see what is being cropped away */}
             {imgSize && (
-              <div className="pointer-events-none absolute inset-0 opacity-35">
+              <div className="pointer-events-none absolute inset-0 opacity-25">
                 <img
                   src={imageUrl!}
                   alt=""
@@ -261,7 +247,7 @@ export function PreviewEditStep({
             )}
 
             {/* Wall frame */}
-            <div className="relative mx-auto my-10 w-[72%] max-w-[720px]">
+            <div className="relative mx-auto my-8 w-[78%] max-w-[840px]">
               <div
                 className="relative w-full bg-stone-200/80 rounded-md shadow-sm"
                 style={{ aspectRatio: `${widthM} / ${heightM}` }}
@@ -297,20 +283,20 @@ export function PreviewEditStep({
 
               {/* Bottom width ruler-style label */}
               <div className="mt-3 flex items-center justify-center gap-2">
-                <div className="h-px flex-1 bg-stone-700/80" />
-                <span className="text-xs font-medium text-stone-800">
+                <div className="h-px flex-1 bg-stone-600" />
+                <span className="text-xs font-medium text-stone-800 tracking-wide">
                   {widthCm.toFixed(0)} cm
                 </span>
-                <div className="h-px flex-1 bg-stone-700/80" />
+                <div className="h-px flex-1 bg-stone-600" />
               </div>
 
               {/* Right-hand height label */}
               <div className="absolute inset-y-0 -right-10 hidden md:flex flex-col items-center justify-center gap-2">
-                <div className="w-px flex-1 bg-stone-700/80" />
-                <span className="text-xs font-medium text-stone-800 rotate-90 whitespace-nowrap">
+                <div className="w-px flex-1 bg-stone-600" />
+                <span className="text-xs font-medium text-stone-800 rotate-90 whitespace-nowrap tracking-wide">
                   {heightCm.toFixed(0)} cm
                 </span>
-                <div className="w-px flex-1 bg-stone-700/80" />
+                <div className="w-px flex-1 bg-stone-600" />
               </div>
             </div>
           </div>
@@ -324,12 +310,14 @@ export function PreviewEditStep({
       {quality && (
         <div className="mt-6 rounded-lg border border-stone-200 bg-stone-50 p-4">
           <p className="text-xs text-stone-600">
-            {quality.level === "good" && "Quality looks good for this size."}
+            {quality.level === "good" && "Your image quality looks good for this wall size."}
             {quality.level === "borderline" &&
-              "Quality is on the edge for this size. Consider reducing the wall size a bit for a crisper print."}
+              "You’re close to the limit for this size. If you want a crisper print, consider making the wall a bit smaller."}
             {quality.level === "too_low" &&
-              "Image resolution is low for this size. We recommend using a higher-resolution file or reducing the wall size."}
-            {" Max recommended size at our minimum quality (≈21 dpi) is roughly "}
+              "This is larger than we recommend for this file. For best results, use a higher‑resolution image or make the wall smaller."}
+          </p>
+          <p className="mt-1 text-[11px] text-stone-500">
+            For this image, our maximum recommended size at print distance (≈21 dpi) is{" "}
             <span className="font-medium">
               {quality.maxWidthM.toFixed(2)}×{quality.maxHeightM.toFixed(2)} m
             </span>
