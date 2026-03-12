@@ -8,9 +8,18 @@ import { CartProvider } from "@/contexts/CartContext";
 export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin") ?? false;
+  const isLanding = pathname === "/";
 
   if (isAdmin) {
     return <>{children}</>;
+  }
+
+  if (isLanding) {
+    return (
+      <CartProvider>
+        {children}
+      </CartProvider>
+    );
   }
 
   return (
