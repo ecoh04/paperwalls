@@ -110,9 +110,13 @@ export function PreviewEditStep({
     const sy = Math.max(0, Math.min(natH - sourceH, sourceY));
     const sw = Math.min(sourceW, natW - sx);
     const sh = Math.min(sourceH, natH - sy);
-    const outMax = 2000;
-    const outW = Math.min(outMax, Math.round((sw / natW) * outMax));
-    const outH = Math.min(outMax, Math.round((sh / natH) * outMax));
+    // Export as high‑resolution as possible while keeping dimensions reasonable for the browser.
+    // We take the cropped source region (sw × sh) in the original image space and scale it down
+    // only if it exceeds our safety cap. This keeps wallpapers crisp while avoiding 20k+ px exports.
+    const OUT_MAX = 8000; // cap longest edge at 8000px, which is already suitable for large walls
+    const scaleFactor = Math.min(OUT_MAX / sw, OUT_MAX / sh, 1);
+    const outW = Math.max(1, Math.round(sw * scaleFactor));
+    const outH = Math.max(1, Math.round(sh * scaleFactor));
     const canvas = document.createElement("canvas");
     canvas.width = outW;
     canvas.height = outH;

@@ -104,11 +104,11 @@ export function ImageUploadStep({
 
   return (
     <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-      <h2 className="text-lg font-semibold text-stone-900">2. Your image{walls.length > 1 ? "s" : ""}</h2>
+      <h2 className="text-lg font-semibold text-stone-900">1. Upload your image{walls.length > 1 ? "s" : ""}</h2>
       <p className="mt-1 text-sm text-stone-600">
         {isMultiDifferent
-          ? "Upload one image per wall so each wall has the right design. JPG, PNG, WebP or PDF. Max 50MB each."
-          : "Upload the image for your wall. JPG, PNG, WebP or PDF. Max 50MB."}
+          ? "Start by uploading one image per wall. Next you’ll set the exact wall size and fine-tune the crop. JPG, PNG, WebP or PDF. Max 50MB each."
+          : "Start by uploading the image for your wall. Next you’ll set the exact wall size and fine-tune the crop. JPG, PNG, WebP or PDF. Max 50MB."}
       </p>
 
       {!isMultiDifferent ? (
