@@ -30,15 +30,15 @@ export default function HomePage() {
             </div>
             <div className="mt-8 flex flex-wrap gap-8 border-t border-[rgba(26,23,20,0.10)] pt-6 text-xs">
               <div>
-                <p className="font-[\"DM_Serif_Display\",_serif] text-lg text-[#1A1714]">72hr</p>
+                <p className="text-lg text-[#1A1714]">72hr</p>
                 <p className="uppercase tracking-[0.12em] text-[#8A8175]">Production time</p>
               </div>
               <div>
-                <p className="font-[\"DM_Serif_Display\",_serif] text-lg text-[#1A1714]">4</p>
+                <p className="text-lg text-[#1A1714]">4</p>
                 <p className="uppercase tracking-[0.12em] text-[#8A8175]">Substrate options</p>
               </div>
               <div>
-                <p className="font-[\"DM_Serif_Display\",_serif] text-lg text-[#1A1714]">Any size</p>
+                <p className="text-lg text-[#1A1714]">Any size</p>
                 <p className="uppercase tracking-[0.12em] text-[#8A8175]">Cut to dimension</p>
               </div>
             </div>
