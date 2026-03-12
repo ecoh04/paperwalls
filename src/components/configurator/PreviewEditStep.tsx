@@ -243,6 +243,23 @@ export function PreviewEditStep({
                 "repeating-linear-gradient(135deg, rgba(148,148,148,0.18) 0, rgba(148,148,148,0.18) 1px, transparent 1px, transparent 16px)",
             }}
           >
+            {/* Faint full-image backdrop so users see what is being cropped away */}
+            {imgSize && (
+              <div className="pointer-events-none absolute inset-0 opacity-35">
+                <img
+                  src={imageUrl!}
+                  alt=""
+                  aria-hidden
+                  className="absolute left-1/2 top-1/2 max-w-none select-none object-cover"
+                  style={{
+                    width: imgSize.w * displayScale,
+                    height: imgSize.h * displayScale,
+                    transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
+                  }}
+                />
+              </div>
+            )}
+
             {/* Centre guidelines (faint diagonals) */}
             <div className="pointer-events-none absolute inset-0">
               <div className="absolute left-0 top-0 h-px w-full bg-stone-300/40" />
@@ -296,7 +313,7 @@ export function PreviewEditStep({
               {/* Right-hand height label */}
               <div className="absolute inset-y-0 -right-10 hidden md:flex flex-col items-center justify-center gap-2">
                 <div className="w-px flex-1 bg-stone-400" />
-                <span className="text-xs font-medium text-stone-700 rotate-90 whitespace-nowrap">
+                <span className="text-xs font-medium text-stone-700 rotate-90 whitespace-nowrap bg-white/90 px-1 py-0.5 rounded">
                   {heightCm.toFixed(0)} cm
                 </span>
                 <div className="w-px flex-1 bg-stone-400" />
@@ -318,7 +335,7 @@ export function PreviewEditStep({
               "Quality is on the edge for this size. Consider reducing the wall size a bit for a crisper print."}
             {quality.level === "too_low" &&
               "Image resolution is low for this size. We recommend using a higher-resolution file or reducing the wall size."}
-            {" Max recommended size at 1 px/mm is roughly "}
+            {" Max recommended size at our minimum quality (≈21 dpi) is roughly "}
             <span className="font-medium">
               {quality.maxWidthM.toFixed(2)}×{quality.maxHeightM.toFixed(2)} m
             </span>
