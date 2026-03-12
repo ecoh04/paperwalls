@@ -53,16 +53,19 @@ export function DimensionsStep({
     const pxPerMmW = imageWidthPx / wallWidthMm;
     const pxPerMmH = imageHeightPx / wallHeightMm;
     const pxPerMm = Math.min(pxPerMmW, pxPerMmH);
-    const maxWidthM = imageWidthPx / 1000;
-    const maxHeightM = imageHeightPx / 1000;
+    // Photowall-style minimum quality is ~21 dpi ≈ 0.83 px/mm.
+    // We derive max recommended wall size from this threshold.
+    const MIN_PX_PER_MM = 0.83;
+    const maxWidthM = imageWidthPx / (MIN_PX_PER_MM * 1000);
+    const maxHeightM = imageHeightPx / (MIN_PX_PER_MM * 1000);
 
     let level: "good" | "borderline" | "too_low";
-    if (pxPerMm < 0.7) level = "too_low";
-    else if (pxPerMm < 1.1) level = "borderline";
+    if (pxPerMm < MIN_PX_PER_MM * 0.7) level = "too_low";
+    else if (pxPerMm < MIN_PX_PER_MM * 1.2) level = "borderline";
     else level = "good";
 
     const base = `At this size your image has about ${pxPerMm.toFixed(2)} px/mm. `;
-    const maxText = `Max recommended size at 1 px/mm is approximately ${(maxWidthM * 100).toFixed(0)} × ${(maxHeightM * 100).toFixed(0)} cm.`;
+    const maxText = `Max recommended size at our minimum quality (≈21 dpi) is approximately ${(maxWidthM * 100).toFixed(0)} × ${(maxHeightM * 100).toFixed(0)} cm.`;
     if (level === "good") {
       qualityText = base + "Quality looks good for this wall size. " + maxText;
     } else if (level === "borderline") {
@@ -183,7 +186,9 @@ export function DimensionsStep({
                 const cm = parseFloat(e.target.value) || 0;
                 let m = cm / 100;
                 if (imageWidthPx) {
-                  const maxM = imageWidthPx / 1000;
+                  // Global limit: don't exceed Photowall-style quality threshold (~21 dpi ≈ 0.83 px/mm)
+                  const MIN_PX_PER_MM = 0.83;
+                  const maxM = imageWidthPx / (MIN_PX_PER_MM * 1000);
                   if (m > maxM) m = maxM;
                 }
                 onWidthChange(m);
@@ -210,7 +215,8 @@ export function DimensionsStep({
                 const cm = parseFloat(e.target.value) || 0;
                 let m = cm / 100;
                 if (imageHeightPx) {
-                  const maxM = imageHeightPx / 1000;
+                  const MIN_PX_PER_MM = 0.83;
+                  const maxM = imageHeightPx / (MIN_PX_PER_MM * 1000);
                   if (m > maxM) m = maxM;
                 }
                 onHeightChange(m);

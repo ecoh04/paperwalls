@@ -16,9 +16,9 @@ type PreviewEditStepProps = {
   onCropDataReady?: (getBlob: () => Promise<Blob | null>) => void;
 };
 
-// Photowall-style rule: at least 1 pixel per millimetre of wallpaper.
-// 1 px / mm ≈ 25.4 dpi. We treat this as the minimum safe threshold.
-const MIN_PX_PER_MM = 1;
+// Photowall-style rule: minimum quality threshold is ~21 dpi.
+// 21 dpi ≈ 0.83 px/mm. We use this as our minimum safe threshold.
+const MIN_PX_PER_MM = 0.83;
 
 /** Generate tick positions for a ruler (0 to max in m). */
 function rulerTicks(maxM: number): number[] {
@@ -152,11 +152,46 @@ export function PreviewEditStep({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging || !dragStart) return;
-    onPanChange(
-      dragStart.panX + (e.clientX - dragStart.clientX),
-      dragStart.panY + (e.clientY - dragStart.clientY)
-    );
+    if (!isDragging || !dragStart || !imgSize || !frameSize) return;
+
+    const dx = e.clientX - dragStart.clientX;
+    const dy = e.clientY - dragStart.clientY;
+
+    const wallAspect = widthM > 0 && heightM > 0 ? widthM / heightM : 1;
+    const imgAspect = imgSize.w / imgSize.h;
+    // Decide primary drag axis, mirroring Photowall:
+    // if image is wider than wall -> drag along X; otherwise along Y.
+    const dragAxis: "x" | "y" = imgAspect > wallAspect ? "x" : "y";
+
+    // Compute scaled image size inside the wall frame.
+    const displayScale = Math.max(frameSize.w / imgSize.w, frameSize.h / imgSize.h);
+    const imgDisplayW = imgSize.w * displayScale;
+    const imgDisplayH = imgSize.h * displayScale;
+    const halfFrameW = frameSize.w / 2;
+    const halfFrameH = frameSize.h / 2;
+    const halfImgW = imgDisplayW / 2;
+    const halfImgH = imgDisplayH / 2;
+
+    // Allowed pan range so that the image always fully covers the wall frame
+    // (no white space can appear inside).
+    const minPanX = halfFrameW - halfImgW;
+    const maxPanX = halfImgW - halfFrameW;
+    const minPanY = halfFrameH - halfImgH;
+    const maxPanY = halfImgH - halfFrameH;
+
+    const nextPanXRaw = dragStart.panX + dx;
+    const nextPanYRaw = dragStart.panY + dy;
+
+    const nextPanX =
+      dragAxis === "x"
+        ? Math.min(Math.max(nextPanXRaw, minPanX), maxPanX)
+        : 0;
+    const nextPanY =
+      dragAxis === "y"
+        ? Math.min(Math.max(nextPanYRaw, minPanY), maxPanY)
+        : 0;
+
+    onPanChange(nextPanX, nextPanY);
   };
 
   const handlePointerUp = () => setIsDragging(false);
