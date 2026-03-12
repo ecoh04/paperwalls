@@ -73,18 +73,45 @@ export function Configurator() {
     return () => URL.revokeObjectURL(state.imagePreviewUrl!);
   }, [state.imagePreviewUrl]);
 
-
-  const handleFileSelect = useCallback((file: File | null) => {
-    if (state.imagePreviewUrl) URL.revokeObjectURL(state.imagePreviewUrl);
-    setState((s) => ({
-      ...s,
-      imageFile: file ?? null,
-      imagePreviewUrl: file ? URL.createObjectURL(file) : null,
-      panX: 0,
-      panY: 0,
-      scale: 1,
-    }));
-  }, [state.imagePreviewUrl]);
+  const handleFileSelect = useCallback(
+    (file: File | null) => {
+      if (state.imagePreviewUrl) URL.revokeObjectURL(state.imagePreviewUrl);
+      if (!file) {
+        setState((s) => ({
+          ...s,
+          imageFile: null,
+          imagePreviewUrl: null,
+          imageWidthPx: null,
+          imageHeightPx: null,
+          panX: 0,
+          panY: 0,
+          scale: 1,
+        }));
+        return;
+      }
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const widthPx = img.naturalWidth || img.width;
+        const heightPx = img.naturalHeight || img.height;
+        setState((s) => ({
+          ...s,
+          imageFile: file,
+          imagePreviewUrl: objectUrl,
+          imageWidthPx: widthPx,
+          imageHeightPx: heightPx,
+          panX: 0,
+          panY: 0,
+          scale: 1,
+        }));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+      };
+      img.src = objectUrl;
+    },
+    [state.imagePreviewUrl]
+  );
 
   const handleWallFileSelect = useCallback((wallIndex: number, file: File | null) => {
     setState((s) => {
@@ -175,12 +202,22 @@ export function Configurator() {
 
   return (
     <div className="space-y-6 pb-24 md:pb-8 md:space-y-8">
+      <ImageUploadStep
+        imagePreviewUrl={state.imagePreviewUrl}
+        onFileSelect={handleFileSelect}
+        multiWallMode={state.multiWallMode}
+        walls={isMultiDifferent ? state.walls : []}
+        onWallFileSelect={handleWallFileSelect}
+      />
+
       <DimensionsStep
         widthM={state.widthM}
         heightM={state.heightM}
         wallCount={state.wallCount}
         multiWallMode={state.multiWallMode}
         walls={state.walls}
+        imageWidthPx={state.imageWidthPx ?? undefined}
+        imageHeightPx={state.imageHeightPx ?? undefined}
         onWidthChange={(v) => setState((s) => ({ ...s, widthM: v }))}
         onHeightChange={(v) => setState((s) => ({ ...s, heightM: v }))}
         onWallCountChange={(v) =>
@@ -204,14 +241,6 @@ export function Configurator() {
           }))
         }
         onWallsChange={(w) => setState((s) => ({ ...s, walls: w }))}
-      />
-
-      <ImageUploadStep
-        imagePreviewUrl={state.imagePreviewUrl}
-        onFileSelect={handleFileSelect}
-        multiWallMode={state.multiWallMode}
-        walls={isMultiDifferent ? state.walls : []}
-        onWallFileSelect={handleWallFileSelect}
       />
 
       {!isMultiDifferent && (

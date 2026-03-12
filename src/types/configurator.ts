@@ -22,6 +22,8 @@ export interface ConfiguratorState {
   walls: WallSpec[];
   imageFile: File | null;
   imagePreviewUrl: string | null;
+  imageWidthPx?: number | null;
+  imageHeightPx?: number | null;
   panX: number;
   panY: number;
   scale: number;
@@ -37,6 +39,8 @@ export const DEFAULT_CONFIG: ConfiguratorState = {
   walls: [],
   imageFile: null,
   imagePreviewUrl: null,
+  imageWidthPx: null,
+  imageHeightPx: null,
   panX: 0,
   panY: 0,
   scale: 1,
