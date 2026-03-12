@@ -260,21 +260,15 @@ export function PreviewEditStep({
               </div>
             )}
 
-            {/* Centre guidelines (faint diagonals) */}
-            <div className="pointer-events-none absolute inset-0">
-              <div className="absolute left-0 top-0 h-px w-full bg-stone-300/40" />
-              <div className="absolute right-0 bottom-0 h-px w-full bg-stone-300/40" />
-            </div>
-
             {/* Wall frame */}
             <div className="relative mx-auto my-10 w-[72%] max-w-[720px]">
               <div
-                className="relative w-full bg-stone-200/95 rounded-md shadow-sm"
+                className="relative w-full bg-stone-200/80 rounded-md shadow-sm"
                 style={{ aspectRatio: `${widthM} / ${heightM}` }}
               >
                 <div
                   ref={frameRef}
-                  className="absolute inset-0 rounded-md border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.08),inset_0_0_0_1px_rgba(255,255,255,0.15)] overflow-hidden bg-stone-100"
+                  className="absolute inset-0 rounded-md border-[3px] border-stone-800/80 shadow-[0_0_0_1px_rgba(0,0,0,0.25)] overflow-hidden bg-stone-50/90"
                 >
                   <img
                     ref={imgRef}
@@ -303,20 +297,20 @@ export function PreviewEditStep({
 
               {/* Bottom width ruler-style label */}
               <div className="mt-3 flex items-center justify-center gap-2">
-                <div className="h-px flex-1 bg-stone-400" />
-                <span className="text-xs font-medium text-stone-700">
+                <div className="h-px flex-1 bg-stone-700/80" />
+                <span className="text-xs font-medium text-stone-800">
                   {widthCm.toFixed(0)} cm
                 </span>
-                <div className="h-px flex-1 bg-stone-400" />
+                <div className="h-px flex-1 bg-stone-700/80" />
               </div>
 
               {/* Right-hand height label */}
               <div className="absolute inset-y-0 -right-10 hidden md:flex flex-col items-center justify-center gap-2">
-                <div className="w-px flex-1 bg-stone-400" />
-                <span className="text-xs font-medium text-stone-700 rotate-90 whitespace-nowrap bg-white/90 px-1 py-0.5 rounded">
+                <div className="w-px flex-1 bg-stone-700/80" />
+                <span className="text-xs font-medium text-stone-800 rotate-90 whitespace-nowrap">
                   {heightCm.toFixed(0)} cm
                 </span>
-                <div className="w-px flex-1 bg-stone-400" />
+                <div className="w-px flex-1 bg-stone-700/80" />
               </div>
             </div>
           </div>
