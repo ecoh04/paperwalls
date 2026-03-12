@@ -11,6 +11,17 @@ const PAYFAST_PASSPHRASE = env("PAYFAST_PASSPHRASE") || null;
 const PAYFAST_SANDBOX = env("PAYFAST_SANDBOX", "true").toLowerCase() === "true";
 const NEXT_PUBLIC_APP_URL = (env("NEXT_PUBLIC_APP_URL") || "http://localhost:3000").replace(/\/$/, "");
 
+// Replicate PHP's urlencode used in PayFast examples:
+// - Spaces become '+'
+// - Hex codes are uppercase
+function pfUrlEncode(value: string): string {
+  let encoded = encodeURIComponent(value.trim());
+  encoded = encoded.replace(/%20/g, "+");
+  // Uppercase all percent-encoded bytes
+  encoded = encoded.replace(/%[0-9a-f]{2}/g, (m) => m.toUpperCase());
+  return encoded;
+}
+
 export function getPayfastHost() {
   return PAYFAST_SANDBOX ? "sandbox.payfast.co.za" : "www.payfast.co.za";
 }
@@ -42,18 +53,18 @@ export function generatePayfastSignature(
   data: Record<string, string>,
   passphrase: string | null = PAYFAST_PASSPHRASE
 ): string {
-  let pfOutput = "";
-  Object.entries(data).forEach(([key, val]) => {
+  const pairs: string[] = [];
+  Object.keys(data).forEach((key) => {
+    const val = data[key];
     if (val !== "") {
-      pfOutput += `${key}=${encodeURIComponent(val.trim())}&`;
+      pairs.push(`${key}=${pfUrlEncode(val)}`);
     }
   });
-  const paramString = pfOutput.slice(0, -1);
-  const withPassphrase =
-    passphrase && passphrase.length > 0
-      ? `${paramString}&passphrase=${encodeURIComponent(passphrase.trim())}`
-      : paramString;
-  return crypto.createHash("md5").update(withPassphrase).digest("hex");
+  let paramString = pairs.join("&");
+  if (passphrase && passphrase.length > 0) {
+    paramString += `&passphrase=${pfUrlEncode(passphrase)}`;
+  }
+  return crypto.createHash("md5").update(paramString).digest("hex");
 }
 
 export function buildPayfastFormFields(params: {
@@ -68,6 +79,15 @@ export function buildPayfastFormFields(params: {
 
   const [firstName, ...rest] = params.customerName.trim().split(" ");
   const lastName = rest.join(" ");
+
+  // Normalise phone to a format PayFast accepts (SA number, 10 digits starting with 0).
+  const digits = params.customerPhone.replace(/\D/g, "");
+  let cellNumber = "";
+  if (digits.length === 10 && digits.startsWith("0")) {
+    cellNumber = digits;
+  } else if (digits.length === 11 && digits.startsWith("27")) {
+    cellNumber = "0" + digits.slice(2);
+  }
 
   const returnUrl = `${NEXT_PUBLIC_APP_URL}/checkout/success?orders=${encodeURIComponent(
     params.orderNumbers.join(",")
@@ -86,7 +106,8 @@ export function buildPayfastFormFields(params: {
     name_first: firstName || params.customerName.trim(),
     name_last: lastName,
     email_address: params.customerEmail,
-    cell_number: params.customerPhone,
+    // Only send cell_number if it looks valid; otherwise omit and let PayFast ignore it
+    ...(cellNumber ? { cell_number: cellNumber } : {}),
     // Transaction details
     m_payment_id: params.orderNumbers[0],
     amount: formatPayfastAmount(params.amountCents),
