@@ -79,7 +79,7 @@ export function PreviewEditStep({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ panX: number; panY: number; clientX: number; clientY: number } | null>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
-  const [showRuler, setShowRuler] = useState(false);
+  const [frameSize, setFrameSize] = useState<{ w: number; h: number } | null>(null);
 
   /**
    * Exports exactly the pixels visible inside the print frame as a JPEG.
@@ -126,6 +126,20 @@ export function PreviewEditStep({
     if (onCropDataReady) onCropDataReady(getCroppedBlob);
   }, [onCropDataReady, getCroppedBlob]);
 
+  // Track the on-screen size of the wall frame so we can ensure the
+  // image always fully covers it (no dead space inside the crop area).
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const update = () => {
+      const rect = frame.getBoundingClientRect();
+      setFrameSize({ w: rect.width, h: rect.height });
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [widthM, heightM]);
+
   const handleImgLoad = () => {
     const img = imgRef.current;
     if (img) setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
@@ -149,12 +163,10 @@ export function PreviewEditStep({
 
   if (!imageUrl || widthM <= 0 || heightM <= 0) return null;
 
-  const displayScale = imgSize
-    ? Math.max(400 / imgSize.w, (400 / (widthM / heightM)) / imgSize.h)
-    : 1;
-
-  const widthTicks = rulerTicks(widthM);
-  const heightTicks = rulerTicks(heightM);
+  const displayScale =
+    imgSize && frameSize
+      ? Math.max(frameSize.w / imgSize.w, frameSize.h / imgSize.h)
+      : 1;
 
   const quality =
     imgSize && widthM > 0 && heightM > 0
