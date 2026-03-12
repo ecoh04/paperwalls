@@ -191,7 +191,6 @@ body {
   display: grid;
   grid-template-columns: 1fr 520px;
   min-height: calc(100vh - 64px);
-  max-height: 780px;
 }
 
 .hero-left {
@@ -1234,7 +1233,7 @@ body {
   }
   .hero {
     grid-template-columns: 1fr;
-    max-height: none;
+    min-height: auto;
   }
   .hero-left {
     padding: 40px 24px 24px;
@@ -1258,8 +1257,9 @@ body {
   }
   .cta-banner {
     grid-template-columns: 1fr;
-    padding: 32px 24px;
+    padding: 32px 24px 40px;
     gap: 24px;
+    margin-bottom: 56px;
   }
   .cta-banner-actions {
     align-items: flex-start;
@@ -1327,8 +1327,8 @@ body {
   }
   .gallery-section,
   .cta-banner {
-    padding: 0 16px 40px;
-    margin: 0 16px 40px;
+    padding: 0 16px 48px;
+    margin: 0 16px 48px;
   }
   .gallery-grid {
     grid-template-columns: 1fr;
