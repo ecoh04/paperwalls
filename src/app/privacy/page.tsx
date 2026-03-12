@@ -19,9 +19,9 @@ export default function PrivacyPage() {
           with you, and improve our service. We do not sell your data to third parties.
         </p>
         <p>
-          Payment is processed by Stitch Express; their privacy policy applies to payment data. We store 
-          order details and image references in our systems to produce and ship your wallpaper 
-          and for support and legal record-keeping.
+          Payment is processed securely by PayFast; their privacy policy applies to your card and payment data.
+          We store order details and image references in our systems to produce and ship your wallpaper and
+          for support and legal record‑keeping.
         </p>
         <p>
           You can contact us to ask about your data or request deletion where applicable. We may 

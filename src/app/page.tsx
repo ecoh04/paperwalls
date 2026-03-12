@@ -4,22 +4,45 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-stone-100 px-4 py-20 sm:py-28 sm:px-6">
-        <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
-            Your image. Your walls. Custom wallpaper.
-          </h1>
-          <p className="mt-6 text-lg text-stone-600">
-            Upload any image, tell us your wall size, and we print it in South Africa.
-            Choose your finish and get it delivered—or we send an installer.
-          </p>
-          <div className="mt-10">
-            <Link
-              href="/config"
-              className="inline-flex items-center justify-center rounded-full bg-stone-900 px-8 py-4 text-base font-medium text-white hover:bg-stone-800 transition-colors"
-            >
-              Design your wallpaper
-            </Link>
+      <section className="relative overflow-hidden bg-stone-100 px-4 py-16 sm:py-24 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-10 text-center md:flex-row md:text-left">
+          <div className="max-w-xl">
+            <h1 className="text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
+              Turn any photo into wall‑size wallpaper.
+            </h1>
+            <p className="mt-5 text-base sm:text-lg text-stone-600">
+              Upload your image, enter your wall size in cm, and see exactly how it will crop on your wall.
+              Printed in South Africa with finishes for homes, offices, and shops.
+            </p>
+            <ul className="mt-4 space-y-1 text-sm text-stone-600">
+              <li>• Exact fit for your wall, no guessing</li>
+              <li>• Clear pricing in ZAR as you design</li>
+              <li>• Delivery nationwide, installer option available</li>
+            </ul>
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
+              <Link
+                href="/config"
+                className="inline-flex items-center justify-center rounded-full bg-stone-900 px-7 py-3 text-sm sm:text-base font-medium text-white hover:bg-stone-800 transition-colors w-full sm:w-auto"
+              >
+                Start with your image
+              </Link>
+              <Link
+                href="/shop/custom-wallpaper"
+                className="text-sm font-medium text-stone-700 underline underline-offset-4 hover:no-underline"
+              >
+                Learn more about custom wallpaper
+              </Link>
+            </div>
+          </div>
+          <div className="hidden h-full w-full max-w-md flex-1 items-center justify-center rounded-2xl border border-stone-200 bg-white/70 p-4 shadow-sm md:flex">
+            <div className="w-full rounded-xl border border-stone-200 bg-stone-100/80 p-4">
+              <div className="relative w-full rounded-lg bg-stone-200/90" style={{ aspectRatio: "16 / 9" }}>
+                <div className="absolute inset-[8%] rounded-md border-[3px] border-stone-800/80 shadow-[0_0_0_1px_rgba(0,0,0,0.25)]" />
+              </div>
+              <p className="mt-3 text-xs text-stone-600">
+                Live preview shows exactly what will be printed on your wall.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -154,10 +177,10 @@ export default function HomePage() {
       <section className="border-t border-stone-200 bg-stone-50 px-4 py-16 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-semibold text-stone-900">
-            Ready to turn your wall into art?
+            Ready to design your wall?
           </h2>
           <p className="mt-3 text-stone-600">
-            No minimum order. All prices in ZAR. Delivery across South Africa.
+            No minimum order. Clear pricing in ZAR. Printed locally and delivered across South Africa.
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link

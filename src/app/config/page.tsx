@@ -13,16 +13,27 @@ export default function ConfigPage() {
       <Breadcrumbs
         items={[
           { href: "/", label: "Home" },
-          { href: "/shop", label: "Shop" },
           { href: "/shop/custom-wallpaper", label: "Custom wallpaper" },
           { label: "Design" },
         ]}
       />
       <h1 className="text-3xl font-bold text-stone-900">Design your wallpaper</h1>
       <p className="mt-2 text-stone-600">
-        Follow the steps below. Your price updates as you go. Add to cart when you’re ready.
+        Upload your image, set your wall size in cm, and adjust the crop. Your price updates automatically.
       </p>
-      <div className="mt-10">
+      <div className="mt-6 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-xs sm:text-sm text-stone-700 flex flex-wrap items-center gap-3">
+        <span className="font-semibold text-stone-900 mr-1">Steps:</span>
+        <span>1. Upload image</span>
+        <span className="h-1 w-1 rounded-full bg-stone-400 inline-block" />
+        <span>2. Wall size (cm)</span>
+        <span className="h-1 w-1 rounded-full bg-stone-400 inline-block" />
+        <span>3. Crop on wall</span>
+        <span className="h-1 w-1 rounded-full bg-stone-400 inline-block" />
+        <span>4. Finish & installation</span>
+        <span className="h-1 w-1 rounded-full bg-stone-400 inline-block" />
+        <span>5. Price & add to cart</span>
+      </div>
+      <div className="mt-8">
         <Configurator />
       </div>
     </PageContainer>
