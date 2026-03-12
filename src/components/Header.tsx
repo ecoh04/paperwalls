@@ -17,43 +17,10 @@ export function Header() {
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
           <Link
-            href="/"
+            href="/shop/custom-wallpaper"
             className="rounded-md px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900"
           >
-            Home
-          </Link>
-          <div className="relative group">
-            <button
-              type="button"
-              className="flex items-center gap-0.5 rounded-md px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900"
-            >
-              Shop
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <div className="invisible absolute left-0 top-full pt-1 opacity-0 transition group-hover:visible group-hover:opacity-100">
-              <div className="rounded-md border border-stone-200 bg-white py-1 shadow-lg">
-                <Link
-                  href="/shop"
-                  className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-                >
-                  All products
-                </Link>
-                <Link
-                  href="/shop/custom-wallpaper"
-                  className="block px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-                >
-                  Custom wallpaper
-                </Link>
-              </div>
-            </div>
-          </div>
-          <Link
-            href="/about"
-            className="rounded-md px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900"
-          >
-            About
+            How it works
           </Link>
           <Link
             href="/faq"
@@ -113,25 +80,11 @@ export function Header() {
         <div className="border-t border-stone-200 bg-white md:hidden">
           <div className="space-y-1 px-4 py-4">
             <Link
-              href="/"
-              className="block rounded-md px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-50"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Home
-            </Link>
-            <Link
-              href="/shop"
-              className="block rounded-md px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-50"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Shop
-            </Link>
-            <Link
               href="/shop/custom-wallpaper"
-              className="block rounded-md px-3 py-2 pl-6 text-base text-stone-600 hover:bg-stone-50"
+              className="block rounded-md px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-50"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Custom wallpaper
+              How it works
             </Link>
             <Link
               href="/about"

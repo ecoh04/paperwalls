@@ -24,7 +24,7 @@ export function CartContent() {
   const totalCents = items.reduce((sum, i) => sum + i.subtotalCents, 0);
 
   return (
-    <div className="mt-10 space-y-8">
+    <div className="mt-8 space-y-6">
       <ul className="space-y-4">
         {items.map((item) => (
           <li
@@ -63,18 +63,20 @@ export function CartContent() {
           </li>
         ))}
       </ul>
-      <div className="rounded-lg border border-stone-200 bg-stone-50 p-6">
-        <div className="flex justify-between text-lg font-semibold text-stone-900">
-          <span>Subtotal (ex. shipping)</span>
-          <span>{formatZar(totalCents)}</span>
+      <div className="sticky bottom-0 left-0 right-0 z-20 border-t border-stone-200 bg-white/95 pb-4 pt-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] sm:static sm:rounded-lg sm:border sm:bg-stone-50 sm:py-6 sm:shadow-none">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-1 sm:px-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Subtotal (excl. shipping)</p>
+            <p className="text-lg font-semibold text-stone-900">{formatZar(totalCents)}</p>
+            <p className="mt-0.5 text-xs text-stone-500">Shipping is added at checkout based on your address.</p>
+          </div>
+          <Link
+            href="/checkout"
+            className="ml-4 inline-flex items-center justify-center rounded-full bg-stone-900 px-6 py-3 text-sm font-medium text-white hover:bg-stone-800 sm:px-8 sm:py-3"
+          >
+            Checkout
+          </Link>
         </div>
-        <p className="mt-2 text-sm text-stone-600">Shipping is calculated at checkout.</p>
-        <Link
-          href="/checkout"
-          className="mt-6 block w-full rounded-full bg-stone-900 py-4 text-center font-medium text-white hover:bg-stone-800"
-        >
-          Proceed to checkout
-        </Link>
       </div>
     </div>
   );

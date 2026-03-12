@@ -80,11 +80,11 @@ export default function CheckoutPage() {
       )}
 
       <div className="mt-8 grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="order-2 lg:order-1 lg:col-span-2">
           <CheckoutForm items={items} onSuccess={handleSuccess} onError={handleError} />
         </div>
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+        <div className="order-1 lg:order-2 lg:col-span-1">
+          <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-stone-900">Your order</h2>
             <ul className="mt-4 space-y-3">
               {items.map((item) => (
@@ -109,6 +109,9 @@ export default function CheckoutPage() {
                 </li>
               ))}
             </ul>
+            <p className="mt-4 text-xs text-stone-500">
+              Prices shown exclude shipping. Shipping is added on the next step based on your delivery address.
+            </p>
           </div>
         </div>
       </div>
