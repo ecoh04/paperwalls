@@ -14,7 +14,7 @@ const MIN_PHONE = 10;
 
 type CheckoutFormProps = {
   items: CartItem[];
-  onSuccess: (redirectUrl: string, orderNumbers: string[]) => void;
+  onSuccess: (payfastUrl: string, fields: Record<string, string>, orderNumbers: string[]) => void;
   onError: (message: string) => void;
 };
 
@@ -84,11 +84,11 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
           onError(data.error || "Something went wrong. Please try again.");
           return;
         }
-        if (!data.redirectUrl) {
+        if (!data.payfastUrl || !data.payfastFields) {
           onError("Invalid response from server.");
           return;
         }
-        onSuccess(data.redirectUrl, data.orderNumbers || []);
+        onSuccess(data.payfastUrl, data.payfastFields, data.orderNumbers || []);
       } catch {
         onError("Network error. Please check your connection and try again.");
       } finally {
@@ -241,7 +241,7 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
           </div>
         </dl>
         <p className="mt-3 text-xs text-stone-500">
-          You’ll complete payment securely on the next screen (Stitch Express).
+          You’ll complete payment securely on the next screen (PayFast).
         </p>
         <button
           type="submit"

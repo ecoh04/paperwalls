@@ -3,8 +3,8 @@ import type { CheckoutAddress } from "@/types/checkout";
 import type { CartItem } from "@/types/cart";
 import { supabase } from "@/lib/supabase";
 import { getShippingCents } from "@/lib/shipping";
-import { createStitchPayment } from "@/lib/stitch";
 import { uploadPrintImage } from "@/lib/storage";
+import { buildPayfastFormFields } from "@/lib/payfast";
 import type { ShippingProvince } from "@/types/order";
 
 function generateOrderNumber(): string {
@@ -194,16 +194,15 @@ export async function POST(request: Request) {
     }
 
     const totalPaymentCents = orderRows.reduce((s, r) => s + r.total_cents, 0);
-    const { redirectUrl } = await createStitchPayment({
-      amountCents: totalPaymentCents,
+    const { url: payfastUrl, fields: payfastFields } = buildPayfastFormFields({
       orderNumbers,
-      reference: orderNumbers[0],
-      payerName: a.customer_name.trim(),
-      payerEmailAddress: a.customer_email.trim(),
-      payerPhoneNumber: a.customer_phone.trim(),
+      amountCents: totalPaymentCents,
+      customerName: a.customer_name.trim(),
+      customerEmail: a.customer_email.trim(),
+      customerPhone: a.customer_phone.trim(),
     });
 
-    return NextResponse.json({ redirectUrl, orderNumbers });
+    return NextResponse.json({ payfastUrl, payfastFields, orderNumbers });
   } catch (e) {
     console.error("Checkout create error:", e);
     return NextResponse.json(

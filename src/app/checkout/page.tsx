@@ -12,10 +12,24 @@ export default function CheckoutPage() {
   const { items } = useCart();
   const [error, setError] = useState<string | null>(null);
 
-  const handleSuccess = useCallback((redirectUrl: string) => {
-    setError(null);
-    window.location.href = redirectUrl;
-  }, []);
+  const handleSuccess = useCallback(
+    (payfastUrl: string, fields: Record<string, string>) => {
+      setError(null);
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = payfastUrl;
+      Object.entries(fields).forEach(([name, value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+    },
+    []
+  );
 
   const handleError = useCallback((message: string) => {
     setError(message);
@@ -56,7 +70,7 @@ export default function CheckoutPage() {
       />
       <h1 className="text-3xl font-bold text-stone-900">Checkout</h1>
       <p className="mt-2 text-stone-600">
-        Enter your details below. You’ll complete payment securely with Stitch Express.
+        Enter your details below. You’ll complete payment securely with PayFast.
       </p>
 
       {error && (

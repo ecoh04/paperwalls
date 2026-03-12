@@ -341,7 +341,7 @@ export default async function AdminOrderDetailPage({
             <dd className="font-semibold text-stone-900">{formatZarCents(Number(row.total_cents))}</dd>
           </div>
           <div>
-            <dt className="text-xs text-stone-500">Payment ID</dt>
+            <dt className="text-xs text-stone-500">Payment reference</dt>
             <dd className="font-mono text-xs text-stone-600">{row.stitch_payment_id ?? "—"}</dd>
           </div>
         </dl>
