@@ -1,40 +1,230 @@
 PAPERWALLS — CURSOR RULES
 ==========================
 
-Project structure: Next.js 14, App Router, TypeScript, located in /src
+Project: Next.js 14, App Router, TypeScript, located in /src
 
-NEVER TOUCH THESE — ever, for any reason:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEVER TOUCH THESE — ever, for any reason
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   src/app/api/          ← PayFast, checkout, Supabase routes
   src/lib/              ← business logic, pricing, storage
   src/middleware.ts     ← auth
   src/types/            ← TypeScript types
   src/contexts/         ← CartContext
-  src/app/page.tsx      ← landing page (uses its own CSS class system)
 
-BRAND NAME: always "Paperwalls" — capital P, capital W, one word. Never "paperwalls" or "PaperWalls"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BRAND NAME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Always "Paperwalls" — capital P, lowercase w, one word.
+  Never "PaperWalls", never "paperwalls", never "Paper Walls".
+  In logo markup: "paper" in pw-ink, "walls" in pw-accent, DM Serif Display font.
 
-COLOUR TOKENS — always use pw-* Tailwind tokens. Never stone-*, never hardcode hex:
-  bg-pw-bg / text-pw-bg           #F8F4EF  page background
-  bg-pw-surface                   #FFFFFF  cards, panels
-  bg-pw-ink / text-pw-ink         #1A1714  primary text, dark fills
-  text-pw-muted                   #8A8175  secondary text, labels
-  bg-pw-accent / text-pw-accent   #C4622D  terracotta brand colour
-  bg-pw-accent-soft               #F2E8E1  blush backgrounds
-  bg-pw-stone                     #E6DFD8  warm grey
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NAVIGATION — TWO NAVBAR RULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MARKETING NAV → src/components/Header.tsx
+  Links: How it works (/how-it-works) · Materials (/materials) · Inspiration (/inspiration) · FAQ (/faq)
+  Right side: "Upload your design →" CTA button (bg-pw-ink) + Cart icon with item count badge
+  Used on: /, /products/custom-wallpaper, /how-it-works, /materials, /inspiration,
+           /faq, /contact, /shipping, /returns, /about, /privacy, /terms, /samples, /404
 
-TYPOGRAPHY:
-  H1: text-3xl font-bold text-pw-ink
-  H2: text-2xl font-bold text-pw-ink
-  Body: text-pw-ink font-light leading-relaxed
-  Labels/eyebrow: text-xs font-medium uppercase tracking-widest text-pw-muted
+  FOCUSED NAV → src/components/FocusedHeader.tsx
+  Contents: logo (left) + "← Save & exit" text link to / (right). Nothing else.
+  No nav links. No cart. No CTA.
+  Used on: /config only
+  Footer: NOT shown on /config
 
-BUTTONS:
-  Primary:  bg-pw-ink text-white rounded-pw hover:bg-pw-ink-soft
-  Accent:   bg-pw-accent text-white rounded-pw hover:opacity-90
-  Outline:  border border-pw-ink text-pw-ink bg-transparent rounded-pw
-  NEVER rounded-full on buttons. Always rounded-pw.
+  CHECKOUT FLOW → src/components/FocusedHeader.tsx + Footer.tsx
+  Footer IS shown on checkout flow pages for trust signals.
+  Used on: /cart, /checkout, /checkout/success, /checkout/cancelled
 
-CARDS: rounded-pw-card (never rounded-2xl or rounded-xl)
-FOCUS RINGS: focus:border-pw-ink focus:ring-1 focus:ring-pw-ink (never amber, never pink)
+  The homepage (/) must use Header.tsx — NOT its own custom navbar.
+  Remove any inline navbar from src/app/page.tsx and replace with <Header />.
 
-ADMIN PAGES: follow the same token rules. Admin is not exempt.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FOOTER STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Four columns:
+
+  SHOP                        SUPPORT                   LEGAL         BRAND
+  Custom wallpaper            FAQ                       Privacy       About us
+  How it works                Contact                   Terms
+  Materials                   Shipping & delivery
+  Inspiration                 Returns & refunds
+  Order a sample pack
+
+  Bottom bar: "paper[walls]" logo · "Custom wallpaper, South Africa" · © year Paperwalls. All prices in ZAR.
+
+  Footer shown on: all marketing pages + /cart, /checkout, /checkout/success, /checkout/cancelled
+  Footer NOT shown on: /config
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SAMPLES — CONVERSION PLACEMENT RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Samples is a hesitation-capture tool, not a primary nav item.
+  It appears at hesitation points throughout the funnel:
+
+  1. Homepage hero — ghost secondary link below main CTA:
+       [Upload your design →]
+       Not sure yet? Order a sample pack →
+
+  2. Materials page — "Order a swatch →" link on each substrate card
+     + full-width CTA banner at page bottom:
+       "Want to feel it before you commit? Order a sample pack — R99, delivered nationwide."
+       [Order sample pack →]  [Upload your design →]
+
+  3. Footer — under SHOP column as "Order a sample pack" link to /samples
+
+  4. FAQ — answer to "Can I see the materials first?" links to /samples
+
+  Samples page route: /samples
+  Samples uses: Header.tsx + Footer.tsx (marketing nav)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COLOUR TOKENS — pw-* Tailwind only
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Never use stone-*, gray-*, or hardcoded hex values anywhere.
+
+  bg-pw-bg / text-pw-bg           #F8F4EF   page background
+  bg-pw-surface                   #FFFFFF   cards, panels
+  bg-pw-ink / text-pw-ink         #1A1714   primary text, dark fills
+  bg-pw-ink-soft                  #2E2A26   button hover
+  text-pw-muted                   #6B6560   body copy (accessibility-safe)
+  text-pw-muted-light             #B5ADA4   hints, footnotes
+  bg-pw-accent / text-pw-accent   #C4622D   terracotta brand colour
+  bg-pw-accent-soft               #F2E8E1   blush backgrounds, hover states
+  bg-pw-stone / border-pw-stone   #E6DFD8   warm grey, section bg, borders
+  border-pw-stone-dark            #D4C9BE   dashed borders, inactive states
+  border-pw-border                rgba(26,23,20,0.10) default border
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TYPOGRAPHY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Fonts: DM Serif Display (all headings), DM Sans 300/400/500 (all UI + body)
+
+  H1 hero:        text-[clamp(44px,5vw,64px)] font-serif tracking-tight text-pw-ink
+  H2 section:     text-4xl font-serif tracking-tight text-pw-ink
+  H3 card title:  text-xl font-medium text-pw-ink
+  Body:           text-[15px] font-light leading-relaxed text-pw-muted
+  Small / labels: text-xs font-medium text-pw-muted
+  Eyebrow:        text-[11px] font-medium uppercase tracking-widest text-pw-muted
+
+  Italic accent pattern on headings:
+    <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>Your walls.</em>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SPACING & LAYOUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Section padding:  py-20 md:py-28
+  Page max width:   max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
+  Card padding:     p-6
+  Card gap:         gap-6
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUTTONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Primary:  bg-pw-ink text-white rounded-pw px-6 py-3 text-sm font-medium hover:bg-pw-ink-soft transition-colors
+  Accent:   bg-pw-accent text-white rounded-pw px-6 py-3 text-sm font-medium hover:opacity-90 transition-colors
+  Ghost:    border border-pw-ink text-pw-ink bg-transparent rounded-pw px-6 py-3 text-sm font-medium hover:bg-pw-accent-soft transition-colors
+  Muted:    border border-pw-stone text-pw-muted bg-transparent rounded-pw px-6 py-3 text-sm font-medium hover:text-pw-ink transition-colors
+
+  NEVER rounded-full on buttons. Always rounded-pw (8px).
+  NEVER bg-stone-900 or bg-stone-800. Always bg-pw-ink / bg-pw-ink-soft.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Standard card:    bg-pw-surface rounded-pw-card border border-pw-border shadow-pw-sm p-6
+  Tinted card:      bg-pw-bg rounded-pw-card border border-pw-stone p-6
+  Active/selected:  border-pw-ink bg-pw-bg
+
+  NEVER rounded-xl, rounded-2xl, or rounded-3xl. Always rounded-pw-card (16px).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INPUTS & FORM FIELDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Input:  rounded-pw border border-pw-stone px-3 py-2 text-pw-ink bg-pw-surface
+          focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink
+  Label:  text-sm font-medium text-pw-ink
+  Hint:   text-xs text-pw-muted mt-1
+
+  NEVER focus:ring-amber-*, focus:ring-stone-*, focus:ring-pink-*.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOGGLE BUTTONS (configurator steps)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Inactive: border border-pw-stone bg-pw-surface text-pw-muted rounded-pw px-4 py-2 text-sm font-medium hover:bg-pw-accent-soft hover:text-pw-ink
+  Active:   border border-pw-ink bg-pw-ink text-white rounded-pw px-4 py-2 text-sm font-medium
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STATUS / BADGE COLOURS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Success:  bg-pw-accent-soft text-pw-accent   (never bg-emerald-*, never text-green-*)
+  Warning:  bg-amber-50 text-amber-700
+  Error:    bg-red-50 text-red-600
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FULL PAGE INVENTORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Core conversion flow:
+    /                           Homepage — funnel every visitor to /config
+    /config                     Configurator — upload, dimensions, material, finish, install, price
+    /cart                       Cart — confirm order, push to checkout
+    /checkout                   Checkout — collect details, PayFast handoff
+    /checkout/success           Order confirmed — order number + what happens next
+    /checkout/cancelled         PayFast cancelled — link back to cart
+
+  Product & education:
+    /products/custom-wallpaper  Product page — describe product, convert to configurator
+    /how-it-works               4-step process explained in full
+    /materials                  All substrates with specs, pricing, use cases + samples CTA
+    /inspiration                Lookbook — wallpaper in real rooms, creates desire
+    /samples                    Order a physical swatch pack — R99, all 4 substrates
+
+  Support & trust:
+    /faq                        10-12 questions covering all pre-purchase objections
+    /contact                    Email, WhatsApp, contact form
+    /shipping                   Province rates, lead times, courier info
+    /returns                    Custom print no-returns policy, defect claim process
+
+  Brand:
+    /about                      Print house story, credibility, South Africa angle
+
+  Legal (footer only):
+    /privacy                    POPIA compliance
+    /terms                      Purchase terms, custom print policy
+
+  System:
+    not-found.tsx               404 — redirect to home or configurator
+    /admin                      DO NOT TOUCH — internal order management
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION ORDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Phase 1 — Shell (do first, everything depends on this)
+    1. Create FocusedHeader.tsx (logo + Save & exit only)
+    2. Update Header.tsx: new nav links + correct CTA text
+    3. Update Footer.tsx: new four-column structure
+    4. Apply FocusedHeader to /config layout
+    5. Fix homepage to use Header.tsx (remove inline navbar from page.tsx)
+
+  Phase 2 — Homepage rebuild
+    6. Fix hero: new copy, samples ghost link below CTA
+    7. Verify all sections use pw-* tokens
+
+  Phase 3 — Configurator polish
+    8. Add substrate selector step
+    9. DPI quality indicator after upload
+
+  Phase 4 — Build missing pages
+    10. /products/custom-wallpaper
+    11. /how-it-works
+    12. /materials (with samples CTA baked in)
+    13. /inspiration
+    14. /samples
+    15. /checkout/cancelled
+
+  Phase 5 — Content pages
+    16. /contact — real form
+    17. /about — real content
+    18. /faq — expand to 12 questions
