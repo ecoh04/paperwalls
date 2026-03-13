@@ -109,7 +109,7 @@ export default function HomePage() {
       <section className="hero">
         <div className="hero-left">
           <div className="eyebrow eyebrow-pill fade-up">
-            Custom wallpaper printing
+            Printed in-house · South Africa
           </div>
 
           <h1 className="hero-h1 fade-up delay-1">
@@ -117,38 +117,40 @@ export default function HomePage() {
             <br />
             <em>Your walls.</em>
             <br />
-            Flawlessly printed.
+            Commercial quality, direct from our press.
           </h1>
 
           <p className="hero-sub fade-up delay-2">
-            Upload any photo, pattern, or texture — we print it on premium
-            fabrics and substrates using commercial-grade presses. Delivered
-            cut-to-size, ready to hang.
+            We own the presses. No middlemen. Upload your image, set your
+            dimensions, and get commercial-grade wallpaper delivered to your
+            door.
           </p>
 
           <div className="hero-ctas fade-up delay-3">
             <Link href="/config" className="btn btn-primary">
               Upload your design <span className="btn-arrow">↗</span>
             </Link>
-            <button className="hero-link">See how it works →</button>
+            <Link href="/samples" className="hero-link">
+              Not sure yet? Order a sample pack →
+            </Link>
           </div>
 
           <div className="hero-trust fade-up delay-4">
             <div className="trust-item">
               <span className="trust-num">72hr</span>
-              <span className="trust-label">Production time</span>
+              <span className="trust-label">From upload to dispatch</span>
             </div>
             <div className="trust-item">
               <span className="trust-num">4</span>
-              <span className="trust-label">Substrate grades</span>
+              <span className="trust-label">Premium substrates</span>
             </div>
             <div className="trust-item">
               <span className="trust-num">300 DPI</span>
-              <span className="trust-label">Print resolution</span>
+              <span className="trust-label">Commercial-grade resolution</span>
             </div>
             <div className="trust-item">
               <span className="trust-num">Any size</span>
-              <span className="trust-label">Cut to dimension</span>
+              <span className="trust-label">Zero waste, cut to your exact wall</span>
             </div>
           </div>
         </div>
@@ -185,67 +187,8 @@ export default function HomePage() {
               )}
             </div>
 
-            <div>
-              <div className="config-label">Material</div>
-              <div className="chips">
-                {MATERIAL_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    className={`chip${
-                      activeMaterial === key ? " active" : ""
-                    }`}
-                    onClick={() => setActiveMaterial(key)}
-                  >
-                    {MATERIAL_LABELS[key]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="config-label">Wall dimensions</div>
-              <div className="size-grid">
-                <div className="field-group">
-                  <label className="field-label">Width (m)</label>
-                  <input
-                    className="field-input"
-                    type="number"
-                    value={width}
-                    step={0.1}
-                    min={0.5}
-                    max={20}
-                    onChange={(e) =>
-                      setWidth(parseFloat(e.target.value) || 2.4)
-                    }
-                  />
-                </div>
-                <div className="field-group">
-                  <label className="field-label">Height (m)</label>
-                  <input
-                    className="field-input"
-                    type="number"
-                    value={height}
-                    step={0.1}
-                    min={0.5}
-                    max={20}
-                    onChange={(e) =>
-                      setHeight(parseFloat(e.target.value) || 2.7)
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="price-row">
-              <div className="price-left">
-                <span className="price-est">Estimated total</span>
-                <span className="price-note">incl. VAT &amp; shipping</span>
-              </div>
-              <span className="price-val">{price}</span>
-            </div>
-
             <Link href="/config" className="btn btn-primary config-submit">
-              Continue to checkout <span className="btn-arrow">↗</span>
+              Get instant quote →
             </Link>
           </div>
         </div>
