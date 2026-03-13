@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 const PRICE_PER_SQM: Record<string, number> = {
   woven: 89,
@@ -25,9 +25,6 @@ export default function HomePage() {
   const [activeMat, setActiveMat] = useState(0);
   const [width, setWidth] = useState(2.4);
   const [height, setHeight] = useState(2.7);
-  const [uploadName, setUploadName] = useState<string | null>(null);
-  const [uploadSize, setUploadSize] = useState<string | null>(null);
-  const zoneRef = useRef<HTMLDivElement | null>(null);
 
   const sqm = width * height;
   const total = Math.round(sqm * PRICE_PER_SQM[activeMaterial] * 8.1);
@@ -59,39 +56,6 @@ export default function HomePage() {
     return () => obs.disconnect();
   }, []);
 
-  useEffect(() => {
-    const zone = zoneRef.current;
-    if (!zone) return;
-    const onDragOver = (e: DragEvent) => {
-      e.preventDefault();
-      zone.style.borderColor = "var(--accent)";
-      zone.style.background = "var(--accent-soft)";
-    };
-    const onDragLeave = () => {
-      zone.style.borderColor = "";
-      zone.style.background = "";
-    };
-    const onDrop = (e: DragEvent) => {
-      e.preventDefault();
-      zone.style.borderColor = "";
-      zone.style.background = "";
-      const file = e.dataTransfer?.files[0];
-      if (file) {
-        setUploadName(file.name);
-        setUploadSize(
-          (file.size / 1e6).toFixed(1) + " MB — ready to configure"
-        );
-      }
-    };
-    zone.addEventListener("dragover", onDragOver);
-    zone.addEventListener("dragleave", onDragLeave);
-    zone.addEventListener("drop", onDrop);
-    return () => {
-      zone.removeEventListener("dragover", onDragOver);
-      zone.removeEventListener("dragleave", onDragLeave);
-      zone.removeEventListener("drop", onDrop);
-    };
-  }, []);
 
   const marqueeItems = [
     "Commercial-grade print press",
@@ -109,21 +73,19 @@ export default function HomePage() {
       <section className="hero">
         <div className="hero-left">
           <div className="eyebrow eyebrow-pill fade-up">
-            Printed in-house · South Africa
+            Printed in-house · Cape Town
           </div>
 
           <h1 className="hero-h1 fade-up delay-1">
-            Your image.
-            <br />
-            <em>Your walls.</em>
-            <br />
-            Commercial quality, direct from our press.
+            Your image.<br />
+            <em>Your walls.</em><br />
+            <span style={{ fontSize: '0.55em', fontStyle: 'normal', color: 'var(--ink)' }}>Printed to order, cut to size.</span>
           </h1>
 
           <p className="hero-sub fade-up delay-2">
-            We own the presses. No middlemen. Upload your image, set your
-            dimensions, and get commercial-grade wallpaper delivered to your
-            door.
+            Upload any photo, pattern or artwork. We print it on premium fabric
+            using commercial-grade presses and ship it to your door — cut to
+            your exact wall dimensions.
           </p>
 
           <div className="hero-ctas fade-up delay-3">
@@ -157,35 +119,32 @@ export default function HomePage() {
 
         <div className="hero-right">
           <div className="configurator fade-up delay-2">
-            <div ref={zoneRef} className="upload-zone">
-              <div className="upload-icon-wrap">
-                <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                  <path
-                    d="M11 4L11 14M11 4L8 7M11 4L14 7"
-                    stroke="#1A1714"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M3.5 15.5v1.5a2 2 0 002 2h11a2 2 0 002-2v-1.5"
-                    stroke="#8A8175"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </div>
-              <span className="upload-title">
-                {uploadName ?? "Drop your image here"}
-              </span>
-              <span className="upload-sub">
-                {uploadSize ??
-                  "JPG, PNG, TIFF up to 500MB\nMin. 150 DPI recommended"}
-              </span>
-              {!uploadName && (
+            <Link href="/config">
+              <div className="upload-zone" style={{ cursor: 'pointer' }}>
+                <div className="upload-icon-wrap">
+                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                    <path
+                      d="M11 4L11 14M11 4L8 7M11 4L14 7"
+                      stroke="#1A1714"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M3.5 15.5v1.5a2 2 0 002 2h11a2 2 0 002-2v-1.5"
+                      stroke="#8A8175"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+                <span className="upload-title">Drop your image here</span>
+                <span className="upload-sub">
+                  JPG, PNG, TIFF up to 500MB{"\n"}Min. 150 DPI recommended
+                </span>
                 <span className="upload-cta">or browse files</span>
-              )}
-            </div>
+              </div>
+            </Link>
 
             <Link href="/config" className="btn btn-primary config-submit">
               Get instant quote →
