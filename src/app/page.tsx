@@ -106,32 +106,6 @@ export default function HomePage() {
 
   return (
     <>
-      <nav className="navbar">
-        <Link href="/" className="navbar-logo">
-          paper<span>walls</span>
-        </Link>
-        <ul className="navbar-links">
-          <li>
-            <a href="#how">How it works</a>
-          </li>
-          <li>
-            <a href="#materials">Materials</a>
-          </li>
-          <li>
-            <a href="#gallery">Inspiration</a>
-          </li>
-          <li>
-            <a href="#specs">Specs &amp; FAQ</a>
-          </li>
-        </ul>
-        <div className="navbar-actions">
-          <button className="btn btn-ghost">Sign in</button>
-          <Link href="/config" className="btn btn-primary">
-            Start designing <span className="btn-arrow">↗</span>
-          </Link>
-        </div>
-      </nav>
-
       <section className="hero">
         <div className="hero-left">
           <div className="eyebrow eyebrow-pill fade-up">
@@ -694,93 +668,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      <footer className="footer">
-        <div className="footer-top">
-          <div className="footer-brand">
-            <div className="footer-logo">
-              paper<span>walls</span>
-            </div>
-            <p className="footer-tagline">
-              Custom wallpaper printing on premium substrates. Powered by
-              commercial print infrastructure, accessible to everyone.
-            </p>
-          </div>
-          <div>
-            <div className="footer-col-title">Product</div>
-            <ul className="footer-links">
-              <li>
-                <a href="#how">How it works</a>
-              </li>
-              <li>
-                <a href="#materials">Materials</a>
-              </li>
-              <li>
-                <a href="#specs">Pricing</a>
-              </li>
-              <li>
-                <a href="#gallery">Inspiration gallery</a>
-              </li>
-              <li>
-                <a href="/config">Upload now</a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <div className="footer-col-title">Support</div>
-            <ul className="footer-links">
-              <li>
-                <a href="/faq">FAQ</a>
-              </li>
-              <li>
-                <a href="/shipping">File requirements</a>
-              </li>
-              <li>
-                <a href="/returns">Hanging guide</a>
-              </li>
-              <li>
-                <a href="/contact">Track your order</a>
-              </li>
-              <li>
-                <a href="/contact">Contact us</a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <div className="footer-col-title">Company</div>
-            <ul className="footer-links">
-              <li>
-                <a href="/about">About us</a>
-              </li>
-              <li>
-                <a href="/about">Print facility</a>
-              </li>
-              <li>
-                <a href="/about">Trade &amp; B2B</a>
-              </li>
-              <li>
-                <a href="/about">Press</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <span className="footer-copy">
-            © {new Date().getFullYear()} Paperwalls. All rights reserved.
-          </span>
-          <ul className="footer-legal">
-            <li>
-              <a href="/privacy">Privacy policy</a>
-            </li>
-            <li>
-              <a href="/terms">Terms of service</a>
-            </li>
-            <li>
-              <a href="/returns">Returns policy</a>
-            </li>
-          </ul>
-        </div>
-      </footer>
     </>
   );
 }
