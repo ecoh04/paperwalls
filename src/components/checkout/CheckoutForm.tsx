@@ -100,13 +100,13 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-stone-900">Contact & delivery</h2>
-        <p className="mt-1 text-sm text-stone-600">We’ll use this to confirm your order and ship your wallpaper.</p>
+      <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-5 shadow-pw-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-pw-ink">Contact & delivery</h2>
+        <p className="mt-1 text-sm text-pw-muted">We&apos;ll use this to confirm your order and ship your wallpaper.</p>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label htmlFor="customer_name" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="customer_name" className="block text-sm font-medium text-pw-ink">
               Full name <span className="text-red-500">*</span>
             </label>
             <input
@@ -116,12 +116,12 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
               value={address.customer_name}
               onChange={(e) => set("customer_name", e.target.value)}
               onBlur={() => setTouched((t) => ({ ...t, customer_name: true }))}
-              className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 shadow-sm focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
               placeholder="e.g. Thabo Mbeki"
             />
           </div>
           <div>
-            <label htmlFor="customer_email" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="customer_email" className="block text-sm font-medium text-pw-ink">
               Email <span className="text-red-500">*</span>
             </label>
             <input
@@ -130,12 +130,12 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
               autoComplete="email"
               value={address.customer_email}
               onChange={(e) => set("customer_email", e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 shadow-sm focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <label htmlFor="customer_phone" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="customer_phone" className="block text-sm font-medium text-pw-ink">
               Phone <span className="text-red-500">*</span>
             </label>
             <input
@@ -144,12 +144,12 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
               autoComplete="tel"
               value={address.customer_phone}
               onChange={(e) => set("customer_phone", e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 shadow-sm focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
               placeholder="e.g. 082 123 4567"
             />
           </div>
           <div className="sm:col-span-2">
-            <label htmlFor="address_line1" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="address_line1" className="block text-sm font-medium text-pw-ink">
               Street address <span className="text-red-500">*</span>
             </label>
             <input
@@ -158,13 +158,13 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
               autoComplete="street-address"
               value={address.address_line1}
               onChange={(e) => set("address_line1", e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 shadow-sm focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
               placeholder="House number, street, complex"
             />
           </div>
           <div className="sm:col-span-2">
-            <label htmlFor="address_line2" className="block text-sm font-medium text-stone-700">
-              Address line 2 <span className="text-stone-400">(optional)</span>
+            <label htmlFor="address_line2" className="block text-sm font-medium text-pw-ink">
+              Address line 2 <span className="text-pw-muted">(optional)</span>
             </label>
             <input
               id="address_line2"
@@ -172,12 +172,12 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
               autoComplete="address-line2"
               value={address.address_line2}
               onChange={(e) => set("address_line2", e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 shadow-sm focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
               placeholder="Unit, building, suburb"
             />
           </div>
           <div>
-            <label htmlFor="city" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="city" className="block text-sm font-medium text-pw-ink">
               City <span className="text-red-500">*</span>
             </label>
             <input
@@ -186,19 +186,19 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
               autoComplete="address-level2"
               value={address.city}
               onChange={(e) => set("city", e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 shadow-sm focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
               placeholder="e.g. Johannesburg"
             />
           </div>
           <div>
-            <label htmlFor="province" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="province" className="block text-sm font-medium text-pw-ink">
               Province <span className="text-red-500">*</span>
             </label>
             <select
               id="province"
               value={address.province}
               onChange={(e) => set("province", e.target.value as ShippingProvince)}
-              className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 shadow-sm focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
             >
               {PROVINCES.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -208,7 +208,7 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
             </select>
           </div>
           <div>
-            <label htmlFor="postal_code" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="postal_code" className="block text-sm font-medium text-pw-ink">
               Postal code <span className="text-red-500">*</span>
             </label>
             <input
@@ -217,36 +217,36 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
               autoComplete="postal-code"
               value={address.postal_code}
               onChange={(e) => set("postal_code", e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 shadow-sm focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
               placeholder="e.g. 2000"
             />
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border-2 border-stone-900 bg-stone-50 p-5 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-stone-900">Order summary</h2>
+      <div className="rounded-pw-card border border-pw-ink bg-pw-bg p-5 shadow-pw-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-pw-ink">Order summary</h2>
         <dl className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between">
-            <dt className="text-stone-600">Subtotal</dt>
-            <dd className="font-medium text-stone-900">{formatZar(subtotalCents)}</dd>
+            <dt className="text-pw-muted">Subtotal</dt>
+            <dd className="font-medium text-pw-ink">{formatZar(subtotalCents)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-stone-600">Shipping</dt>
-            <dd className="font-medium text-stone-900">{formatZar(shippingCents)}</dd>
+            <dt className="text-pw-muted">Shipping</dt>
+            <dd className="font-medium text-pw-ink">{formatZar(shippingCents)}</dd>
           </div>
-          <div className="flex justify-between border-t border-stone-200 pt-3 text-base">
-            <dt className="font-semibold text-stone-900">Total</dt>
-            <dd className="font-semibold text-stone-900">{formatZar(totalCents)}</dd>
+          <div className="flex justify-between border-t border-pw-stone pt-3 text-base">
+            <dt className="font-semibold text-pw-ink">Total</dt>
+            <dd className="font-semibold text-pw-ink">{formatZar(totalCents)}</dd>
           </div>
         </dl>
-        <p className="mt-3 text-xs text-stone-500">
-          You’ll complete payment securely on the next screen (PayFast).
+        <p className="mt-3 text-xs text-pw-muted">
+          You&apos;ll complete payment securely on the next screen (PayFast).
         </p>
         <button
           type="submit"
           disabled={submitting}
-          className="mt-6 w-full rounded-full bg-stone-900 py-4 font-medium text-white hover:bg-stone-800 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="mt-6 w-full rounded-pw bg-pw-ink py-4 font-medium text-white hover:bg-pw-ink-soft disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {submitting ? "Preparing…" : "Proceed to payment"}
         </button>
