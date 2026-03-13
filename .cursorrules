@@ -1,0 +1,40 @@
+PAPERWALLS — CURSOR RULES
+==========================
+
+Project structure: Next.js 14, App Router, TypeScript, located in /src
+
+NEVER TOUCH THESE — ever, for any reason:
+  src/app/api/          ← PayFast, checkout, Supabase routes
+  src/lib/              ← business logic, pricing, storage
+  src/middleware.ts     ← auth
+  src/types/            ← TypeScript types
+  src/contexts/         ← CartContext
+  src/app/page.tsx      ← landing page (uses its own CSS class system)
+
+BRAND NAME: always "Paperwalls" — capital P, capital W, one word. Never "paperwalls" or "PaperWalls"
+
+COLOUR TOKENS — always use pw-* Tailwind tokens. Never stone-*, never hardcode hex:
+  bg-pw-bg / text-pw-bg           #F8F4EF  page background
+  bg-pw-surface                   #FFFFFF  cards, panels
+  bg-pw-ink / text-pw-ink         #1A1714  primary text, dark fills
+  text-pw-muted                   #8A8175  secondary text, labels
+  bg-pw-accent / text-pw-accent   #C4622D  terracotta brand colour
+  bg-pw-accent-soft               #F2E8E1  blush backgrounds
+  bg-pw-stone                     #E6DFD8  warm grey
+
+TYPOGRAPHY:
+  H1: text-3xl font-bold text-pw-ink
+  H2: text-2xl font-bold text-pw-ink
+  Body: text-pw-ink font-light leading-relaxed
+  Labels/eyebrow: text-xs font-medium uppercase tracking-widest text-pw-muted
+
+BUTTONS:
+  Primary:  bg-pw-ink text-white rounded-pw hover:bg-pw-ink-soft
+  Accent:   bg-pw-accent text-white rounded-pw hover:opacity-90
+  Outline:  border border-pw-ink text-pw-ink bg-transparent rounded-pw
+  NEVER rounded-full on buttons. Always rounded-pw.
+
+CARDS: rounded-pw-card (never rounded-2xl or rounded-xl)
+FOCUS RINGS: focus:border-pw-ink focus:ring-1 focus:ring-pw-ink (never amber, never pink)
+
+ADMIN PAGES: follow the same token rules. Admin is not exempt.
