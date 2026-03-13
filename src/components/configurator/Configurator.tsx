@@ -192,6 +192,12 @@ export function Configurator() {
 
   const canAddToCart = dimensionsValid && allWallImagesUploaded;
 
+  const addToCartLabel = canAddToCart
+    ? "Add to cart"
+    : !allWallImagesUploaded
+    ? "Upload an image to continue →"
+    : "Enter wall dimensions to continue →";
+
   const setCropReady = useCallback((getBlob: () => Promise<Blob | null>) => {
     getCroppedBlobRef.current = getBlob;
   }, []);
@@ -293,6 +299,7 @@ export function Configurator() {
         style={state.style}
         application={state.application}
         canAddToCart={canAddToCart}
+        addToCartLabel={addToCartLabel}
         onAddToCart={handleAddToCart}
       />
     </div>

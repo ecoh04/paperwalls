@@ -1,6 +1,6 @@
 "use client";
 
-import { formatZar, calculateSubtotalCents, calculateWallpaperCents, APPLICATION_ADDON_CENTS } from "@/lib/pricing";
+import { formatZar, calculateWallpaperCents, APPLICATION_ADDON_CENTS } from "@/lib/pricing";
 import type { WallpaperStyle, ApplicationMethod } from "@/types/order";
 
 const APPLICATION_LABELS: Record<ApplicationMethod, string> = {
@@ -14,6 +14,7 @@ type PriceSummaryProps = {
   style: WallpaperStyle;
   application: ApplicationMethod;
   canAddToCart: boolean;
+  addToCartLabel: string;
   onAddToCart: () => void;
 };
 
@@ -22,6 +23,7 @@ export function PriceSummary({
   style,
   application,
   canAddToCart,
+  addToCartLabel,
   onAddToCart,
 }: PriceSummaryProps) {
   const wallpaperCents = calculateWallpaperCents(totalSqm, style);
@@ -33,48 +35,48 @@ export function PriceSummary({
       type="button"
       onClick={onAddToCart}
       disabled={!canAddToCart}
-      className="w-full rounded-full bg-stone-900 py-4 text-base font-medium text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50 min-h-[48px] touch-manipulation active:bg-stone-700"
+      className="w-full rounded-pw bg-pw-ink py-4 text-base font-medium text-white hover:bg-pw-ink-soft disabled:cursor-not-allowed disabled:opacity-50 min-h-[48px] touch-manipulation"
     >
-      {canAddToCart ? "Add to cart" : "Complete steps above to add to cart"}
+      {addToCartLabel}
     </button>
   );
 
   return (
     <>
       {/* Sticky bar on mobile */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-stone-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-pw-stone bg-pw-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] md:hidden">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-4">
           <div>
-            <p className="text-xs text-stone-500">Total (ex. shipping)</p>
-            <p className="text-lg font-bold text-stone-900">{formatZar(subtotalCents)}</p>
+            <p className="text-xs text-pw-muted">Total (ex. shipping)</p>
+            <p className="text-lg font-bold text-pw-ink">{formatZar(subtotalCents)}</p>
           </div>
           <div className="min-w-[140px] shrink-0">{mainButton}</div>
         </div>
       </div>
 
       {/* Full summary */}
-      <section className="rounded-xl border-2 border-stone-900 bg-stone-50 p-4 shadow-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-stone-900">Your price</h2>
-        <p className="mt-1 text-sm text-stone-600">
+      <section className="rounded-pw-card border border-pw-ink bg-pw-bg p-4 shadow-pw-sm sm:p-6">
+        <h2 className="text-lg font-semibold text-pw-ink">Your price</h2>
+        <p className="mt-1 text-sm text-pw-muted">
           Shipping is calculated at checkout based on your address.
         </p>
         <div className="mt-6 space-y-2 text-sm">
-          <div className="flex justify-between text-stone-700">
+          <div className="flex justify-between text-pw-muted">
             <span>Wallpaper ({totalSqm.toFixed(1)} m²)</span>
-            <span>{formatZar(wallpaperCents)}</span>
+            <span className="text-pw-ink">{formatZar(wallpaperCents)}</span>
           </div>
-          <div className="flex justify-between text-stone-700">
+          <div className="flex justify-between text-pw-muted">
             <span>Installation ({APPLICATION_LABELS[application]})</span>
-            <span>{installationCents === 0 ? "FREE" : formatZar(installationCents)}</span>
+            <span className="text-pw-ink">{installationCents === 0 ? "FREE" : formatZar(installationCents)}</span>
           </div>
-          <div className="flex justify-between text-stone-500">
+          <div className="flex justify-between text-pw-muted">
             <span>Shipping</span>
             <span>At checkout</span>
           </div>
         </div>
-        <div className="mt-6 flex items-center justify-between border-t border-stone-200 pt-4">
-          <span className="font-semibold text-stone-900">Total (ex. shipping)</span>
-          <span className="text-xl font-bold text-stone-900">{formatZar(subtotalCents)}</span>
+        <div className="mt-6 flex items-center justify-between border-t border-pw-stone pt-4">
+          <span className="font-semibold text-pw-ink">Total (ex. shipping)</span>
+          <span className="text-xl font-bold text-pw-ink">{formatZar(subtotalCents)}</span>
         </div>
         <div className="mt-6 hidden md:block">{mainButton}</div>
       </section>

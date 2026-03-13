@@ -38,8 +38,9 @@ function SuccessContent() {
         </div>
         <h1 className="mt-6 text-2xl font-bold text-pw-ink">Thank you for your order</h1>
         <p className="mt-2 text-pw-muted">
-          We’ve received your payment and will start preparing your wallpaper.
+          We&apos;ve received your payment and will start preparing your wallpaper.
         </p>
+
         {orderNumbers.length > 0 && (
           <div className="mt-6 rounded-lg border border-pw-stone bg-pw-bg p-4 text-left">
             <p className="text-sm font-medium text-pw-ink">Order number(s)</p>
@@ -49,10 +50,39 @@ function SuccessContent() {
               ))}
             </ul>
             <p className="mt-3 text-xs text-pw-muted">
-              We’ll send a confirmation email shortly. Keep this number for tracking.
+              Keep this number for tracking. A confirmation email is on its way.
             </p>
           </div>
         )}
+
+        {/* What happens next */}
+        <div className="mt-8 rounded-lg border border-pw-stone bg-pw-bg p-5 text-left">
+          <p className="text-sm font-semibold text-pw-ink">What happens next</p>
+          <ol className="mt-4 space-y-4">
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft text-xs font-semibold text-pw-accent">1</span>
+              <div>
+                <p className="text-sm font-medium text-pw-ink">We review your file</p>
+                <p className="mt-0.5 text-xs text-pw-muted">Our team checks your image quality and dimensions within 2 hours.</p>
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft text-xs font-semibold text-pw-accent">2</span>
+              <div>
+                <p className="text-sm font-medium text-pw-ink">Production confirmation</p>
+                <p className="mt-0.5 text-xs text-pw-muted">You&apos;ll receive an email confirming your order is on the press.</p>
+              </div>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft text-xs font-semibold text-pw-accent">3</span>
+              <div>
+                <p className="text-sm font-medium text-pw-ink">Your wallpaper ships within 72 hours</p>
+                <p className="mt-0.5 text-xs text-pw-muted">We&apos;ll email your tracking number as soon as it leaves our facility.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+
         <Link
           href="/"
           className="mt-8 inline-block rounded-pw bg-pw-ink px-6 py-3 text-sm font-medium text-white hover:bg-pw-ink-soft"
@@ -69,7 +99,7 @@ export default function CheckoutSuccessPage() {
     <Suspense fallback={
       <PageContainer>
         <div className="mx-auto max-w-xl rounded-pw-card border border-pw-stone bg-pw-surface p-8 text-center shadow-pw-sm">
-          <p className="text-pw-muted">Loading…</p>
+          <p className="text-pw-muted">Loading&hellip;</p>
         </div>
       </PageContainer>
     }>

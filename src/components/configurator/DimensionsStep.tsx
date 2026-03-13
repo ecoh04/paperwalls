@@ -181,7 +181,7 @@ export function DimensionsStep({
               min={10}
               max={2000}
               step={1}
-              value={widthCm || ""}
+              value={widthCm ? Math.round(widthCm) : ""}
               onChange={(e) => {
                 const cm = parseFloat(e.target.value) || 0;
                 let m = cm / 100;
@@ -189,7 +189,7 @@ export function DimensionsStep({
                   // Global limit: don't exceed Photowall-style quality threshold (~21 dpi ≈ 0.83 px/mm)
                   const MIN_PX_PER_MM = 0.83;
                   const maxM = imageWidthPx / (MIN_PX_PER_MM * 1000);
-                  if (m > maxM) m = maxM;
+                  if (m > maxM) m = Math.round(maxM * 100) / 100; // round to nearest cm
                 }
                 onWidthChange(m);
               }}
@@ -210,14 +210,14 @@ export function DimensionsStep({
               min={10}
               max={2000}
               step={1}
-              value={heightCm || ""}
+              value={heightCm ? Math.round(heightCm) : ""}
               onChange={(e) => {
                 const cm = parseFloat(e.target.value) || 0;
                 let m = cm / 100;
                 if (imageHeightPx) {
                   const MIN_PX_PER_MM = 0.83;
                   const maxM = imageHeightPx / (MIN_PX_PER_MM * 1000);
-                  if (m > maxM) m = maxM;
+                  if (m > maxM) m = Math.round(maxM * 100) / 100; // round to nearest cm
                 }
                 onHeightChange(m);
               }}
