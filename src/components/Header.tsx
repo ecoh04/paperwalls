@@ -7,31 +7,31 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[rgba(26,23,20,0.10)] bg-[#F8F4EF]/90 backdrop-blur supports-[backdrop-filter]:bg-[#F8F4EF]/85">
+    <header className="sticky top-0 z-50 border-b border-pw-border bg-pw-bg/90 backdrop-blur supports-[backdrop-filter]:bg-pw-bg/85">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+
         {/* Logo */}
-        <Link href="/" className="text-xl font-semibold tracking-tight text-[#1A1714]">
-          <span className="font-[\'DM_Serif_Display\',_serif] tracking-tight">Paper</span>
-          <span className="font-[\'DM_Serif_Display\',_serif] tracking-tight text-[#C4622D]">Walls</span>
+        <Link href="/" className="font-serif text-xl tracking-tight text-pw-ink">
+          paper<span className="text-pw-accent">walls</span>
         </Link>
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
           <Link
             href="/shop/custom-wallpaper"
-            className="rounded-md px-3 py-2 text-sm font-medium text-[#8A8175] hover:bg-[#F2E8E1] hover:text-[#1A1714]"
+            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
           >
             How it works
           </Link>
           <Link
             href="/faq"
-            className="rounded-md px-3 py-2 text-sm font-medium text-[#8A8175] hover:bg-[#F2E8E1] hover:text-[#1A1714]"
+            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
           >
             FAQ
           </Link>
           <Link
             href="/contact"
-            className="rounded-md px-3 py-2 text-sm font-medium text-[#8A8175] hover:bg-[#F2E8E1] hover:text-[#1A1714]"
+            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
           >
             Contact
           </Link>
@@ -41,13 +41,13 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Link
             href="/config"
-            className="hidden pw-btn-primary sm:inline-flex"
+            className="hidden rounded-pw bg-pw-ink px-4 py-2 text-sm font-medium text-white hover:bg-pw-ink-soft sm:inline-flex"
           >
             Design your wallpaper
           </Link>
           <Link
             href="/cart"
-            className="flex items-center gap-1.5 rounded-md p-2 text-[#8A8175] hover:bg-[#F2E8E1] hover:text-[#1A1714]"
+            className="flex items-center gap-1.5 rounded-pw p-2 text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
             aria-label="Cart"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -55,10 +55,11 @@ export function Header() {
             </svg>
             <span className="text-sm font-medium">Cart</span>
           </Link>
+
           {/* Mobile menu button */}
           <button
             type="button"
-            className="rounded-md p-2 text-[#8A8175] hover:bg-[#F2E8E1] md:hidden"
+            className="rounded-pw p-2 text-pw-muted hover:bg-pw-accent-soft md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-expanded={mobileMenuOpen}
             aria-label="Toggle menu"
@@ -78,39 +79,39 @@ export function Header() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="border-t border-stone-200 bg-white md:hidden">
+        <div className="border-t border-pw-stone bg-pw-surface md:hidden">
           <div className="space-y-1 px-4 py-4">
             <Link
               href="/shop/custom-wallpaper"
-              className="block rounded-md px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-50"
+              className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
               onClick={() => setMobileMenuOpen(false)}
             >
               How it works
             </Link>
             <Link
               href="/about"
-              className="block rounded-md px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-50"
+              className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
               onClick={() => setMobileMenuOpen(false)}
             >
               About
             </Link>
             <Link
               href="/faq"
-              className="block rounded-md px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-50"
+              className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
               onClick={() => setMobileMenuOpen(false)}
             >
               FAQ
             </Link>
             <Link
               href="/contact"
-              className="block rounded-md px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-50"
+              className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
               onClick={() => setMobileMenuOpen(false)}
             >
               Contact
             </Link>
             <Link
               href="/config"
-              className="mt-4 block rounded-full bg-stone-900 px-4 py-3 text-center text-base font-medium text-white hover:bg-stone-800"
+              className="mt-4 block rounded-pw bg-pw-ink px-4 py-3 text-center text-base font-medium text-white hover:bg-pw-ink-soft"
               onClick={() => setMobileMenuOpen(false)}
             >
               Design your wallpaper

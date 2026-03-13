@@ -23,9 +23,9 @@ export function InstallationStep({
   if (totalSqm <= 0) return null;
 
   return (
-    <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-      <h2 className="text-lg font-semibold text-stone-900">5. Installation</h2>
-      <p className="mt-1 text-sm text-stone-600">
+    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-4 sm:p-6 shadow-pw-sm">
+      <h2 className="text-lg font-semibold text-pw-ink">5. Installation</h2>
+      <p className="mt-1 text-sm text-pw-muted">
         How do you want to apply the wallpaper?
       </p>
       <div className="mt-6 space-y-3">
@@ -38,17 +38,17 @@ export function InstallationStep({
               key={opt.id}
               type="button"
               onClick={() => onApplicationChange(opt.id)}
-              className={`flex w-full min-h-[48px] touch-manipulation flex-col items-start rounded-xl border-2 p-4 text-left transition-colors active:bg-stone-100 sm:flex-row sm:items-center sm:justify-between ${
+              className={`flex w-full min-h-[48px] touch-manipulation flex-col items-start rounded-pw-card border p-4 text-left transition-colors active:bg-pw-accent-soft sm:flex-row sm:items-center sm:justify-between ${
                 isSelected
-                  ? "border-stone-900 bg-stone-50"
-                  : "border-stone-200 hover:border-stone-300 hover:bg-stone-50"
+                  ? "border-pw-ink bg-pw-bg"
+                  : "border-pw-stone hover:border-pw-ink hover:bg-pw-bg"
               }`}
             >
               <div>
-                <span className="font-medium text-stone-900">{opt.label}</span>
-                <p className="mt-0.5 text-sm text-stone-600">{opt.description}</p>
+                <span className="font-medium text-pw-ink">{opt.label}</span>
+                <p className="mt-0.5 text-sm text-pw-muted">{opt.description}</p>
               </div>
-              <span className="mt-2 text-sm font-semibold text-stone-900 sm:mt-0">
+              <span className="mt-2 text-sm font-semibold text-pw-ink sm:mt-0">
                 {priceLabel}
               </span>
             </button>

@@ -108,24 +108,24 @@ export function DimensionsStep({
   };
 
   return (
-    <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-stone-900">2. Wall dimensions</h2>
-      <p className="mt-1 text-sm text-stone-600">
-        Enter the width and height of your wall(s) in centimetres. We’ll convert to meters and area for pricing.
+    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-4 sm:p-6 shadow-pw-sm">
+      <h2 className="text-lg font-semibold text-pw-ink">2. Wall dimensions</h2>
+      <p className="mt-1 text-sm text-pw-muted">
+        Enter the width and height of your wall(s) in centimetres. We'll convert to meters and area for pricing.
       </p>
 
       <div className="mt-6">
-        <label className="block text-sm font-medium text-stone-700">How many walls?</label>
+        <label className="block text-sm font-medium text-pw-ink">How many walls?</label>
         <div className="mt-2 flex flex-wrap gap-2">
           {[1, 2, 3, 4].map((n) => (
             <button
               key={n}
               type="button"
               onClick={() => handleWallCountChange(n)}
-              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-pw border px-4 py-2 text-sm font-medium transition-colors ${
                 wallCount === n
-                  ? "border-stone-900 bg-stone-900 text-white"
-                  : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
+                  ? "border-pw-ink bg-pw-ink text-white"
+                  : "border-pw-stone bg-pw-surface text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
               }`}
             >
               {n} wall{n > 1 ? "s" : ""}
@@ -136,20 +136,20 @@ export function DimensionsStep({
 
       {isMulti && (
         <div className="mt-6">
-          <label className="block text-sm font-medium text-stone-700">
+          <label className="block text-sm font-medium text-pw-ink">
             Same size and image for all walls?
           </label>
-          <p className="mt-0.5 text-xs text-stone-500">
+          <p className="mt-0.5 text-xs text-pw-muted">
             Same: one size and one image, we print that for each wall. Different: enter dimensions (and later image) for each wall.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => handleMultiWallMode("same")}
-              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-pw border px-4 py-2 text-sm font-medium transition-colors ${
                 multiWallMode === "same"
-                  ? "border-stone-900 bg-stone-900 text-white"
-                  : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
+                  ? "border-pw-ink bg-pw-ink text-white"
+                  : "border-pw-stone bg-pw-surface text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
               }`}
             >
               Yes, same for all
@@ -157,10 +157,10 @@ export function DimensionsStep({
             <button
               type="button"
               onClick={() => handleMultiWallMode("different")}
-              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-pw border px-4 py-2 text-sm font-medium transition-colors ${
                 multiWallMode === "different"
-                  ? "border-stone-900 bg-stone-900 text-white"
-                  : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
+                  ? "border-pw-ink bg-pw-ink text-white"
+                  : "border-pw-stone bg-pw-surface text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
               }`}
             >
               No, different sizes
@@ -172,7 +172,7 @@ export function DimensionsStep({
       {(!isMulti || multiWallMode === "same") && (
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <div>
-            <label htmlFor="width" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="width" className="block text-sm font-medium text-pw-ink">
               Width (cm)
             </label>
             <input
@@ -194,14 +194,14 @@ export function DimensionsStep({
                 onWidthChange(m);
               }}
               placeholder="e.g. 400"
-              className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 shadow-sm focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
             />
             {widthM > 0 && (
-              <p className="mt-1 text-xs text-stone-500">{widthCm.toFixed(0)} cm = {widthM.toFixed(2)} m</p>
+              <p className="mt-1 text-xs text-pw-muted">{widthCm.toFixed(0)} cm = {widthM.toFixed(2)} m</p>
             )}
           </div>
           <div>
-            <label htmlFor="height" className="block text-sm font-medium text-stone-700">
+            <label htmlFor="height" className="block text-sm font-medium text-pw-ink">
               Height (cm)
             </label>
             <input
@@ -222,10 +222,10 @@ export function DimensionsStep({
                 onHeightChange(m);
               }}
               placeholder="e.g. 240"
-              className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 shadow-sm focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
+              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
             />
             {heightM > 0 && (
-              <p className="mt-1 text-xs text-stone-500">{heightCm.toFixed(0)} cm = {heightM.toFixed(2)} m</p>
+              <p className="mt-1 text-xs text-pw-muted">{heightCm.toFixed(0)} cm = {heightM.toFixed(2)} m</p>
             )}
           </div>
         </div>
@@ -238,12 +238,12 @@ export function DimensionsStep({
             return (
               <div
                 key={i}
-                className="rounded-lg border border-stone-200 bg-stone-50/50 p-4"
+                className="rounded-pw-card border border-pw-stone bg-pw-bg p-4"
               >
-                <h3 className="text-sm font-medium text-stone-800">Wall {i + 1}</h3>
+                <h3 className="text-sm font-medium text-pw-ink">Wall {i + 1}</h3>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-medium text-stone-600">Width (m)</label>
+                    <label className="block text-xs font-medium text-pw-muted">Width (m)</label>
                     <input
                       type="number"
                       min={0.1}
@@ -252,11 +252,11 @@ export function DimensionsStep({
                       value={w.widthM || ""}
                       onChange={(e) => setWall(i, "widthM", parseFloat(e.target.value) || 0)}
                       placeholder="e.g. 3.5"
-                      className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900"
+                      className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-sm text-pw-ink focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-stone-600">Height (m)</label>
+                    <label className="block text-xs font-medium text-pw-muted">Height (m)</label>
                     <input
                       type="number"
                       min={0.1}
@@ -265,12 +265,12 @@ export function DimensionsStep({
                       value={w.heightM || ""}
                       onChange={(e) => setWall(i, "heightM", parseFloat(e.target.value) || 0)}
                       placeholder="e.g. 2.4"
-                      className="mt-1 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900"
+                      className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-sm text-pw-ink focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
                     />
                   </div>
                 </div>
                 {w.widthM > 0 && w.heightM > 0 && (
-                  <p className="mt-2 text-xs text-stone-600">
+                  <p className="mt-2 text-xs text-pw-muted">
                     {(w.widthM * w.heightM).toFixed(1)} m²
                   </p>
                 )}
@@ -281,14 +281,14 @@ export function DimensionsStep({
       )}
 
       {((!isMulti && isValidSame) || (isMulti && multiWallMode === "same" && isValidSame) || (isMulti && multiWallMode === "different" && isValidDifferent)) && (
-        <p className="mt-6 text-sm font-medium text-stone-700">
-          Total area: <span className="text-stone-900">{totalSqm.toFixed(1)} m²</span>
+        <p className="mt-6 text-sm font-medium text-pw-muted">
+          Total area: <span className="text-pw-ink">{totalSqm.toFixed(1)} m²</span>
         </p>
       )}
       {!isMulti && qualityText && (
-        <p className="mt-2 text-xs text-stone-600">
+        <p className="mt-2 text-xs text-pw-muted">
           {qualityText}{" "}
-          <span className="block text-[11px] text-pink-600 mt-1">
+          <span className="block text-[11px] text-pw-accent mt-1">
             Tip: add 6–10 cm to both width and height so you can trim the wallpaper perfectly on site.
           </span>
         </p>

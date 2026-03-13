@@ -27,9 +27,9 @@ export function StyleStep({ totalSqm, style, application, onStyleChange }: Style
   if (totalSqm <= 0) return null;
 
   return (
-    <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-stone-900">4. Wallpaper style</h2>
-      <p className="mt-1 text-sm text-stone-600">
+    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-4 sm:p-6 shadow-pw-sm">
+      <h2 className="text-lg font-semibold text-pw-ink">4. Wallpaper style</h2>
+      <p className="mt-1 text-sm text-pw-muted">
         Choose the finish. Price updates below for your current size.
       </p>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -42,23 +42,23 @@ export function StyleStep({ totalSqm, style, application, onStyleChange }: Style
               key={s.id}
               type="button"
               onClick={() => onStyleChange(s.id)}
-              className={`flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border-2 p-4 text-left transition-colors touch-manipulation min-h-[44px] ${
+              className={`flex flex-col sm:flex-row sm:items-center gap-4 rounded-pw-card border p-4 text-left transition-colors touch-manipulation min-h-[44px] ${
                 isSelected
-                  ? "border-stone-900 bg-stone-50"
-                  : "border-stone-200 hover:border-stone-300 hover:bg-stone-50 active:bg-stone-100"
+                  ? "border-pw-ink bg-pw-bg"
+                  : "border-pw-stone hover:border-pw-ink hover:bg-pw-bg active:bg-pw-accent-soft"
               }`}
             >
               <div
-                className={`w-full h-20 sm:w-24 sm:h-24 shrink-0 rounded-lg border border-stone-200 overflow-hidden ${s.textureClass}`}
+                className={`w-full h-20 sm:w-24 sm:h-24 shrink-0 rounded-lg border border-pw-stone overflow-hidden ${s.textureClass}`}
                 aria-hidden
               />
               <div className="flex-1 min-w-0">
-                <span className="font-medium text-stone-900">{s.label}</span>
-                <span className="mt-0.5 block text-xs text-stone-600">{s.description}</span>
-                <span className="mt-2 inline-block text-sm font-semibold text-stone-900">
+                <span className="font-medium text-pw-ink">{s.label}</span>
+                <span className="mt-0.5 block text-xs text-pw-muted">{s.description}</span>
+                <span className="mt-2 inline-block text-sm font-semibold text-pw-ink">
                   {formatZar(cents)}
                   {mult !== 1 && (
-                    <span className="ml-1 font-normal text-stone-500">
+                    <span className="ml-1 font-normal text-pw-muted">
                       ({(mult * 100 - 100).toFixed(0)}% more)
                     </span>
                   )}
