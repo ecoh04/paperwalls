@@ -18,22 +18,28 @@ export function Header() {
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
           <Link
-            href="/shop/custom-wallpaper"
+            href="/how-it-works"
             className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
           >
             How it works
+          </Link>
+          <Link
+            href="/materials"
+            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
+          >
+            Materials
+          </Link>
+          <Link
+            href="/inspiration"
+            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
+          >
+            Inspiration
           </Link>
           <Link
             href="/faq"
             className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
           >
             FAQ
-          </Link>
-          <Link
-            href="/contact"
-            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
-          >
-            Contact
           </Link>
         </nav>
 
@@ -43,7 +49,7 @@ export function Header() {
             href="/config"
             className="hidden rounded-pw bg-pw-ink px-4 py-2 text-sm font-medium text-white hover:bg-pw-ink-soft sm:inline-flex"
           >
-            Design your wallpaper
+            Upload your design →
           </Link>
           <Link
             href="/cart"
@@ -82,18 +88,25 @@ export function Header() {
         <div className="border-t border-pw-stone bg-pw-surface md:hidden">
           <div className="space-y-1 px-4 py-4">
             <Link
-              href="/shop/custom-wallpaper"
+              href="/how-it-works"
               className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
               onClick={() => setMobileMenuOpen(false)}
             >
               How it works
             </Link>
             <Link
-              href="/about"
+              href="/materials"
               className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
               onClick={() => setMobileMenuOpen(false)}
             >
-              About
+              Materials
+            </Link>
+            <Link
+              href="/inspiration"
+              className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Inspiration
             </Link>
             <Link
               href="/faq"
@@ -103,18 +116,11 @@ export function Header() {
               FAQ
             </Link>
             <Link
-              href="/contact"
-              className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Contact
-            </Link>
-            <Link
               href="/config"
               className="mt-4 block rounded-pw bg-pw-ink px-4 py-3 text-center text-base font-medium text-white hover:bg-pw-ink-soft"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Design your wallpaper
+              Upload your design →
             </Link>
           </div>
         </div>

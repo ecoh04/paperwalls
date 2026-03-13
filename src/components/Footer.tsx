@@ -4,31 +4,33 @@ const footerSections = [
   {
     title: "Shop",
     links: [
-      { href: "/shop",                  label: "All products"          },
-      { href: "/shop/custom-wallpaper", label: "Custom wallpaper"      },
-      { href: "/config",                label: "Design your wallpaper" },
+      { href: "/products/custom-wallpaper", label: "Custom wallpaper"      },
+      { href: "/how-it-works",              label: "How it works"           },
+      { href: "/materials",                 label: "Materials"              },
+      { href: "/inspiration",               label: "Inspiration"            },
+      { href: "/samples",                   label: "Order a sample pack"    },
     ],
   },
   {
-    title: "Company",
+    title: "Support",
     links: [
-      { href: "/about",   label: "About us" },
-      { href: "/contact", label: "Contact"  },
-    ],
-  },
-  {
-    title: "Help",
-    links: [
-      { href: "/faq",      label: "FAQ"                 },
-      { href: "/shipping", label: "Shipping & delivery" },
-      { href: "/returns",  label: "Returns & refunds"   },
+      { href: "/faq",      label: "FAQ"                  },
+      { href: "/contact",  label: "Contact"              },
+      { href: "/shipping", label: "Shipping & delivery"  },
+      { href: "/returns",  label: "Returns & refunds"    },
     ],
   },
   {
     title: "Legal",
     links: [
-      { href: "/privacy", label: "Privacy policy"    },
-      { href: "/terms",   label: "Terms of service"  },
+      { href: "/privacy", label: "Privacy policy"   },
+      { href: "/terms",   label: "Terms of service" },
+    ],
+  },
+  {
+    title: "Brand",
+    links: [
+      { href: "/about", label: "About us" },
     ],
   },
 ];
