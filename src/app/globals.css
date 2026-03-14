@@ -246,16 +246,27 @@ body {
   color: var(--ink);
 }
 
-/* ── Mobile hero visual (room mockup SVG — replace with photo when available) ── */
+/* ── Mobile hero visual — replace div bg with <Image> when photography is ready ── */
 .hero-mobile-visual {
   display: none;
-  border-radius: 12px;
-  overflow: hidden;
   text-decoration: none;
+  overflow: hidden;
   transition: opacity var(--transition);
 }
 .hero-mobile-visual:hover {
-  opacity: 0.88;
+  opacity: 0.9;
+}
+
+.hero-visual-bg {
+  width: 100%;
+  height: 240px;
+  background-color: #221D18;
+  background-image:
+    radial-gradient(ellipse at 38% 38%, rgba(194, 123, 74, 0.60) 0%, transparent 48%),
+    radial-gradient(ellipse at 76% 60%, rgba(139, 85, 48, 0.44) 0%, transparent 42%),
+    radial-gradient(ellipse at 18% 70%, rgba(72, 50, 34, 0.65) 0%, transparent 40%),
+    radial-gradient(ellipse at 62% 12%, rgba(212, 149, 106, 0.28) 0%, transparent 35%),
+    radial-gradient(ellipse at 88% 22%, rgba(160, 100, 58, 0.20) 0%, transparent 30%);
 }
 
 .hero-trust {
@@ -1525,7 +1536,8 @@ appearance: textfield;
     background: linear-gradient(160deg, var(--bg) 55%, var(--accent-soft) 100%);
   }
   .hero-left {
-    padding: 44px 20px 36px;
+    padding: 0 20px 36px;
+    gap: 16px;
   }
   .hero-right {
     display: none;
@@ -1538,10 +1550,12 @@ appearance: textfield;
     max-width: none;
   }
 
-  /* Mobile hero visual */
+  /* Mobile hero visual — pulled to top of column, full-bleed */
   .hero-mobile-visual {
     display: block;
-    margin-top: 20px;
+    order: -1;
+    margin: 0 -20px;
+    border-radius: 0;
   }
 
   /* Full-width stacked CTAs */

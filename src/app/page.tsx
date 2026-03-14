@@ -97,72 +97,9 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Mobile hero visual — room mockup with botanical wallpaper panel */}
-          <Link href="/config" className="hero-mobile-visual fade-up delay-4" aria-label="Start designing your wallpaper">
-            <svg viewBox="0 0 380 240" fill="none" xmlns="http://www.w3.org/2000/svg" width="100%" style={{ display: 'block' }}>
-              <defs>
-                <linearGradient id="hw-wall" x1="0" y1="0" x2="380" y2="0" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#E4DDD5" />
-                  <stop offset="100%" stopColor="#EEE8E1" />
-                </linearGradient>
-                <linearGradient id="hw-fade" x1="0" y1="162" x2="0" y2="186" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#1D1A17" stopOpacity="0" />
-                  <stop offset="100%" stopColor="#1D1A17" stopOpacity="0.9" />
-                </linearGradient>
-                <clipPath id="hw-clip">
-                  <rect x="50" y="14" width="280" height="172" rx="1" />
-                </clipPath>
-              </defs>
-
-              {/* Room wall */}
-              <rect width="380" height="240" fill="url(#hw-wall)" />
-              {/* Left wall shadow for depth */}
-              <rect x="0" y="0" width="52" height="240" fill="#D8D2CA" opacity="0.4" />
-              {/* Floor */}
-              <rect x="0" y="200" width="380" height="40" fill="#DDD7CF" />
-              {/* Baseboard */}
-              <rect x="0" y="197" width="380" height="4" fill="#C4BDB5" />
-
-              {/* Panel drop shadow */}
-              <rect x="53" y="18" width="280" height="172" rx="2" fill="#0D0B09" opacity="0.15" />
-
-              {/* Wallpaper panel */}
-              <rect x="50" y="14" width="280" height="172" rx="1" fill="#1D1A17" />
-
-              {/* Botanical illustration — clipped to panel */}
-              <g clipPath="url(#hw-clip)">
-                {/* Deep background layer */}
-                <ellipse cx="190" cy="100" rx="54" ry="118" transform="rotate(-4,190,100)" fill="#272018" />
-                {/* Left leaf */}
-                <ellipse cx="150" cy="110" rx="26" ry="77" transform="rotate(-27,150,110)" fill="#9A5030" />
-                {/* Right leaf */}
-                <ellipse cx="230" cy="110" rx="26" ry="77" transform="rotate(27,230,110)" fill="#8E4A2A" />
-                {/* Main center leaf */}
-                <ellipse cx="190" cy="100" rx="30" ry="86" transform="rotate(-3,190,100)" fill="#C27B4A" />
-                {/* Top highlight */}
-                <ellipse cx="190" cy="54" rx="15" ry="40" fill="#D4956A" />
-                {/* Far accent leaves */}
-                <ellipse cx="106" cy="132" rx="13" ry="50" transform="rotate(-43,106,132)" fill="#3A2618" />
-                <ellipse cx="274" cy="132" rx="13" ry="50" transform="rotate(43,274,132)" fill="#3A2618" />
-                {/* Leaf vein */}
-                <path d="M190,186 C190,154 191,116 190,46" stroke="#EDE8E0" strokeWidth="0.7" opacity="0.28" />
-                {/* Berry buds */}
-                <circle cx="190" cy="40" r="5.5" fill="#EDE8E0" opacity="0.72" />
-                <circle cx="181" cy="45" r="3.5" fill="#D4956A" opacity="0.6" />
-                <circle cx="199" cy="45" r="3.5" fill="#C27B4A" opacity="0.55" />
-                {/* Bottom fade overlay */}
-                <rect x="50" y="162" width="280" height="24" fill="url(#hw-fade)" />
-                {/* Panel label */}
-                <text x="190" y="182" textAnchor="middle" fontFamily="Georgia, serif" fontSize="7" fill="#EDE8E0" letterSpacing="3" opacity="0.65">PAPERWALLS</text>
-              </g>
-
-              {/* Panel border */}
-              <rect x="50" y="14" width="280" height="172" rx="1" fill="none" stroke="#0D0B09" strokeWidth="0.5" opacity="0.35" />
-
-              {/* Small decorative plant in room left */}
-              <ellipse cx="26" cy="148" rx="7" ry="24" transform="rotate(-18,26,148)" fill="#BDB6AE" opacity="0.45" />
-              <line x1="26" y1="168" x2="26" y2="200" stroke="#B0A89F" strokeWidth="1" opacity="0.4" />
-            </svg>
+          {/* Mobile hero visual — CSS gradient stand-in, swap for <Image> when photography is ready */}
+          <Link href="/config" className="hero-mobile-visual" aria-label="Start designing your wallpaper">
+            <div className="hero-visual-bg" />
           </Link>
 
           <div className="hero-trust fade-up delay-5">
