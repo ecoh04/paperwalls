@@ -25,6 +25,7 @@ export default function HomePage() {
   const [activeMat, setActiveMat] = useState(0);
   const [width, setWidth] = useState(2.4);
   const [height, setHeight] = useState(2.7);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const sqm = width * height;
   const total = Math.round(sqm * PRICE_PER_SQM[activeMaterial] * 8.1);
@@ -106,8 +107,8 @@ export default function HomePage() {
               <span className="trust-label">Per m²</span>
             </div>
             <div className="trust-item">
-              <span className="trust-num">300 DPI</span>
-              <span className="trust-label">Commercial-grade print</span>
+              <span className="trust-num">4.9 ★</span>
+              <span className="trust-label">Customer rating</span>
             </div>
             <div className="trust-item">
               <span className="trust-num">Any size</span>
@@ -145,9 +146,6 @@ export default function HomePage() {
               </div>
             </Link>
 
-            <Link href="/config" className="btn btn-primary config-submit">
-              Get instant quote <span className="btn-arrow">↗</span>
-            </Link>
           </div>
         </div>
       </section>
@@ -214,6 +212,9 @@ export default function HomePage() {
               the room.
             </em>
           </h2>
+          <p className="section-sub">
+            From abstract art to family photos — if you can save it as a file, we can print it at any scale.
+          </p>
         </div>
 
         <div className="gallery-grid">
@@ -317,6 +318,16 @@ export default function HomePage() {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="section-cta">
+          <Link href="/config" className="btn btn-accent">
+            Choose your material <span className="btn-arrow">↗</span>
+          </Link>
+          <p className="section-cta-note">
+            Ordering for a project?{" "}
+            <Link href="/contact">Contact us for bulk pricing →</Link>
+          </p>
         </div>
       </section>
 
@@ -458,15 +469,14 @@ export default function HomePage() {
             </em>
           </h2>
           <p className="section-sub">
-            Still not sure? Browse the questions below or{" "}
+            Still not sure?{" "}
             <Link href="/contact" style={{ color: "var(--accent)", textDecoration: "underline", textUnderlineOffset: "3px" }}>
-              chat to us directly
+              Chat to us directly →
             </Link>
-            .
           </p>
         </div>
 
-        <div className="faq-grid">
+        <div className="faq-accordion">
           {[
             {
               q: "Do I need design software or special files?",
@@ -500,10 +510,22 @@ export default function HomePage() {
               q: "Can I order wallpaper for multiple walls?",
               a: "Yes. The configurator supports multi-wall orders — add each wall's dimensions separately and we print, label, and ship them together as one order.",
             },
-          ].map((item) => (
-            <div key={item.q} className="faq-item">
-              <div className="faq-q">{item.q}</div>
-              <p className="faq-a">{item.a}</p>
+          ].map((item, i) => (
+            <div
+              key={i}
+              className={`faq-accordion-item${openFaq === i ? " open" : ""}`}
+            >
+              <button
+                className="faq-accordion-trigger"
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                aria-expanded={openFaq === i}
+              >
+                <span className="faq-accordion-q">{item.q}</span>
+                <span className="faq-accordion-icon">+</span>
+              </button>
+              <div className="faq-accordion-body">
+                <p className="faq-accordion-a">{item.a}</p>
+              </div>
             </div>
           ))}
         </div>

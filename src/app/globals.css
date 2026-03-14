@@ -1267,8 +1267,31 @@ appearance: textfield;
 
 .section-cta {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   padding-top: 48px;
+}
+
+.section-cta-note {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.materials .section-cta-note {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.materials .section-cta-note a {
+  color: var(--accent-mid);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition);
+}
+
+.materials .section-cta-note a:hover {
+  color: #e8795a;
 }
 
 .testi-verified {
@@ -1347,6 +1370,92 @@ appearance: textfield;
   font-weight: 300;
 }
 
+/* Accordion (replaces grid on homepage) */
+.faq-accordion {
+  display: flex;
+  flex-direction: column;
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.faq-accordion-item {
+  border-bottom: 0.5px solid var(--border);
+}
+.faq-accordion-item:last-child {
+  border-bottom: none;
+}
+
+.faq-accordion-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 28px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-family: var(--sans);
+  transition: background var(--transition);
+}
+.faq-accordion-trigger:hover {
+  background: var(--surface);
+}
+.faq-accordion-item.open .faq-accordion-trigger {
+  background: var(--surface);
+}
+
+.faq-accordion-q {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.faq-accordion-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(26, 23, 20, 0.06);
+  font-size: 17px;
+  line-height: 1;
+  color: var(--muted);
+  transition: transform var(--transition), background var(--transition), color var(--transition);
+}
+.faq-accordion-item.open .faq-accordion-icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+  transform: rotate(45deg);
+}
+
+.faq-accordion-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, padding 0.35s ease;
+  padding: 0 28px;
+  background: var(--surface);
+}
+.faq-accordion-item.open .faq-accordion-body {
+  max-height: 200px;
+  padding: 0 28px 24px;
+}
+
+.faq-accordion-a {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.75;
+  font-weight: 300;
+  border-top: 0.5px solid var(--border);
+  padding-top: 16px;
+}
+
 /* =============================================
    RESPONSIVE ADJUSTMENTS
    ============================================= */
@@ -1403,7 +1512,7 @@ appearance: textfield;
     padding: 40px 20px 32px;
   }
   .hero-right {
-    padding: 32px 20px 48px;
+    display: none;
   }
   .hero-h1 {
     font-size: 34px;
@@ -1437,6 +1546,7 @@ appearance: textfield;
   }
   .section-cta {
     padding-top: 32px;
+    gap: 10px;
   }
   .gallery-grid {
     grid-template-columns: 1.4fr 1.2fr;
