@@ -78,8 +78,7 @@ export default function HomePage() {
 
           <h1 className="hero-h1 fade-up delay-1">
             Your image.<br />
-            <em>Your walls.</em><br />
-            <span style={{ fontSize: '0.55em', fontStyle: 'normal', color: 'var(--ink)' }}>Printed to order, cut to size.</span>
+            <em>Your walls.</em>
           </h1>
 
           <p className="hero-sub fade-up delay-2">
@@ -112,7 +111,7 @@ export default function HomePage() {
             </div>
             <div className="trust-item">
               <span className="trust-num">Any size</span>
-              <span className="trust-label">Zero waste, cut to your exact wall</span>
+              <span className="trust-label">Cut to your exact wall</span>
             </div>
           </div>
         </div>
