@@ -83,9 +83,9 @@ export default function HomePage() {
           </h1>
 
           <p className="hero-sub fade-up delay-2">
-            Upload any photo, pattern or artwork. We print it on premium fabric
-            using commercial-grade presses and ship it to your door — cut to
-            your exact wall dimensions.
+            Upload any image — printed on commercial-grade fabric and shipped to
+            your door, cut to your exact wall dimensions. No design skills
+            needed.
           </p>
 
           <div className="hero-ctas fade-up delay-3">
