@@ -246,6 +246,55 @@ body {
   color: var(--ink);
 }
 
+/* ── Mobile hero visual (placeholder until real photography) ── */
+.hero-mobile-visual {
+  display: none;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1.5px dashed var(--border-mid);
+  text-decoration: none;
+}
+.hero-mobile-visual-inner {
+  height: 200px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 31px,
+      var(--accent-soft) 31px,
+      var(--accent-soft) 32px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 31px,
+      var(--accent-soft) 31px,
+      var(--accent-soft) 32px
+    ),
+    var(--stone);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity var(--transition);
+}
+.hero-mobile-visual:hover .hero-mobile-visual-inner {
+  opacity: 0.8;
+}
+.hero-mobile-visual-label {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+  font-family: var(--sans);
+}
+.hero-mobile-visual-sub {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--sans);
+  letter-spacing: 0.02em;
+}
+
 .hero-trust {
   display: flex;
   gap: 28px;
@@ -1524,6 +1573,12 @@ appearance: textfield;
   .hero-sub {
     font-size: 15px;
     max-width: none;
+  }
+
+  /* Mobile hero visual */
+  .hero-mobile-visual {
+    display: block;
+    margin-top: 20px;
   }
 
   /* Full-width stacked CTAs */

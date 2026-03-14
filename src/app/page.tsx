@@ -97,7 +97,19 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="hero-trust fade-up delay-4">
+          {/* Mobile hero visual — placeholder until real photography is added */}
+          <Link href="/config" className="hero-mobile-visual fade-up delay-4">
+            <div className="hero-mobile-visual-inner">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--muted)' }}>
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              <span className="hero-mobile-visual-label">Your photo here</span>
+              <span className="hero-mobile-visual-sub">Any image · Any size · Any wall</span>
+            </div>
+          </Link>
+
+          <div className="hero-trust fade-up delay-5">
             <div className="trust-item">
               <span className="trust-num">72hr</span>
               <span className="trust-label">Print & dispatch</span>
