@@ -175,23 +175,32 @@ body {
   border-radius: 5px;
   font-size: 12px;
   transition: var(--transition);
+  flex-shrink: 0;
 }
-.btn-primary:hover .btn-arrow {
+.btn-primary:hover .btn-arrow,
+.btn-accent:hover .btn-arrow {
   background: rgba(255, 255, 255, 0.25);
+  transform: translate(1px, -1px);
+}
+
+.btn-outline .btn-arrow {
+  background: rgba(26, 23, 20, 0.07);
+}
+.btn-outline:hover .btn-arrow {
+  background: rgba(26, 23, 20, 0.13);
   transform: translate(1px, -1px);
 }
 
 .hero {
   display: grid;
   grid-template-columns: 1fr 520px;
-  min-height: clamp(600px, 90vh, 860px);
 }
 
 .hero-left {
-  padding: 96px 56px 80px 48px;
+  padding: 80px 56px 80px 48px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 20px;
 }
 
@@ -271,7 +280,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 40px;
+  padding: 80px 40px;
   border-left: 0.5px solid var(--border);
 }
 
@@ -300,8 +309,8 @@ body {
 .upload-zone {
   border: 1.5px dashed var(--stone-dark);
   border-radius: 14px;
-  padding: 64px 20px;
-  min-height: 280px;
+  padding: 48px 20px;
+  min-height: 220px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1061,7 +1070,7 @@ appearance: textfield;
   margin: 0 48px 80px;
   background: var(--ink);
   border-radius: 20px;
-  padding: 64px 72px;
+  padding: 80px 72px;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -1290,7 +1299,7 @@ appearance: textfield;
 }
 
 .faq-section {
-  padding: 80px 48px;
+  padding: 96px 48px;
   background: var(--surface);
   border-top: 0.5px solid var(--border);
   border-bottom: 0.5px solid var(--border);
@@ -1351,22 +1360,23 @@ appearance: textfield;
   }
   .hero {
     grid-template-columns: 1fr;
-    min-height: auto;
   }
   .hero-left {
-    padding: 40px 24px 24px;
+    padding: 56px 24px 40px;
   }
   .hero-right {
-    padding: 24px 24px 40px;
+    padding: 40px 24px 56px;
     border-left: none;
     border-top: 0.5px solid var(--border);
   }
   .features,
   .materials,
   .how-section,
-  .testimonials,
-  .faq-section {
+  .testimonials {
     padding: 48px 20px;
+  }
+  .faq-section {
+    padding: 64px 32px;
   }
   .gallery-section,
   .cta-banner {
@@ -1375,8 +1385,8 @@ appearance: textfield;
   }
   .cta-banner {
     grid-template-columns: 1fr;
-    padding: 32px 24px 40px;
-    gap: 24px;
+    padding: 56px 40px;
+    gap: 28px;
     margin-bottom: 56px;
   }
   .cta-banner-actions {
@@ -1389,10 +1399,10 @@ appearance: textfield;
 
 @media (max-width: 768px) {
   .hero-left {
-    padding: 32px 20px 16px;
+    padding: 40px 20px 32px;
   }
   .hero-right {
-    padding: 20px;
+    padding: 32px 20px 48px;
   }
   .hero-h1 {
     font-size: 34px;
@@ -1401,7 +1411,18 @@ appearance: textfield;
     font-size: 14px;
   }
   .hero-trust {
-    gap: 18px;
+    gap: 16px;
+  }
+  .hero-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .section-title {
+    font-size: 32px;
+  }
+  .cta-banner-title {
+    font-size: 30px;
   }
   .features {
     grid-template-columns: 1fr;
@@ -1413,9 +1434,16 @@ appearance: textfield;
   .steps-grid {
     grid-template-columns: 1fr;
   }
+  .section-cta {
+    padding-top: 32px;
+  }
   .gallery-grid {
     grid-template-columns: 1.4fr 1.2fr;
     grid-template-rows: repeat(3, 160px);
+  }
+  .gallery-cta {
+    flex-direction: column;
+    align-items: flex-start;
   }
   .testimonials-grid {
     grid-template-columns: 1fr;
@@ -1423,10 +1451,11 @@ appearance: textfield;
   .faq-grid {
     grid-template-columns: 1fr;
   }
-  .faq-item:nth-child(even) {
+  /* Single-column: remove all right borders, restore bottom border on 2nd-to-last */
+  .faq-item {
     border-right: none;
   }
-  .faq-item:nth-last-child(-n+2) {
+  .faq-item:nth-last-child(2) {
     border-bottom: 0.5px solid var(--border);
   }
   .faq-item:last-child {
@@ -1447,14 +1476,25 @@ appearance: textfield;
   .features,
   .materials,
   .how-section,
-  .testimonials,
-  .faq-section {
+  .testimonials {
     padding: 40px 16px;
+  }
+  .faq-section {
+    padding: 48px 16px;
+  }
+  .section-title {
+    font-size: 28px;
+  }
+  .cta-banner-title {
+    font-size: 26px;
   }
   .gallery-section,
   .cta-banner {
     padding: 0 16px 48px;
     margin: 0 16px 48px;
+  }
+  .cta-banner {
+    padding: 48px 28px 56px;
   }
   .gallery-grid {
     grid-template-columns: 1fr;

@@ -146,7 +146,7 @@ export default function HomePage() {
             </Link>
 
             <Link href="/config" className="btn btn-primary config-submit">
-              Get instant quote →
+              Get instant quote <span className="btn-arrow">↗</span>
             </Link>
           </div>
         </div>
@@ -251,7 +251,7 @@ export default function HomePage() {
         <div className="gallery-cta">
           <p className="gallery-cta-note">Every print is unique to your order. We print your image — not ours.</p>
           <Link href="/config" className="btn btn-outline">
-            Start with your own image →
+            Start with your own image <span className="btn-arrow">↗</span>
           </Link>
         </div>
       </section>

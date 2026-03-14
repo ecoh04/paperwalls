@@ -47,9 +47,10 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Link
             href="/config"
-            className="hidden rounded-pw bg-pw-ink px-4 py-2 text-sm font-medium text-white hover:bg-pw-ink-soft sm:inline-flex"
+            className="hidden items-center gap-2 rounded-pw bg-pw-ink px-4 py-2 text-sm font-medium text-white hover:bg-pw-ink-soft sm:inline-flex"
           >
-            Upload your design →
+            Upload your design
+            <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-content-center rounded bg-white/15 text-xs">↗</span>
           </Link>
           <Link
             href="/cart"
@@ -117,10 +118,11 @@ export function Header() {
             </Link>
             <Link
               href="/config"
-              className="mt-4 block rounded-pw bg-pw-ink px-4 py-3 text-center text-base font-medium text-white hover:bg-pw-ink-soft"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-pw bg-pw-ink px-4 py-3 text-base font-medium text-white hover:bg-pw-ink-soft"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Upload your design →
+              Upload your design
+              <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-white/15 text-xs">↗</span>
             </Link>
           </div>
         </div>
