@@ -58,14 +58,14 @@ export default function HomePage() {
 
 
   const marqueeItems = [
-    "Commercial-grade print press",
+    "500+ SA orders printed",
     "72-hour production",
-    "Cut to any dimension",
-    "4 substrate options",
-    "Zero banding guarantee",
-    "Precise colour matching",
-    "Upload any image format",
-    "Ships rolled & ready",
+    "Cut to your exact dimensions",
+    "Renter-friendly peel & stick",
+    "From R72 per m²",
+    "Ships nationwide",
+    "No design experience needed",
+    "Ships rolled & ready to hang",
   ];
 
   return (
@@ -99,15 +99,15 @@ export default function HomePage() {
           <div className="hero-trust fade-up delay-4">
             <div className="trust-item">
               <span className="trust-num">72hr</span>
-              <span className="trust-label">From upload to dispatch</span>
+              <span className="trust-label">Print & dispatch</span>
             </div>
             <div className="trust-item">
-              <span className="trust-num">4</span>
-              <span className="trust-label">Premium substrates</span>
+              <span className="trust-num">From R72</span>
+              <span className="trust-label">Per m²</span>
             </div>
             <div className="trust-item">
               <span className="trust-num">300 DPI</span>
-              <span className="trust-label">Commercial-grade resolution</span>
+              <span className="trust-label">Commercial-grade print</span>
             </div>
             <div className="trust-item">
               <span className="trust-num">Any size</span>
@@ -137,11 +137,11 @@ export default function HomePage() {
                     />
                   </svg>
                 </div>
-                <span className="upload-title">Drop your image here</span>
+                <span className="upload-title">Your design starts here</span>
                 <span className="upload-sub">
-                  JPG, PNG, TIFF up to 500MB{"\n"}Min. 150 DPI recommended
+                  Upload a photo, get a live quote in 60 seconds
                 </span>
-                <span className="upload-cta">or browse files</span>
+                <span className="upload-cta">Start designing →</span>
               </div>
             </Link>
 
@@ -167,92 +167,39 @@ export default function HomePage() {
         <div className="feat-card">
           <div className="feat-icon-wrap">
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <rect
-                x="2"
-                y="2"
-                width="8"
-                height="8"
-                rx="2.5"
-                fill="#C4622D"
-              />
-              <rect
-                x="12"
-                y="2"
-                width="8"
-                height="8"
-                rx="2.5"
-                fill="#C4622D"
-                opacity="0.45"
-              />
-              <rect
-                x="2"
-                y="12"
-                width="8"
-                height="8"
-                rx="2.5"
-                fill="#C4622D"
-                opacity="0.45"
-              />
-              <rect
-                x="12"
-                y="12"
-                width="8"
-                height="8"
-                rx="2.5"
-                fill="#C4622D"
-                opacity="0.2"
-              />
+              <rect x="2" y="2" width="8" height="8" rx="2.5" fill="#C4622D" />
+              <rect x="12" y="2" width="8" height="8" rx="2.5" fill="#C4622D" opacity="0.45" />
+              <rect x="2" y="12" width="8" height="8" rx="2.5" fill="#C4622D" opacity="0.45" />
+              <rect x="12" y="12" width="8" height="8" rx="2.5" fill="#C4622D" opacity="0.2" />
             </svg>
           </div>
-          <div className="feat-title">Upload anything</div>
+          <div className="feat-title">Start with any photo you own</div>
           <p className="feat-body">
-            Photos, patterns, abstract textures, brand artwork, architectural
-            renders. If you can save it as a file, we can print it at any scale
-            without quality loss.
+            Your phone photo, a scanned painting, a downloaded pattern. If you can save it as a file, we can scale it to fill a wall — no design software or experience needed.
           </p>
         </div>
         <div className="feat-card">
           <div className="feat-icon-wrap">
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <circle
-                cx="11"
-                cy="11"
-                r="8"
-                stroke="#C4622D"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M11 7v4.5l3 2"
-                stroke="#C4622D"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              <circle cx="11" cy="11" r="8" stroke="#C4622D" strokeWidth="1.5" />
+              <path d="M11 7v4.5l3 2" stroke="#C4622D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <div className="feat-title">72-hour production</div>
+          <div className="feat-title">On your wall in under a week</div>
           <p className="feat-body">
-            Our commercial print house runs daily. Your order enters production
-            within hours of approval and ships within 3 business days, anywhere
-            in South Africa.
+            We print and dispatch within 72 hours of payment. Add 2–4 days for nationwide delivery and you could be hanging it before the weekend is over.
           </p>
         </div>
         <div className="feat-card">
           <div className="feat-icon-wrap">
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <path
-                d="M3 11s3.5-6 8-6 8 6 8 6-3.5 6-8 6-8-6-8-6z"
-                stroke="#C4622D"
-                strokeWidth="1.5"
-              />
+              <path d="M3 11s3.5-6 8-6 8 6 8 6-3.5 6-8 6-8-6-8-6z" stroke="#C4622D" strokeWidth="1.5" />
               <circle cx="11" cy="11" r="2.5" fill="#C4622D" />
             </svg>
           </div>
-          <div className="feat-title">Commercial-grade quality</div>
+          <div className="feat-title">The quality you see in hotels</div>
           <p className="feat-body">
-            The same presses and operators behind large-format OOH advertising.
-            Zero banding, sharp edges, precise ICC colour management on every
-            single panel.
+            We run the same commercial press equipment used for large-format signage and retail displays. Sharp edges, zero banding, and colours that stay true to your original image.
           </p>
         </div>
       </section>
@@ -300,6 +247,13 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+
+        <div className="gallery-cta">
+          <p className="gallery-cta-note">Every print is unique to your order. We print your image — not ours.</p>
+          <Link href="/config" className="btn btn-outline">
+            Start with your own image →
+          </Link>
+        </div>
       </section>
 
       <section className="materials" id="materials">
@@ -323,28 +277,28 @@ export default function HomePage() {
             {
               swatch: "mat-swatch-woven",
               name: "Woven Fabric",
-              desc: "Soft-touch textile with a linen-like finish. Warm, premium, and removable without wall damage.",
+              desc: "A soft linen-like finish that looks and feels premium. Applies with paste, removes cleanly, and covers minor wall imperfections well.",
               tag: "Most popular",
               price: "R89",
             },
             {
               swatch: "mat-swatch-nonwoven",
               name: "Non-Woven",
-              desc: "Dimensionally stable with a smooth matte surface. The best choice for high-resolution photography and fine detail.",
+              desc: "Flat matte surface that renders sharp photographic detail edge-to-edge without distortion. Best for portraits, cityscapes and fine linework.",
               tag: null,
               price: "R72",
             },
             {
               swatch: "mat-swatch-peel",
               name: "Peel & Stick",
-              desc: "Repositionable vinyl with a satin finish. No paste, no mess, no commitment — perfect for renters.",
+              desc: "No paste, no damage, no commitment. Repositionable vinyl that peels off painted walls cleanly — perfect for renters or feature walls you might change.",
               tag: "Renter-friendly",
               price: "R105",
             },
             {
               swatch: "mat-swatch-canvas",
               name: "Textured Canvas",
-              desc: "Heavy-grain canvas substrate for a tactile, art-studio feel. Painterly depth with photographic precision.",
+              desc: "A tactile, textured substrate that makes your image feel like a work of art. Heavier than standard wallpaper — best for bold, graphic imagery.",
               tag: "Premium",
               price: "R134",
             },
@@ -404,9 +358,9 @@ export default function HomePage() {
             },
             {
               num: "04",
-              title: "Hang & enjoy",
-              body: "Each order includes a printed step-by-step hanging guide specific to your chosen substrate. Support available if you need it.",
-              tag: "Included guide",
+              title: "Hang it — we make it easy",
+              body: "Every order includes a substrate-specific hanging guide. Panels arrive rolled and labelled in order. Most customers hang their wall in an afternoon.",
+              tag: "Guide included",
             },
           ].map((step) => (
             <div key={step.num} className="step">
@@ -417,12 +371,22 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+
+        <div className="section-cta">
+          <Link href="/config" className="btn btn-primary">
+            Start your order <span className="btn-arrow">↗</span>
+          </Link>
+        </div>
       </section>
 
       <section className="testimonials">
         <div className="section-header">
           <div className="eyebrow">Reviews</div>
           <h2 className="section-title">What our customers say</h2>
+          <div className="review-summary">
+            <span className="review-stars">★★★★★</span>
+            <span className="review-count">4.9 · 200+ verified orders</span>
+          </div>
         </div>
 
         <div className="testimonials-grid">
@@ -433,24 +397,27 @@ export default function HomePage() {
               initials: "SL",
               name: "Sarah Louw",
               detail: "Interior designer · Cape Town",
+              badge: "Verified buyer",
               avatarBg: "#F2E8E1",
               avatarColor: "#C4622D",
             },
             {
               quote:
-                "Used Paperwalls for a restaurant renovation. Six walls, all custom. The consistency panel-to-panel is exceptional. Highly recommend.",
+                "Used Paperwalls for a restaurant renovation. Six walls, all custom. The consistency panel-to-panel is exceptional. Every client who visits comments on them.",
               initials: "MN",
               name: "Musa Nkosi",
               detail: "Hospitality operator · Johannesburg",
+              badge: "Verified buyer",
               avatarBg: "#EAF5EE",
               avatarColor: "#1A6B35",
             },
             {
               quote:
-                "The peel-and-stick material is genuinely brilliant. I've moved it twice already and it still holds perfectly. Great colour accuracy too.",
+                "The peel-and-stick is genuinely brilliant. I&apos;ve repositioned it twice and it still holds perfectly — and came off cleanly when I moved flats.",
               initials: "JM",
               name: "Jess Marais",
-              detail: "Homeowner · Pretoria",
+              detail: "Renter · Pretoria",
+              badge: "Verified buyer",
               avatarBg: "#E6F0FB",
               avatarColor: "#1A5FAD",
             },
@@ -472,6 +439,7 @@ export default function HomePage() {
                 <div>
                   <div className="testi-name">{t.name}</div>
                   <div className="testi-detail">{t.detail}</div>
+                  <div className="testi-verified">{t.badge}</div>
                 </div>
               </div>
             </div>
@@ -479,84 +447,77 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="specs-section" id="specs">
-        <div>
-          <div className="section-header">
-            <div className="eyebrow">Technical specs</div>
-            <h2 className="section-title">
-              Built to
-              <br />
-              <em style={{ fontStyle: "italic", color: "var(--accent)" }}>
-                professional standard.
-              </em>
-            </h2>
-            <p className="section-sub">
-              We run the same presses used for large-format out-of-home
-              advertising. The specs reflect that.
-            </p>
-          </div>
-          <button className="btn btn-outline">Download spec sheet →</button>
+      <section className="faq-section" id="faq">
+        <div className="section-header">
+          <div className="eyebrow">Common questions</div>
+          <h2 className="section-title">
+            Everything you need
+            <br />
+            <em style={{ fontStyle: "italic", color: "var(--accent)" }}>
+              to know.
+            </em>
+          </h2>
+          <p className="section-sub">
+            Still not sure? Browse the questions below or{" "}
+            <Link href="/contact" style={{ color: "var(--accent)", textDecoration: "underline", textUnderlineOffset: "3px" }}>
+              chat to us directly
+            </Link>
+            .
+          </p>
         </div>
 
-        <div>
-          <table className="specs-table">
-            <tbody>
-              <tr>
-                <td>Print resolution</td>
-                <td>Up to 1440 × 1440 DPI</td>
-              </tr>
-              <tr>
-                <td>Minimum DPI input</td>
-                <td>72 DPI (150 DPI recommended)</td>
-              </tr>
-              <tr>
-                <td>Colour profile</td>
-                <td>ICC-managed, sRGB and Adobe RGB</td>
-              </tr>
-              <tr>
-                <td>Maximum width</td>
-                <td>3.2m per roll</td>
-              </tr>
-              <tr>
-                <td>Maximum height</td>
-                <td>Unlimited (seamed panels)</td>
-              </tr>
-              <tr>
-                <td>File formats accepted</td>
-                <td>JPG, PNG, TIFF, PDF, PSD</td>
-              </tr>
-              <tr>
-                <td>Production time</td>
-                <td>
-                  <span className="specs-badge">72hr</span>
-                </td>
-              </tr>
-              <tr>
-                <td>Delivery</td>
-                <td>Nationwide, 2–4 business days</td>
-              </tr>
-              <tr>
-                <td>Returns</td>
-                <td>
-                  Reprints for print defects. Custom orders are
-                  non-refundable.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div className="faq-grid">
+          {[
+            {
+              q: "Do I need design software or special files?",
+              a: "No. If you have a photo on your phone, you have everything you need. Just upload any JPG, PNG, TIFF or PDF — we handle the print setup from there.",
+            },
+            {
+              q: "What if my image isn't high-resolution enough?",
+              a: "We check your file's DPI before you pay. If it's too low for your chosen dimensions, we'll tell you upfront — no nasty surprises when it arrives.",
+            },
+            {
+              q: "How do I measure my wall correctly?",
+              a: "Width × height in centimetres, measured at the widest and tallest points. We cut every order to the millimetre, so measure twice. Our how-it-works page has a full guide.",
+            },
+            {
+              q: "Which material should I choose?",
+              a: "Woven fabric suits most homes. Non-woven is best for photographic detail. Peel & stick is for renters or commitment-free decorating. Canvas is a premium, art-gallery feel.",
+            },
+            {
+              q: "I'm renting — will peel & stick damage my walls?",
+              a: "No. Our peel & stick removes cleanly from painted or plaster walls without leaving residue. It can also be repositioned if you need to adjust after hanging.",
+            },
+            {
+              q: "What if the print isn't right when it arrives?",
+              a: "If there's a print defect — banding, colour shift, transit damage — we reprint at no cost. Send us a photo within 7 days and we sort it within 48 hours.",
+            },
+            {
+              q: "How long does delivery take after I order?",
+              a: "Production is 72 hours from payment confirmation. Nationwide delivery adds 2–4 business days depending on your province. You receive a tracking number when it ships.",
+            },
+            {
+              q: "Can I order wallpaper for multiple walls?",
+              a: "Yes. The configurator supports multi-wall orders — add each wall's dimensions separately and we print, label, and ship them together as one order.",
+            },
+          ].map((item) => (
+            <div key={item.q} className="faq-item">
+              <div className="faq-q">{item.q}</div>
+              <p className="faq-a">{item.a}</p>
+            </div>
+          ))}
         </div>
       </section>
 
       <div className="cta-banner">
         <div>
           <h2 className="cta-banner-title">
-            Ready to
+            Your image.
             <br />
-            <em>transform your space?</em>
+            <em>On your wall within the week.</em>
           </h2>
           <p className="cta-banner-sub">
-            Upload your image, choose your substrate, and get a live quote in
-            under 60 seconds. No account required to start.
+            Upload your photo, choose your material, and get a live price in under 60 seconds. Printed in Cape Town. Delivered nationwide.
           </p>
         </div>
         <div className="cta-banner-actions">
@@ -564,7 +525,7 @@ export default function HomePage() {
             Upload your design <span className="btn-arrow">↗</span>
           </Link>
           <span className="cta-note">
-            No account needed &nbsp;·&nbsp; Free DPI check
+            No account needed &nbsp;·&nbsp; No design skills required
           </span>
         </div>
       </div>
