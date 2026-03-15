@@ -118,58 +118,8 @@ export default function HomePage() {
         </div>
 
         <div className="hero-right">
-          <div className="hero-product-card fade-up delay-2">
-
-            {/* Wallpaper preview thumbnail */}
-            <div className="hpc-preview">
-              <div className="hpc-preview-bg" />
-              <div className="hpc-preview-bar">
-                <span className="hpc-preview-dims">2.4 m × 2.7 m</span>
-                <span className="hpc-preview-badge">Woven fabric</span>
-              </div>
-            </div>
-
-            <div className="hpc-body">
-
-              {/* Material selector */}
-              <div>
-                <div className="hpc-row-label">Material</div>
-                <div className="hpc-pills">
-                  <span className="hpc-pill hpc-pill-active">Woven fabric</span>
-                  <span className="hpc-pill">Non-woven</span>
-                  <span className="hpc-pill">Peel & stick</span>
-                </div>
-              </div>
-
-              {/* Dimensions */}
-              <div>
-                <div className="hpc-row-label">Dimensions</div>
-                <div className="hpc-dims">
-                  <div className="hpc-dim-input">
-                    <span className="hpc-dim-value">2.4</span>
-                    <span className="hpc-dim-unit">m wide</span>
-                  </div>
-                  <span className="hpc-dim-sep">×</span>
-                  <div className="hpc-dim-input">
-                    <span className="hpc-dim-value">2.7</span>
-                    <span className="hpc-dim-unit">m high</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Price + CTA */}
-              <div className="hpc-footer">
-                <div className="hpc-price-row">
-                  <span className="hpc-price-label">Estimated total</span>
-                  <span className="hpc-price">R 1,728</span>
-                </div>
-                <Link href="/config" className="btn btn-primary hpc-cta">
-                  Start designing <span className="btn-arrow">↗</span>
-                </Link>
-              </div>
-
-            </div>
-          </div>
+          {/* Replace hero-image-panel with a Next.js <Image> when photography is ready */}
+          <div className="hero-image-panel" />
         </div>
       </section>
 
