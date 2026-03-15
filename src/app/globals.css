@@ -194,14 +194,7 @@ body {
 .hero {
   display: grid;
   grid-template-columns: 1fr 520px;
-  background-color: #1C1712;
-  background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.038) 1px, transparent 1px),
-    radial-gradient(ellipse at 22% 60%, rgba(194, 123, 74, 0.44) 0%, transparent 52%),
-    radial-gradient(ellipse at 74% 28%, rgba(139, 85, 48, 0.28) 0%, transparent 46%),
-    radial-gradient(ellipse at 6% 14%, rgba(40, 27, 16, 0.88) 0%, transparent 36%),
-    radial-gradient(ellipse at 90% 84%, rgba(88, 58, 36, 0.42) 0%, transparent 44%);
-  background-size: 28px 28px, auto, auto, auto, auto;
+  background: var(--stone);
 }
 
 .hero-left {
@@ -210,7 +203,7 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 20px;
-  border-right: 0.5px solid rgba(255, 255, 255, 0.08);
+  border-right: 0.5px solid var(--border);
 }
 
 .hero-h1 {
@@ -302,51 +295,6 @@ body {
     radial-gradient(ellipse at 14% 70%, rgba(80, 55, 34, 0.65) 0%, transparent 40%),
     radial-gradient(ellipse at 82% 18%, rgba(210, 165, 115, 0.38) 0%, transparent 38%),
     radial-gradient(ellipse at 52% 85%, rgba(120, 85, 52, 0.50) 0%, transparent 42%);
-}
-
-/* ── Hero dark theme: text, eyebrow, trust, CTA overrides ── */
-.hero .hero-h1 {
-  color: #EDE8E0;
-}
-.hero .hero-h1 em {
-  color: #D4875A;
-}
-.hero .hero-sub {
-  color: rgba(237, 232, 224, 0.60);
-}
-.hero .eyebrow-pill {
-  background: rgba(194, 123, 74, 0.18);
-  color: #D4956A;
-  border-color: rgba(194, 123, 74, 0.28);
-}
-.hero .hero-trust {
-  border-top-color: rgba(255, 255, 255, 0.10);
-}
-.hero .trust-num {
-  color: #EDE8E0;
-}
-.hero .trust-label {
-  color: rgba(237, 232, 224, 0.42);
-}
-.hero .hero-link {
-  color: rgba(237, 232, 224, 0.48);
-}
-.hero .hero-link:hover {
-  color: rgba(237, 232, 224, 0.90);
-}
-.hero .btn-primary {
-  background: #EDE8E0;
-  color: #1A1714;
-}
-.hero .btn-primary:hover {
-  background: #F8F4F0;
-}
-.hero .btn-primary .btn-arrow {
-  background: rgba(26, 23, 20, 0.10);
-  color: #1A1714;
-}
-.hero .btn-primary:hover .btn-arrow {
-  background: rgba(26, 23, 20, 0.16);
 }
 
 .configurator {
@@ -1571,11 +1519,39 @@ appearance: textfield;
 }
 
 @media (max-width: 768px) {
-  /* ── Hero mobile ── */
+  /* ── Hero mobile: dark background + light text ── */
+  .hero {
+    background-color: #1C1712;
+    background-image:
+      radial-gradient(circle, rgba(255, 255, 255, 0.038) 1px, transparent 1px),
+      radial-gradient(ellipse at 22% 60%, rgba(194, 123, 74, 0.44) 0%, transparent 52%),
+      radial-gradient(ellipse at 6% 14%, rgba(40, 27, 16, 0.88) 0%, transparent 36%),
+      radial-gradient(ellipse at 90% 84%, rgba(88, 58, 36, 0.42) 0%, transparent 44%);
+    background-size: 28px 28px, auto, auto, auto;
+  }
   .hero-left {
     padding: 52px 20px 44px;
     gap: 16px;
+    border-right: none;
   }
+  .hero .hero-h1 { color: #EDE8E0; }
+  .hero .hero-h1 em { color: #D4875A; }
+  .hero .hero-sub { color: rgba(237, 232, 224, 0.60); }
+  .hero .eyebrow-pill {
+    background: rgba(194, 123, 74, 0.18);
+    color: #D4956A;
+    border-color: rgba(194, 123, 74, 0.28);
+  }
+  .hero .hero-trust { border-top-color: rgba(255, 255, 255, 0.10); }
+  .hero .trust-num { color: #EDE8E0; }
+  .hero .trust-label { color: rgba(237, 232, 224, 0.42); }
+  .hero .hero-link { color: rgba(237, 232, 224, 0.48); }
+  .hero .hero-link:hover { color: rgba(237, 232, 224, 0.90); }
+  .hero .btn-primary { background: #EDE8E0; color: #1A1714; }
+  .hero .btn-primary:hover { background: #F8F4F0; }
+  .hero .btn-primary .btn-arrow { background: rgba(26, 23, 20, 0.10); color: #1A1714; }
+  .hero .btn-primary:hover .btn-arrow { background: rgba(26, 23, 20, 0.16); }
+
   .hero-h1 {
     font-size: 36px;
   }
