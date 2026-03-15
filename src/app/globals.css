@@ -618,8 +618,16 @@ appearance: textfield;
 
 .eyebrow-pill {
   background: var(--accent-soft);
-  padding: 5px 12px;
-  border-radius: 4px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  align-self: flex-start;
+  border: 0.5px solid rgba(196, 98, 45, 0.22);
+  transition: background var(--transition), border-color var(--transition);
+}
+a.eyebrow-pill:hover {
+  background: rgba(196, 98, 45, 0.16);
+  border-color: rgba(196, 98, 45, 0.38);
+  text-decoration: none;
 }
 
 .materials-grid {
@@ -1541,6 +1549,10 @@ appearance: textfield;
     background: rgba(194, 123, 74, 0.18);
     color: #D4956A;
     border-color: rgba(194, 123, 74, 0.28);
+  }
+  .hero a.eyebrow-pill:hover {
+    background: rgba(194, 123, 74, 0.26);
+    border-color: rgba(194, 123, 74, 0.42);
   }
   .hero .hero-trust { border-top-color: rgba(255, 255, 255, 0.10); }
   .hero .trust-num { color: #EDE8E0; }

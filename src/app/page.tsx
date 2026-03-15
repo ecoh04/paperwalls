@@ -73,9 +73,9 @@ export default function HomePage() {
     <>
       <section className="hero">
         <div className="hero-left">
-          <div className="eyebrow eyebrow-pill fade-up">
-            Printed in-house · Cape Town
-          </div>
+          <Link href="/config" className="eyebrow eyebrow-pill fade-up">
+            From R72/m² · Ships in 72hrs — start yours →
+          </Link>
 
           <h1 className="hero-h1 fade-up delay-1">
             Your image.<br />
