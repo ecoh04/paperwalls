@@ -97,12 +97,7 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Mobile hero visual — CSS gradient stand-in, swap for <Image> when photography is ready */}
-          <Link href="/config" className="hero-mobile-visual" aria-label="Start designing your wallpaper">
-            <div className="hero-visual-bg" />
-          </Link>
-
-          <div className="hero-trust fade-up delay-5">
+          <div className="hero-trust fade-up delay-4">
             <div className="trust-item">
               <span className="trust-num">72hr</span>
               <span className="trust-label">Print & dispatch</span>
@@ -123,34 +118,57 @@ export default function HomePage() {
         </div>
 
         <div className="hero-right">
-          <div className="configurator fade-up delay-2">
-            <Link href="/config">
-              <div className="upload-zone" style={{ cursor: 'pointer' }}>
-                <div className="upload-icon-wrap">
-                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                    <path
-                      d="M11 4L11 14M11 4L8 7M11 4L14 7"
-                      stroke="#1A1714"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M3.5 15.5v1.5a2 2 0 002 2h11a2 2 0 002-2v-1.5"
-                      stroke="#8A8175"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-                <span className="upload-title">Your design starts here</span>
-                <span className="upload-sub">
-                  Upload a photo, get a live quote in 60 seconds
-                </span>
-                <span className="upload-cta">Start designing →</span>
-              </div>
-            </Link>
+          <div className="hero-product-card fade-up delay-2">
 
+            {/* Wallpaper preview thumbnail */}
+            <div className="hpc-preview">
+              <div className="hpc-preview-bg" />
+              <div className="hpc-preview-bar">
+                <span className="hpc-preview-dims">2.4 m × 2.7 m</span>
+                <span className="hpc-preview-badge">Woven fabric</span>
+              </div>
+            </div>
+
+            <div className="hpc-body">
+
+              {/* Material selector */}
+              <div>
+                <div className="hpc-row-label">Material</div>
+                <div className="hpc-pills">
+                  <span className="hpc-pill hpc-pill-active">Woven fabric</span>
+                  <span className="hpc-pill">Non-woven</span>
+                  <span className="hpc-pill">Peel & stick</span>
+                </div>
+              </div>
+
+              {/* Dimensions */}
+              <div>
+                <div className="hpc-row-label">Dimensions</div>
+                <div className="hpc-dims">
+                  <div className="hpc-dim-input">
+                    <span className="hpc-dim-value">2.4</span>
+                    <span className="hpc-dim-unit">m wide</span>
+                  </div>
+                  <span className="hpc-dim-sep">×</span>
+                  <div className="hpc-dim-input">
+                    <span className="hpc-dim-value">2.7</span>
+                    <span className="hpc-dim-unit">m high</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price + CTA */}
+              <div className="hpc-footer">
+                <div className="hpc-price-row">
+                  <span className="hpc-price-label">Estimated total</span>
+                  <span className="hpc-price">R 1,728</span>
+                </div>
+                <Link href="/config" className="btn btn-primary hpc-cta">
+                  Start designing <span className="btn-arrow">↗</span>
+                </Link>
+              </div>
+
+            </div>
           </div>
         </div>
       </section>

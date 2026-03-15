@@ -194,6 +194,14 @@ body {
 .hero {
   display: grid;
   grid-template-columns: 1fr 520px;
+  background-color: #1C1712;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.038) 1px, transparent 1px),
+    radial-gradient(ellipse at 22% 60%, rgba(194, 123, 74, 0.44) 0%, transparent 52%),
+    radial-gradient(ellipse at 74% 28%, rgba(139, 85, 48, 0.28) 0%, transparent 46%),
+    radial-gradient(ellipse at 6% 14%, rgba(40, 27, 16, 0.88) 0%, transparent 36%),
+    radial-gradient(ellipse at 90% 84%, rgba(88, 58, 36, 0.42) 0%, transparent 44%);
+  background-size: 28px 28px, auto, auto, auto, auto;
 }
 
 .hero-left {
@@ -202,6 +210,7 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 20px;
+  border-right: 0.5px solid rgba(255, 255, 255, 0.08);
 }
 
 .hero-h1 {
@@ -246,28 +255,6 @@ body {
   color: var(--ink);
 }
 
-/* ── Mobile hero visual — replace div bg with <Image> when photography is ready ── */
-.hero-mobile-visual {
-  display: none;
-  text-decoration: none;
-  overflow: hidden;
-  transition: opacity var(--transition);
-}
-.hero-mobile-visual:hover {
-  opacity: 0.9;
-}
-
-.hero-visual-bg {
-  width: 100%;
-  height: 240px;
-  background-color: #221D18;
-  background-image:
-    radial-gradient(ellipse at 38% 38%, rgba(194, 123, 74, 0.60) 0%, transparent 48%),
-    radial-gradient(ellipse at 76% 60%, rgba(139, 85, 48, 0.44) 0%, transparent 42%),
-    radial-gradient(ellipse at 18% 70%, rgba(72, 50, 34, 0.65) 0%, transparent 40%),
-    radial-gradient(ellipse at 62% 12%, rgba(212, 149, 106, 0.28) 0%, transparent 35%),
-    radial-gradient(ellipse at 88% 22%, rgba(160, 100, 58, 0.20) 0%, transparent 30%);
-}
 
 .hero-trust {
   display: flex;
@@ -299,12 +286,204 @@ body {
 }
 
 .hero-right {
-  background: var(--stone);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 80px 40px;
-  border-left: 0.5px solid var(--border);
+  padding: 60px 44px;
+  border-left: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Hero dark theme: text, eyebrow, trust, CTA overrides ── */
+.hero .hero-h1 {
+  color: #EDE8E0;
+}
+.hero .hero-h1 em {
+  color: #D4875A;
+}
+.hero .hero-sub {
+  color: rgba(237, 232, 224, 0.60);
+}
+.hero .eyebrow-pill {
+  background: rgba(194, 123, 74, 0.18);
+  color: #D4956A;
+  border-color: rgba(194, 123, 74, 0.28);
+}
+.hero .hero-trust {
+  border-top-color: rgba(255, 255, 255, 0.10);
+}
+.hero .trust-num {
+  color: #EDE8E0;
+}
+.hero .trust-label {
+  color: rgba(237, 232, 224, 0.42);
+}
+.hero .hero-link {
+  color: rgba(237, 232, 224, 0.48);
+}
+.hero .hero-link:hover {
+  color: rgba(237, 232, 224, 0.90);
+}
+.hero .btn-primary {
+  background: #EDE8E0;
+  color: #1A1714;
+}
+.hero .btn-primary:hover {
+  background: #F8F4F0;
+}
+.hero .btn-primary .btn-arrow {
+  background: rgba(26, 23, 20, 0.10);
+  color: #1A1714;
+}
+.hero .btn-primary:hover .btn-arrow {
+  background: rgba(26, 23, 20, 0.16);
+}
+
+/* ── Hero product card (right-side SaaS UI mockup) ── */
+.hero-product-card {
+  background: rgba(255, 255, 255, 0.055);
+  border: 0.5px solid rgba(255, 255, 255, 0.13);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 370px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.55), inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
+}
+
+.hpc-preview {
+  height: 168px;
+  position: relative;
+  overflow: hidden;
+}
+.hpc-preview-bg {
+  position: absolute;
+  inset: 0;
+  background-color: #221D18;
+  background-image:
+    radial-gradient(ellipse at 38% 38%, rgba(194, 123, 74, 0.62) 0%, transparent 48%),
+    radial-gradient(ellipse at 76% 60%, rgba(139, 85, 48, 0.46) 0%, transparent 42%),
+    radial-gradient(ellipse at 18% 72%, rgba(66, 45, 30, 0.70) 0%, transparent 40%),
+    radial-gradient(ellipse at 65% 12%, rgba(212, 149, 106, 0.30) 0%, transparent 35%);
+}
+.hpc-preview-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 14px 12px;
+  background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.hpc-preview-dims {
+  font-size: 11px;
+  color: rgba(237, 232, 224, 0.80);
+  font-family: var(--sans);
+  font-weight: 400;
+}
+.hpc-preview-badge {
+  font-size: 10px;
+  color: rgba(237, 232, 224, 0.72);
+  font-family: var(--sans);
+  background: rgba(255, 255, 255, 0.10);
+  border: 0.5px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  padding: 3px 9px;
+  letter-spacing: 0.2px;
+}
+
+.hpc-body {
+  padding: 20px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.hpc-row-label {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(237, 232, 224, 0.38);
+  font-family: var(--sans);
+  margin-bottom: 8px;
+}
+.hpc-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.hpc-pill {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 0.5px solid rgba(255, 255, 255, 0.14);
+  color: rgba(237, 232, 224, 0.52);
+  font-family: var(--sans);
+  line-height: 1.4;
+}
+.hpc-pill-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.hpc-dims {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hpc-dim-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.055);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.hpc-dim-value {
+  font-family: var(--serif);
+  font-size: 21px;
+  color: rgba(237, 232, 224, 0.90);
+  line-height: 1;
+}
+.hpc-dim-unit {
+  font-size: 11px;
+  color: rgba(237, 232, 224, 0.36);
+  font-family: var(--sans);
+}
+.hpc-dim-sep {
+  font-size: 16px;
+  color: rgba(237, 232, 224, 0.25);
+  font-family: var(--serif);
+  flex-shrink: 0;
+}
+.hpc-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+.hpc-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.hpc-price-label {
+  font-size: 12px;
+  color: rgba(237, 232, 224, 0.44);
+  font-family: var(--sans);
+}
+.hpc-price {
+  font-family: var(--serif);
+  font-size: 26px;
+  color: rgba(237, 232, 224, 0.95);
+  line-height: 1;
+}
+.hpc-cta {
+  width: 100%;
+  justify-content: center;
 }
 
 .configurator {
@@ -1494,12 +1673,10 @@ appearance: textfield;
     grid-template-columns: 1fr;
   }
   .hero-left {
-    padding: 56px 24px 40px;
+    padding: 60px 32px 48px;
   }
   .hero-right {
-    padding: 40px 24px 56px;
-    border-left: none;
-    border-top: 0.5px solid var(--border);
+    display: none;
   }
   .features,
   .materials,
@@ -1531,16 +1708,10 @@ appearance: textfield;
 }
 
 @media (max-width: 768px) {
-  /* ── Hero mobile redesign ── */
-  .hero {
-    background: linear-gradient(160deg, var(--bg) 55%, var(--accent-soft) 100%);
-  }
+  /* ── Hero mobile ── */
   .hero-left {
-    padding: 0 20px 36px;
+    padding: 52px 20px 44px;
     gap: 16px;
-  }
-  .hero-right {
-    display: none;
   }
   .hero-h1 {
     font-size: 36px;
@@ -1548,14 +1719,6 @@ appearance: textfield;
   .hero-sub {
     font-size: 15px;
     max-width: none;
-  }
-
-  /* Mobile hero visual — pulled to top of column, full-bleed */
-  .hero-mobile-visual {
-    display: block;
-    order: -1;
-    margin: 0 -20px;
-    border-radius: 0;
   }
 
   /* Full-width stacked CTAs */
