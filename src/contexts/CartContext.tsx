@@ -5,9 +5,13 @@ import type { CartItem } from "@/types/cart";
 
 const STORAGE_KEY = "paperwalls-cart";
 
+// Standard Omit<Union, K> only keeps keys common to ALL union members.
+// DistributiveOmit applies Omit to each member individually, preserving unique fields.
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
 type CartContextValue = {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, "id">) => void;
+  addItem: (item: DistributiveOmit<CartItem, "id">) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
 };
@@ -42,7 +46,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems(loadCart());
   }, []);
 
-  const addItem = useCallback((item: Omit<CartItem, "id">) => {
+  const addItem = useCallback((item: DistributiveOmit<CartItem, "id">) => {
     const id = `pw-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     setItems((prev) => {
       const next = [...prev, { ...item, id }];
