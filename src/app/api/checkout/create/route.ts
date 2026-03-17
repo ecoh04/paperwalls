@@ -85,6 +85,8 @@ export async function POST(request: Request) {
     const orderNumbers: string[] = [];
     const orderRows: {
       order_number: string;
+      product_type: string;
+      quantity: number;
       customer_name: string;
       customer_email: string;
       customer_phone: string;
@@ -93,15 +95,15 @@ export async function POST(request: Request) {
       city: string;
       province: string;
       postal_code: string;
-      wall_width_m: number;
-      wall_height_m: number;
+      wall_width_m: number | null;
+      wall_height_m: number | null;
       wall_count: number;
-      total_sqm: number;
-      image_url: string;
+      total_sqm: number | null;
+      image_url: string | null;
       image_urls: string[];
       walls_spec: { widthM: number; heightM: number }[] | null;
-      wallpaper_style: string;
-      application_method: string;
+      wallpaper_style: string | null;
+      application_method: string | null;
       subtotal_cents: number;
       shipping_cents: number;
       total_cents: number;
@@ -110,8 +112,58 @@ export async function POST(request: Request) {
       assigned_factory_id: string | null;
     }[] = [];
 
+    const customerFields = {
+      customer_name: a.customer_name.trim(),
+      customer_email: a.customer_email.trim(),
+      customer_phone: a.customer_phone.trim(),
+      address_line1: a.address_line1.trim(),
+      address_line2: a.address_line2?.trim() || null,
+      city: a.city.trim(),
+      province: a.province,
+      postal_code: a.postal_code.trim(),
+    };
+
+    const factoryId = (() => {
+      const code = PROVINCE_TO_FACTORY_CODE[a.province as ShippingProvince];
+      return code ? (factoryIdByCode[code] ?? null) : null;
+    })();
+
     for (let i = 0; i < cart.length; i++) {
       const item = cart[i] as CartItem;
+      const orderNumber = generateOrderNumber();
+      orderNumbers.push(orderNumber);
+
+      const isFirst = i === 0;
+      const itemShipping = isFirst ? shippingCents : 0;
+      const totalCents = item.subtotalCents + itemShipping;
+
+      // ── Sample swatch pack: no image, no wallpaper fields ──
+      if (item.type === "sample_pack") {
+        orderRows.push({
+          ...customerFields,
+          order_number: orderNumber,
+          product_type: "sample_pack",
+          quantity: item.quantity,
+          wall_width_m: null,
+          wall_height_m: null,
+          wall_count: 1,
+          total_sqm: null,
+          image_url: null,
+          image_urls: [],
+          walls_spec: null,
+          wallpaper_style: null,
+          application_method: null,
+          subtotal_cents: item.subtotalCents,
+          shipping_cents: itemShipping,
+          total_cents: totalCents,
+          status: "pending",
+          stitch_payment_id: null,
+          assigned_factory_id: factoryId,
+        });
+        continue;
+      }
+
+      // ── Custom wallpaper: requires an uploaded image ──
       const images = item.imageDataUrls?.length
         ? item.imageDataUrls
         : item.imageDataUrl
@@ -124,19 +176,12 @@ export async function POST(request: Request) {
         );
       }
 
-      const orderNumber = generateOrderNumber();
-      orderNumbers.push(orderNumber);
-
       const urls: string[] = [];
       for (let j = 0; j < images.length; j++) {
         const path = `${orderNumber}-${j}.jpg`;
         const url = await uploadPrintImage(images[j], path);
         urls.push(url);
       }
-
-      const isFirst = i === 0;
-      const itemShipping = isFirst ? shippingCents : 0;
-      const totalCents = item.subtotalCents + itemShipping;
 
       const wallWidth = item.walls?.[0]?.widthM ?? item.widthM;
       const wallHeight = item.walls?.[0]?.heightM ?? item.heightM;
@@ -146,15 +191,10 @@ export async function POST(request: Request) {
           : null;
 
       orderRows.push({
+        ...customerFields,
         order_number: orderNumber,
-        customer_name: a.customer_name.trim(),
-        customer_email: a.customer_email.trim(),
-        customer_phone: a.customer_phone.trim(),
-        address_line1: a.address_line1.trim(),
-        address_line2: a.address_line2?.trim() || null,
-        city: a.city.trim(),
-        province: a.province,
-        postal_code: a.postal_code.trim(),
+        product_type: "wallpaper",
+        quantity: 1,
         wall_width_m: wallWidth,
         wall_height_m: wallHeight,
         wall_count: item.wallCount,
@@ -169,10 +209,7 @@ export async function POST(request: Request) {
         total_cents: totalCents,
         status: "pending",
         stitch_payment_id: null,
-        assigned_factory_id: (() => {
-          const code = PROVINCE_TO_FACTORY_CODE[a.province as ShippingProvince];
-          return code ? (factoryIdByCode[code] ?? null) : null;
-        })(),
+        assigned_factory_id: factoryId,
       });
     }
 
