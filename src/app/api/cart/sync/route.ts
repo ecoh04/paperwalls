@@ -118,8 +118,9 @@ export async function POST(request: Request) {
                 height_m:    item.heightM,
                 wall_count:  item.wallCount,
                 total_sqm:   item.totalSqm,
-                style:       item.style,
-                application: item.application,
+                wallpaperType: item.wallpaperType,
+                material:      item.material,
+                application:   item.application,
                 walls:       item.walls ?? [],
               }
             : {};

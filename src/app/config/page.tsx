@@ -19,19 +19,19 @@ export default function ConfigPage() {
       />
       <h1 className="text-3xl font-normal text-[#1A1714]">Design your wallpaper</h1>
       <p className="mt-2 pw-section-sub">
-        Upload your image, enter your wall size in centimetres, and adjust the crop. Your price updates as you go.
+        Upload your image, set your dimensions, choose your type and material, and get an instant price — cut to your exact wall.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-2 rounded-xl border border-[rgba(26,23,20,0.10)] bg-white px-4 py-3 text-[11px] sm:text-xs text-[#8A8175]">
-        <span className="font-medium text-[#1A1714] mr-1 uppercase tracking-[0.14em]">Flow</span>
+        <span className="font-medium text-[#1A1714] mr-1 uppercase tracking-[0.14em]">Steps</span>
         <span>1. Upload image</span>
         <span className="h-1 w-1 rounded-full bg-[#C4622D]/60 inline-block" />
-        <span>2. Wall size (cm)</span>
+        <span>2. Wall dimensions</span>
         <span className="h-1 w-1 rounded-full bg-[#C4622D]/60 inline-block" />
-        <span>3. Crop on wall</span>
+        <span>3. Type &amp; material</span>
         <span className="h-1 w-1 rounded-full bg-[#C4622D]/60 inline-block" />
-        <span>4. Finish &amp; installation</span>
+        <span>4. Installation</span>
         <span className="h-1 w-1 rounded-full bg-[#C4622D]/60 inline-block" />
-        <span>5. Price &amp; add to cart</span>
+        <span>5. Add to cart</span>
       </div>
       <div className="mt-8">
         <Configurator />

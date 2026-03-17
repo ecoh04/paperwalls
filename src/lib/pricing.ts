@@ -1,54 +1,61 @@
-import type { WallpaperStyle, ApplicationMethod } from "@/types/order";
+import type { WallpaperType, WallpaperMaterial, ApplicationMethod } from "@/types/order";
 
-/** Base price per m² in ZAR cents. Tiers by total m². */
-const BASE_PRICE_PER_SQM_CENTS: { minSqm: number; centsPerSqm: number }[] = [
-  { minSqm: 20, centsPerSqm: 40000 },   // R400/m² for 20+
-  { minSqm: 10, centsPerSqm: 45000 },   // R450/m² for 10–20
-  { minSqm: 5, centsPerSqm: 55000 },   // R550/m² for 5–10
-  { minSqm: 0, centsPerSqm: 65000 },   // R650/m² for 0–5
-];
-
-/** Material multiplier (1 = base price). */
-export const STYLE_MULTIPLIERS: Record<WallpaperStyle, number> = {
-  matte: 1,
-  satin: 1.15,
-  textured: 1.25,
-  premium: 1.4,
+// ─── Wallpaper price matrix (per m², ZAR cents) ──────────────────────────────
+const PRICE_MATRIX: Record<WallpaperType, Record<WallpaperMaterial, number>> = {
+  traditional: {
+    satin: 41000,   // R410/m²
+    matte: 47000,   // R470/m²
+    linen: 59000,   // R590/m²
+  },
+  peel_and_stick: {
+    satin: 49000,   // R490/m²
+    matte: 54000,   // R540/m²
+    linen: 68000,   // R680/m²
+  },
 };
 
-/** Installation add-on in ZAR cents (fixed: not tied to m²). */
-export const APPLICATION_ADDON_CENTS: Record<ApplicationMethod, number> = {
-  diy: 0,           // FREE
-  diy_kit: 50000,   // R500
-  installer: 150000, // R1,500
-};
+// ─── Installation costs ───────────────────────────────────────────────────────
+const DIY_KIT_CENTS = 60000;            // R600 flat (optional add-on)
+const PRO_INSTALLER_PER_SQM = 25000;   // R250/m²
+const PRO_INSTALLER_CALLOUT = 50000;   // R500 call-out fee
 
-function getBaseCentsPerSqm(totalSqm: number): number {
-  const tier = BASE_PRICE_PER_SQM_CENTS.find((t) => totalSqm >= t.minSqm);
-  return tier ? tier.centsPerSqm : BASE_PRICE_PER_SQM_CENTS[0].centsPerSqm;
+export function getPricePerSqmCents(type: WallpaperType, material: WallpaperMaterial): number {
+  return PRICE_MATRIX[type][material];
 }
 
-/** Wallpaper only (m² × base × style), no installation add-on. */
-export function calculateWallpaperCents(totalSqm: number, style: WallpaperStyle): number {
+export function calculateWallpaperCents(
+  totalSqm: number,
+  type: WallpaperType,
+  material: WallpaperMaterial
+): number {
   if (totalSqm <= 0) return 0;
-  const basePerSqm = getBaseCentsPerSqm(totalSqm);
-  const materialMultiplier = STYLE_MULTIPLIERS[style];
-  return Math.round(totalSqm * basePerSqm * materialMultiplier);
+  return Math.round(totalSqm * PRICE_MATRIX[type][material]);
 }
 
-/**
- * Full subtotal (before shipping) in ZAR cents.
- * Wallpaper + installation add-on.
- */
+export function calculateInstallationCents(
+  application: ApplicationMethod,
+  totalSqm: number
+): number {
+  switch (application) {
+    case "diy":           return 0;
+    case "diy_kit":       return DIY_KIT_CENTS;
+    case "pro_installer": return Math.round(totalSqm * PRO_INSTALLER_PER_SQM) + PRO_INSTALLER_CALLOUT;
+    default:              return 0;
+  }
+}
+
 export function calculateSubtotalCents(
   totalSqm: number,
-  style: WallpaperStyle,
+  type: WallpaperType,
+  material: WallpaperMaterial,
   application: ApplicationMethod
 ): number {
-  return calculateWallpaperCents(totalSqm, style) + APPLICATION_ADDON_CENTS[application];
+  return (
+    calculateWallpaperCents(totalSqm, type, material) +
+    calculateInstallationCents(application, totalSqm)
+  );
 }
 
-/** Format ZAR cents as "R 1 234.56" for display. */
 export function formatZar(cents: number): string {
   const rands = cents / 100;
   return new Intl.NumberFormat("en-ZA", {
@@ -58,3 +65,10 @@ export function formatZar(cents: number): string {
     maximumFractionDigits: 0,
   }).format(rands);
 }
+
+// Kept for any code that needs a quick lookup; pro_installer is dynamic.
+export const APPLICATION_ADDON_CENTS: Record<ApplicationMethod, number> = {
+  diy:           0,
+  diy_kit:       DIY_KIT_CENTS,
+  pro_installer: 0, // use calculateInstallationCents for the real value
+};

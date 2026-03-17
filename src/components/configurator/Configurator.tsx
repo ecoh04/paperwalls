@@ -12,6 +12,10 @@ import { useCart } from "@/contexts/CartContext";
 import { calculateSubtotalCents } from "@/lib/pricing";
 import { DEFAULT_CONFIG, type ConfiguratorState, type WallSpec } from "@/types/configurator";
 
+// Minimum resolution to accept at upload time (px per side).
+// Below this threshold, even a 1×1 m wall would look terrible.
+const MIN_UPLOAD_PX = 400;
+
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -28,6 +32,7 @@ export function Configurator() {
   const getCroppedBlobRefs = useRef<((() => Promise<Blob | null>) | null)[]>([]);
 
   const [state, setState] = useState<ConfiguratorState>(DEFAULT_CONFIG);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const totalSqm =
     state.wallCount > 1 && state.multiWallMode === "different" && state.walls.length === state.wallCount
@@ -39,7 +44,7 @@ export function Configurator() {
     state.multiWallMode === "different" &&
     state.walls.length === state.wallCount;
 
-  const previewWidth = isMultiDifferent && state.walls[0] ? state.walls[0].widthM : state.widthM;
+  const previewWidth  = isMultiDifferent && state.walls[0] ? state.walls[0].widthM  : state.widthM;
   const previewHeight = isMultiDifferent && state.walls[0] ? state.walls[0].heightM : state.heightM;
 
   const setPan = useCallback((x: number, y: number) => {
@@ -75,6 +80,7 @@ export function Configurator() {
 
   const handleFileSelect = useCallback(
     (file: File | null) => {
+      setUploadError(null);
       if (state.imagePreviewUrl) URL.revokeObjectURL(state.imagePreviewUrl);
       if (!file) {
         setState((s) => ({
@@ -92,8 +98,19 @@ export function Configurator() {
       const objectUrl = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
-        const widthPx = img.naturalWidth || img.width;
+        const widthPx  = img.naturalWidth  || img.width;
         const heightPx = img.naturalHeight || img.height;
+
+        // Hard quality gate: reject images that are far too low-res for any wall.
+        if (widthPx < MIN_UPLOAD_PX || heightPx < MIN_UPLOAD_PX) {
+          URL.revokeObjectURL(objectUrl);
+          setUploadError(
+            `This image is too low resolution (${widthPx}×${heightPx}px) and will look very poor when printed. ` +
+            `Please upload a higher-quality image — at least ${MIN_UPLOAD_PX}×${MIN_UPLOAD_PX}px.`
+          );
+          return;
+        }
+
         setState((s) => ({
           ...s,
           imageFile: file,
@@ -107,6 +124,7 @@ export function Configurator() {
       };
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);
+        setUploadError("Could not read this image file. Please try a different file.");
       };
       img.src = objectUrl;
     },
@@ -134,7 +152,6 @@ export function Configurator() {
   const handleAddToCart = useCallback(async () => {
     if (totalSqm <= 0) return;
 
-    // We store the cropped image(s) from the preview frame only. This is exactly what we send to the factory—no further cropping or edits.
     if (isMultiDifferent) {
       const allHaveImage = state.walls.every((w) => w.imagePreviewUrl);
       if (!allHaveImage) return;
@@ -146,16 +163,17 @@ export function Configurator() {
         blobs.map((b) => (b ? blobToDataUrl(b) : ""))
       );
       if (imageDataUrls.some((u) => !u)) return;
-      const subtotalCents = calculateSubtotalCents(totalSqm, state.style, state.application);
+      const subtotalCents = calculateSubtotalCents(totalSqm, state.wallpaperType, state.material, state.application);
       addItem({
-        type: "wallpaper",
-        widthM: state.walls[0].widthM,
-        heightM: state.walls[0].heightM,
-        wallCount: state.wallCount,
-        walls: state.walls.map((w) => ({ widthM: w.widthM, heightM: w.heightM })),
+        type:          "wallpaper",
+        widthM:        state.walls[0].widthM,
+        heightM:       state.walls[0].heightM,
+        wallCount:     state.wallCount,
+        walls:         state.walls.map((w) => ({ widthM: w.widthM, heightM: w.heightM })),
         totalSqm,
-        style: state.style,
-        application: state.application,
+        wallpaperType: state.wallpaperType,
+        material:      state.material,
+        application:   state.application,
         subtotalCents,
         imageDataUrls,
       });
@@ -164,18 +182,19 @@ export function Configurator() {
       let imageDataUrl = state.imagePreviewUrl;
       const getBlob = getCroppedBlobRef.current;
       if (getBlob) {
-        const blob = await getBlob(); // Exact pixels from the print frame—this is what we print
+        const blob = await getBlob();
         if (blob) imageDataUrl = await blobToDataUrl(blob);
       }
-      const subtotalCents = calculateSubtotalCents(totalSqm, state.style, state.application);
+      const subtotalCents = calculateSubtotalCents(totalSqm, state.wallpaperType, state.material, state.application);
       addItem({
-        type: "wallpaper",
-        widthM: state.widthM,
-        heightM: state.heightM,
-        wallCount: state.wallCount,
+        type:          "wallpaper",
+        widthM:        state.widthM,
+        heightM:       state.heightM,
+        wallCount:     state.wallCount,
         totalSqm,
-        style: state.style,
-        application: state.application,
+        wallpaperType: state.wallpaperType,
+        material:      state.material,
+        application:   state.application,
         subtotalCents,
         imageDataUrl,
       });
@@ -216,6 +235,7 @@ export function Configurator() {
         multiWallMode={state.multiWallMode}
         walls={isMultiDifferent ? state.walls : []}
         onWallFileSelect={handleWallFileSelect}
+        uploadError={uploadError}
       />
 
       <DimensionsStep
@@ -285,9 +305,10 @@ export function Configurator() {
 
       <StyleStep
         totalSqm={totalSqm}
-        style={state.style}
-        application={state.application}
-        onStyleChange={(s) => setState((prev) => ({ ...prev, style: s }))}
+        wallpaperType={state.wallpaperType}
+        material={state.material}
+        onWallpaperTypeChange={(t) => setState((prev) => ({ ...prev, wallpaperType: t }))}
+        onMaterialChange={(m) => setState((prev) => ({ ...prev, material: m }))}
       />
 
       <InstallationStep
@@ -298,7 +319,8 @@ export function Configurator() {
 
       <PriceSummary
         totalSqm={totalSqm}
-        style={state.style}
+        wallpaperType={state.wallpaperType}
+        material={state.material}
         application={state.application}
         canAddToCart={canAddToCart}
         addToCartLabel={addToCartLabel}

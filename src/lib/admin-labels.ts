@@ -1,4 +1,4 @@
-import type { OrderStatus, WallpaperStyle, ApplicationMethod, ShippingProvince } from "@/types/order";
+import type { OrderStatus, WallpaperType, WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "Awaiting payment",
@@ -9,30 +9,37 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
 };
 
-export const STYLE_LABELS: Record<WallpaperStyle, string> = {
-  matte: "Matte",
-  satin: "Satin",
-  textured: "Textured linen",
-  premium: "Premium fabric",
+export const WALLPAPER_TYPE_LABELS: Record<WallpaperType, string> = {
+  traditional: "Traditional",
+  peel_and_stick: "Peel & Stick",
 };
 
+export const MATERIAL_LABELS: Record<WallpaperMaterial, string> = {
+  satin: "Satin",
+  matte: "Matte",
+  linen: "Linen",
+};
+
+/** @deprecated use MATERIAL_LABELS */
+export const STYLE_LABELS = MATERIAL_LABELS;
+
 export const APPLICATION_LABELS: Record<ApplicationMethod, string> = {
-  diy: "DIY",
-  diy_kit: "DIY kit",
-  installer: "Pro installer",
+  diy:           "DIY",
+  diy_kit:       "DIY + kit",
+  pro_installer: "Pro installer",
 };
 
 export const PROVINCE_LABELS: Record<ShippingProvince, string> = {
-  gauteng: "Gauteng",
-  western_cape: "Western Cape",
+  gauteng:       "Gauteng",
+  western_cape:  "Western Cape",
   kwaZulu_natal: "KwaZulu-Natal",
-  eastern_cape: "Eastern Cape",
-  free_state: "Free State",
-  limpopo: "Limpopo",
-  mpumalanga: "Mpumalanga",
+  eastern_cape:  "Eastern Cape",
+  free_state:    "Free State",
+  limpopo:       "Limpopo",
+  mpumalanga:    "Mpumalanga",
   northern_cape: "Northern Cape",
-  north_west: "North West",
-  other: "Other",
+  north_west:    "North West",
+  other:         "Other",
 };
 
 export function formatZarCents(cents: number): string {

@@ -1,4 +1,4 @@
-import type { WallpaperStyle, ApplicationMethod } from "./order";
+import type { WallpaperType, WallpaperMaterial, ApplicationMethod } from "./order";
 
 export type MultiWallMode = "same" | "different";
 
@@ -27,7 +27,8 @@ export interface ConfiguratorState {
   panX: number;
   panY: number;
   scale: number;
-  style: WallpaperStyle;
+  wallpaperType: WallpaperType;
+  material: WallpaperMaterial;
   application: ApplicationMethod;
 }
 
@@ -44,8 +45,9 @@ export const DEFAULT_CONFIG: ConfiguratorState = {
   panX: 0,
   panY: 0,
   scale: 1,
-  style: "matte",
+  wallpaperType: "traditional",
+  material: "satin",
   application: "diy",
 };
 
-export type { WallpaperStyle, ApplicationMethod };
+export type { WallpaperType, WallpaperMaterial, ApplicationMethod };

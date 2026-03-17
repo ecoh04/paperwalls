@@ -111,6 +111,7 @@ export async function POST(request: Request) {
       image_url: string | null;
       image_urls: string[];
       walls_spec: { widthM: number; heightM: number }[] | null;
+      wallpaper_type: string | null;
       wallpaper_style: string | null;
       application_method: string | null;
       subtotal_cents: number;
@@ -168,6 +169,7 @@ export async function POST(request: Request) {
           image_url:          null,
           image_urls:         [],
           walls_spec:         null,
+          wallpaper_type:     null,
           wallpaper_style:    null,
           application_method: null,
         });
@@ -215,7 +217,8 @@ export async function POST(request: Request) {
         image_url:          urls[0],
         image_urls:         urls,
         walls_spec:         wallsSpec,
-        wallpaper_style:    item.style,
+        wallpaper_type:     item.wallpaperType,
+        wallpaper_style:    item.material,
         application_method: item.application,
       });
     }
@@ -315,8 +318,9 @@ export async function POST(request: Request) {
                 height_m:   cartItem.heightM,
                 wall_count: cartItem.wallCount,
                 total_sqm:  cartItem.totalSqm,
-                style:      cartItem.style,
-                application: cartItem.application,
+                wallpaperType: cartItem.wallpaperType,
+                material:      cartItem.material,
+                application:   cartItem.application,
                 walls:      cartItem.walls ?? [],
               }
             : {};

@@ -1,4 +1,4 @@
-import type { WallpaperStyle, ApplicationMethod } from "./order";
+import type { WallpaperType, WallpaperMaterial, ApplicationMethod } from "./order";
 
 export interface WallSpec {
   widthM: number;
@@ -17,7 +17,8 @@ export interface WallpaperCartItem extends BaseCartItem {
   wallCount: number;
   walls?: WallSpec[];
   totalSqm: number;
-  style: WallpaperStyle;
+  wallpaperType: WallpaperType;
+  material: WallpaperMaterial;
   application: ApplicationMethod;
   /** Single image (1 wall or same for all). */
   imageDataUrl?: string;

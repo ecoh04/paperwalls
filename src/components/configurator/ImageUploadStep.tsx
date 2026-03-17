@@ -91,6 +91,8 @@ type ImageUploadStepProps = {
   multiWallMode?: "same" | "different";
   walls?: { imagePreviewUrl?: string | null }[];
   onWallFileSelect?: (wallIndex: number, file: File | null) => void;
+  /** Error from parent (e.g. resolution too low) */
+  uploadError?: string | null;
 };
 
 export function ImageUploadStep({
@@ -99,6 +101,7 @@ export function ImageUploadStep({
   multiWallMode = "same",
   walls = [],
   onWallFileSelect,
+  uploadError,
 }: ImageUploadStepProps) {
   const isMultiDifferent = multiWallMode === "different" && walls.length > 0;
 
@@ -114,6 +117,11 @@ export function ImageUploadStep({
       {!isMultiDifferent ? (
         <div className="mt-6">
           <SingleUpload imagePreviewUrl={imagePreviewUrl} onFileSelect={onFileSelect} />
+          {uploadError && (
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {uploadError}
+            </div>
+          )}
         </div>
       ) : (
         <div className="mt-6 space-y-6">

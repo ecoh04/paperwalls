@@ -119,7 +119,7 @@ export default function CheckoutPage() {
                           {item.walls?.length
                             ? item.walls.map((w, i) => `Wall ${i + 1}: ${w.widthM}×${w.heightM} m`).join(" · ")
                             : `${item.widthM}×${item.heightM} m${item.wallCount > 1 ? ` × ${item.wallCount}` : ""}`}
-                          {" "}· {item.totalSqm.toFixed(1)} m² · {item.style}
+                          {" "}· {item.totalSqm.toFixed(1)} m² · {item.wallpaperType === "peel_and_stick" ? "Peel & Stick" : "Traditional"} {item.material}
                         </p>
                       </div>
                     </>

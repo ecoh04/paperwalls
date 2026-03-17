@@ -85,12 +85,21 @@ function loadOrCreateSessionId(): string {
  * Also persists fbclid/gclid in sessionStorage so they survive page navigations
  * within the same session (they appear in the landing URL, not all URLs).
  */
+// Pages where we should not record a new landing_page
+// (user was redirected here by payment gateway, not by their own navigation)
+const SKIP_LANDING_PAGES = ["/checkout/success", "/checkout/cancelled"];
+
 function captureAttribution(): SessionAttribution {
   if (typeof window === "undefined") return {};
   try {
     const params = new URLSearchParams(window.location.search);
+    const pathname = window.location.pathname;
     const attr: SessionAttribution = {
-      landing_page: window.location.pathname,
+      // Don't record success/cancel pages as the landing page — these are
+      // PayFast redirect destinations and would corrupt first-touch attribution
+      ...(SKIP_LANDING_PAGES.some((p) => pathname.startsWith(p))
+        ? {}
+        : { landing_page: pathname }),
     };
 
     const utm_source   = params.get("utm_source")   || undefined;

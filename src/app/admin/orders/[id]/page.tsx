@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   ORDER_STATUS_LABELS,
-  STYLE_LABELS,
+  MATERIAL_LABELS,
   APPLICATION_LABELS,
   PROVINCE_LABELS,
   formatZarCents,
@@ -16,7 +16,7 @@ import {
 } from "@/app/admin/orders/actions";
 import { OrderEditForm } from "@/components/admin/OrderEditForm";
 import { OrderActionButtons } from "@/components/admin/OrderActionButtons";
-import type { OrderStatus, WallpaperStyle, ApplicationMethod, ShippingProvince } from "@/types/order";
+import type { OrderStatus, WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 
 export const dynamic = "force-dynamic";
 
@@ -244,7 +244,7 @@ export default async function AdminOrderDetailPage({
             <div>
               <dt className="text-xs font-medium uppercase tracking-wider text-stone-500">Finish</dt>
               <dd className="mt-0.5 font-medium text-stone-900">
-                {STYLE_LABELS[(row.wallpaper_style as WallpaperStyle) ?? "matte"]}
+                {MATERIAL_LABELS[(row.wallpaper_style as WallpaperMaterial)] ?? row.wallpaper_style ?? "—"}
               </dd>
             </div>
             <div>

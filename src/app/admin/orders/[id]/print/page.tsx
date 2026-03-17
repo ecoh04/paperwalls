@@ -3,12 +3,12 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PrintTrigger } from "@/components/admin/PrintTrigger";
 import {
-  STYLE_LABELS,
+  MATERIAL_LABELS,
   APPLICATION_LABELS,
   PROVINCE_LABELS,
   formatZarCents,
 } from "@/lib/admin-labels";
-import type { WallpaperStyle, ApplicationMethod, ShippingProvince } from "@/types/order";
+import type { WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 
 export const dynamic = "force-dynamic";
 
@@ -91,7 +91,7 @@ export default async function AdminOrderPrintPage({
             ? `${Number(row.wall_width_m).toFixed(2)} m × ${Number(row.wall_height_m).toFixed(2)} m (${Number(row.total_sqm).toFixed(2)} m²)`
             : `${row.wall_count} walls, ${Number(row.total_sqm).toFixed(2)} m² total`}
         </p>
-        <p>Finish: {STYLE_LABELS[(row.wallpaper_style as WallpaperStyle) ?? "matte"]}</p>
+        <p>Material: {MATERIAL_LABELS[(row.wallpaper_style as WallpaperMaterial)] ?? row.wallpaper_style ?? "—"}</p>
         <p>Application: {APPLICATION_LABELS[(row.application_method as ApplicationMethod) ?? "diy"]}</p>
       </section>
 

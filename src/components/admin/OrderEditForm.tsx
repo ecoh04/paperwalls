@@ -2,9 +2,9 @@
 
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { STYLE_LABELS, APPLICATION_LABELS } from "@/lib/admin-labels";
+import { MATERIAL_LABELS, APPLICATION_LABELS } from "@/lib/admin-labels";
 import { PROVINCES } from "@/lib/shipping";
-import type { WallpaperStyle, ApplicationMethod, ShippingProvince } from "@/types/order";
+import type { WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 import { updateOrderDetails } from "@/app/admin/orders/actions";
 
 type Props = {
@@ -199,13 +199,13 @@ export function OrderEditForm({ orderId, initial }: Props) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-stone-500">Finish</label>
+              <label className="block text-xs font-medium text-stone-500">Material</label>
               <select
                 value={form.wallpaper_style}
                 onChange={(e) => setForm((p) => ({ ...p, wallpaper_style: e.target.value }))}
                 className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm"
               >
-                {(Object.entries(STYLE_LABELS) as [WallpaperStyle, string][]).map(([k, v]) => (
+                {(Object.entries(MATERIAL_LABELS) as [WallpaperMaterial, string][]).map(([k, v]) => (
                   <option key={k} value={k}>
                     {v}
                   </option>

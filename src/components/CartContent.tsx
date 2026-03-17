@@ -36,7 +36,7 @@ function WallpaperRow({
           {" "}· {item.totalSqm.toFixed(1)} m²
         </p>
         <p className="text-sm text-pw-muted capitalize">
-          {item.style} · {item.application.replace("_", " ")}
+          {item.wallpaperType === "peel_and_stick" ? "Peel & Stick" : "Traditional"} · {item.material} · {item.application.replace(/_/g, " ")}
         </p>
       </div>
       <div className="flex flex-col items-end justify-between">

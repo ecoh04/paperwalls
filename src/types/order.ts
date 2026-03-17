@@ -10,13 +10,24 @@ export type OrderStatus =
   | "cancelled";
 
 /**
- * Wallpaper finish (affects price).
+ * Wallpaper application type (adhesive method).
  */
-export type WallpaperStyle =
-  | "matte"
+export type WallpaperType =
+  | "traditional"   // paste-the-wall, industry standard
+  | "peel_and_stick"; // self-adhesive, repositionable
+
+/**
+ * Wallpaper material / finish (affects price).
+ */
+export type WallpaperMaterial =
   | "satin"
-  | "textured"
-  | "premium";
+  | "matte"
+  | "linen";
+
+/**
+ * Alias kept for any legacy references (maps to material).
+ */
+export type WallpaperStyle = WallpaperMaterial;
 
 /**
  * How the customer will apply the wallpaper.
@@ -24,7 +35,7 @@ export type WallpaperStyle =
 export type ApplicationMethod =
   | "diy"
   | "diy_kit"
-  | "installer";
+  | "pro_installer";
 
 /**
  * Shipping province for zone pricing.
@@ -47,43 +58,32 @@ export type ShippingProvince =
 export interface Order {
   id: string;
   order_number: string;
-
   // Customer
   customer_name: string;
   customer_email: string;
   customer_phone: string;
-
   // Address
   address_line1: string;
   address_line2: string | null;
   city: string;
   province: string;
   postal_code: string;
-
   // Configurator
   wall_width_m: number;
   wall_height_m: number;
   wall_count: number;
   total_sqm: number;
-  image_url: string; // URL to print image (Supabase Storage)
-  /** Additional print URLs when multi-wall different sizes. */
+  image_url: string;
   image_urls: string[];
-
-  wallpaper_style: WallpaperStyle;
-  application_method: ApplicationMethod;
-
-  // Money (ZAR cents to avoid float issues)
+  wallpaper_type: WallpaperType | null;
+  wallpaper_style: WallpaperMaterial | null;
+  application_method: ApplicationMethod | null;
+  // Money (ZAR cents)
   subtotal_cents: number;
   shipping_cents: number;
   total_cents: number;
-
   status: OrderStatus;
-  /** Stitch Express payment/transaction id. */
-  stitch_payment_id: string | null;
-
-  /** Per-wall dimensions when wall_count > 1 and walls differ. */
   walls_spec?: { widthM: number; heightM: number }[];
-
   created_at: string;
   updated_at: string;
 }

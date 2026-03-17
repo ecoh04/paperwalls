@@ -7,7 +7,7 @@
 --   • No multi-factory routing — one operation, orders pushed manually
 --   • Sequential order IDs: PW-1001, PW-1002 … (human-readable, customer-friendly)
 --   • Full UTM + click-ID attribution on every session and order
---   • application_method = 'installer' is clearly visible for external follow-up
+--   • application_method = 'pro_installer' is clearly visible for external follow-up
 --   • Customer notifications via scheduled_emails queue (send service plugged in later)
 --   • Simple discount codes (percent or fixed, expiry, max uses)
 --   • Meta CAPI events table ready for when Pixel is set up
@@ -276,13 +276,16 @@ CREATE TABLE orders (
   image_url             text,
   image_urls            jsonb NOT NULL DEFAULT '[]',
   walls_spec            jsonb,              -- [{ widthM, heightM }, …]
+  wallpaper_type        text
+                          CHECK (wallpaper_type IS NULL
+                            OR wallpaper_type IN ('traditional','peel_and_stick')),
   wallpaper_style       text
                           CHECK (wallpaper_style IS NULL
-                            OR wallpaper_style IN ('matte','satin','textured','premium')),
-  -- INSTALLER FLAG: when 'installer', production team knows to flag for external follow-up
+                            OR wallpaper_style IN ('satin','matte','linen')),
+  -- INSTALLER FLAG: when 'pro_installer', production team knows to flag for external follow-up
   application_method    text
                           CHECK (application_method IS NULL
-                            OR application_method IN ('diy','diy_kit','installer')),
+                            OR application_method IN ('diy','diy_kit','pro_installer')),
 
   -- ── Financials ────────────────────────────────────────────────────────────
   subtotal_cents        bigint NOT NULL,
@@ -531,9 +534,10 @@ SELECT
   o.image_url,
   o.image_urls,
   o.walls_spec,
+  o.wallpaper_type,
   o.wallpaper_style,
   o.application_method,
-  o.application_method = 'installer' AS needs_installer,  -- quick flag
+  o.application_method = 'pro_installer' AS needs_installer,  -- quick flag
   o.shipping_notes,
   o.notes,
   o.total_cents,
@@ -565,9 +569,10 @@ SELECT
   o.wall_width_m,
   o.wall_height_m,
   o.total_sqm,
+  o.wallpaper_type,
   o.wallpaper_style,
   o.application_method,
-  o.application_method = 'installer' AS needs_installer,
+  o.application_method = 'pro_installer' AS needs_installer,
   o.subtotal_cents,
   o.shipping_cents,
   o.discount_cents,
@@ -652,7 +657,7 @@ SELECT
   AVG(o.total_cents)  AS avg_order_value_cents,
   SUM(o.total_sqm)    AS total_sqm_printed,
   COUNT(*) FILTER (WHERE o.product_type = 'sample_pack') AS sample_pack_orders,
-  COUNT(*) FILTER (WHERE o.application_method = 'installer') AS installer_orders
+  COUNT(*) FILTER (WHERE o.application_method = 'pro_installer') AS installer_orders
 FROM orders o
 WHERE o.status NOT IN ('pending', 'cancelled')
   AND o.deleted_at IS NULL
@@ -671,9 +676,10 @@ CREATE POLICY "auth_own_profile"     ON profiles FOR ALL TO authenticated USING 
 
 -- CUSTOMERS (server routes use anon key; admin reads all)
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anon_write_customers" ON customers FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_write_customers"  ON customers FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_select_customers" ON customers FOR SELECT TO anon USING (true);
 CREATE POLICY "anon_update_customers" ON customers FOR UPDATE TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "auth_all_customers"   ON customers FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "auth_all_customers"    ON customers FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- SESSIONS
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
@@ -683,6 +689,7 @@ CREATE POLICY "auth_all_sessions"    ON sessions FOR ALL TO authenticated USING 
 -- PAYMENTS (payfast webhook = anon; admin reads)
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon_write_payments"  ON payments FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_select_payments" ON payments FOR SELECT TO anon USING (true);
 CREATE POLICY "anon_update_payments" ON payments FOR UPDATE TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "auth_all_payments"    ON payments FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
@@ -712,6 +719,7 @@ CREATE POLICY "auth_all_orders"      ON orders FOR ALL TO authenticated USING (t
 -- ORDER ITEMS
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "anon_insert_order_items" ON order_items FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_select_order_items" ON order_items FOR SELECT TO anon USING (true);
 CREATE POLICY "auth_all_order_items"    ON order_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ORDER ACTIVITY
@@ -720,8 +728,9 @@ CREATE POLICY "auth_all_activity"    ON order_activity FOR ALL TO authenticated 
 
 -- SCHEDULED EMAILS (anon writes; admin reads/updates)
 ALTER TABLE scheduled_emails ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anon_insert_emails"   ON scheduled_emails FOR INSERT TO anon WITH CHECK (true);
-CREATE POLICY "auth_all_emails"      ON scheduled_emails FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "anon_insert_emails"          ON scheduled_emails FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "anon_select_scheduled_emails" ON scheduled_emails FOR SELECT TO anon USING (true);
+CREATE POLICY "auth_all_emails"             ON scheduled_emails FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- CAPI EVENTS
 ALTER TABLE capi_events ENABLE ROW LEVEL SECURITY;

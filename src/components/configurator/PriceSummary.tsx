@@ -1,17 +1,33 @@
 "use client";
 
-import { formatZar, calculateWallpaperCents, APPLICATION_ADDON_CENTS } from "@/lib/pricing";
-import type { WallpaperStyle, ApplicationMethod } from "@/types/order";
+import {
+  formatZar,
+  calculateWallpaperCents,
+  calculateInstallationCents,
+} from "@/lib/pricing";
+import type { WallpaperType, WallpaperMaterial, ApplicationMethod } from "@/types/order";
+
+const TYPE_LABELS: Record<WallpaperType, string> = {
+  traditional: "Traditional",
+  peel_and_stick: "Peel & Stick",
+};
+
+const MATERIAL_LABELS: Record<WallpaperMaterial, string> = {
+  satin: "Satin",
+  matte: "Matte",
+  linen: "Linen",
+};
 
 const APPLICATION_LABELS: Record<ApplicationMethod, string> = {
-  diy: "DIY (you apply)",
-  diy_kit: "DIY kit",
-  installer: "Pro installer",
+  diy:           "DIY (you apply)",
+  diy_kit:       "DIY + installation kit",
+  pro_installer: "Pro installer",
 };
 
 type PriceSummaryProps = {
   totalSqm: number;
-  style: WallpaperStyle;
+  wallpaperType: WallpaperType;
+  material: WallpaperMaterial;
   application: ApplicationMethod;
   canAddToCart: boolean;
   addToCartLabel: string;
@@ -20,14 +36,15 @@ type PriceSummaryProps = {
 
 export function PriceSummary({
   totalSqm,
-  style,
+  wallpaperType,
+  material,
   application,
   canAddToCart,
   addToCartLabel,
   onAddToCart,
 }: PriceSummaryProps) {
-  const wallpaperCents = calculateWallpaperCents(totalSqm, style);
-  const installationCents = APPLICATION_ADDON_CENTS[application];
+  const wallpaperCents = calculateWallpaperCents(totalSqm, wallpaperType, material);
+  const installationCents = calculateInstallationCents(application, totalSqm);
   const subtotalCents = wallpaperCents + installationCents;
 
   const mainButton = (
@@ -58,23 +75,28 @@ export function PriceSummary({
       <section className="rounded-pw-card border border-pw-ink bg-pw-bg p-4 shadow-pw-sm sm:p-6">
         <h2 className="text-lg font-semibold text-pw-ink">Your price</h2>
         <p className="mt-1 text-sm text-pw-muted">
-          Shipping is calculated at checkout based on your address.
+          Shipping is calculated at checkout based on your province.
         </p>
         <div className="mt-6 space-y-2 text-sm">
           <div className="flex justify-between text-pw-muted">
-            <span>Wallpaper ({totalSqm.toFixed(1)} m²)</span>
-            <span className="text-pw-ink">{formatZar(wallpaperCents)}</span>
+            <span>
+              Wallpaper — {TYPE_LABELS[wallpaperType]} {MATERIAL_LABELS[material]}{" "}
+              <span className="text-xs">({totalSqm.toFixed(1)} m²)</span>
+            </span>
+            <span className="text-pw-ink font-medium">{formatZar(wallpaperCents)}</span>
           </div>
           <div className="flex justify-between text-pw-muted">
-            <span>Installation ({APPLICATION_LABELS[application]})</span>
-            <span className="text-pw-ink">{installationCents === 0 ? "FREE" : formatZar(installationCents)}</span>
+            <span>{APPLICATION_LABELS[application]}</span>
+            <span className="text-pw-ink font-medium">
+              {installationCents === 0 ? "Free" : formatZar(installationCents)}
+            </span>
           </div>
           <div className="flex justify-between text-pw-muted">
             <span>Shipping</span>
-            <span>At checkout</span>
+            <span>Calculated at checkout</span>
           </div>
         </div>
-        <div className="mt-6 flex items-center justify-between border-t border-pw-stone pt-4">
+        <div className="mt-5 flex items-center justify-between border-t border-pw-stone pt-4">
           <span className="font-semibold text-pw-ink">Total (ex. shipping)</span>
           <span className="text-xl font-bold text-pw-ink">{formatZar(subtotalCents)}</span>
         </div>
