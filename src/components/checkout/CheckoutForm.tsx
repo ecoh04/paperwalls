@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import type { CheckoutAddress } from "@/types/checkout";
 import type { CartItem } from "@/types/cart";
 import type { ShippingProvince } from "@/types/order";
@@ -10,30 +9,6 @@ import { getShippingCents } from "@/lib/shipping";
 import { formatZar } from "@/lib/pricing";
 import { useCart } from "@/contexts/CartContext";
 
-// PayFast onsite engine injects this global
-declare global {
-  interface Window {
-    payfast_do_onsite_payment: (
-      options: { uuid: string; return_url?: string; cancel_url?: string },
-      callback?: (result: boolean) => void
-    ) => void;
-  }
-}
-
-function loadScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) {
-      resolve();
-      return;
-    }
-    const s = document.createElement("script");
-    s.src = src;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error(`Failed to load ${src}`));
-    document.head.appendChild(s);
-  });
-}
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_NAME = 2;
 const MIN_PHONE = 10;
@@ -41,7 +16,7 @@ const MIN_PHONE = 10;
 type CheckoutFormProps = {
   items:      CartItem[];
   sessionId?: string;
-  onSuccess:  (orderNumbers: string[]) => void;
+  onSuccess:  (payfastUrl: string, fields: Record<string, string>, orderNumbers: string[]) => void;
   onError:    (message: string) => void;
 };
 
@@ -73,7 +48,6 @@ function validateAddress(a: CheckoutAddress): string | null {
 
 export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutFormProps) {
   const { identifyCustomer } = useCart();
-  const router = useRouter();
   const [address, setAddress] = useState<CheckoutAddress>(emptyAddress);
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -112,71 +86,20 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
         const data = await res.json();
         if (!res.ok) {
           onError(data.error || "Something went wrong. Please try again.");
-          setSubmitting(false);
           return;
         }
-
-        const orderNumbers: string[] = data.orderNumbers || [];
-        const successUrl = `/checkout/success?orders=${encodeURIComponent(orderNumbers.join(","))}`;
-        const cancelUrl  = "/checkout";
-
-        // ── Onsite (embedded modal) flow ─────────────────────────────────────
-        if (data.uuid) {
-          const engineSrc = data.sandbox
-            ? "https://sandbox.payfast.co.za/onsite/engine.js"
-            : "https://www.payfast.co.za/onsite/engine.js";
-
-          try {
-            await loadScript(engineSrc);
-          } catch {
-            // If script fails to load, redirect as fallback
-            window.location.href = successUrl;
-            return;
-          }
-
-          window.payfast_do_onsite_payment(
-            { uuid: data.uuid, return_url: successUrl, cancel_url: cancelUrl },
-            (result) => {
-              if (result === true) {
-                // Payment completed — redirect and notify parent
-                onSuccess(orderNumbers);
-                router.push(successUrl);
-              } else {
-                // Modal closed without payment
-                onError("Payment was cancelled. Please try again.");
-                setSubmitting(false);
-              }
-            }
-          );
-          return; // don't reset submitting here — modal is still open
-        }
-
-        // ── Redirect fallback ─────────────────────────────────────────────────
-        if (data.payfastUrl && data.payfastFields) {
-          onSuccess(orderNumbers);
-          const form = document.createElement("form");
-          form.method  = "POST";
-          form.action  = data.payfastUrl;
-          Object.entries(data.payfastFields as Record<string, string>).forEach(([k, v]) => {
-            const input   = document.createElement("input");
-            input.type    = "hidden";
-            input.name    = k;
-            input.value   = v;
-            form.appendChild(input);
-          });
-          document.body.appendChild(form);
-          form.submit();
+        if (!data.payfastUrl || !data.payfastFields) {
+          onError("Invalid response from server.");
           return;
         }
-
-        onError("Invalid response from server.");
-        setSubmitting(false);
+        onSuccess(data.payfastUrl, data.payfastFields, data.orderNumbers || []);
       } catch {
         onError("Network error. Please check your connection and try again.");
+      } finally {
         setSubmitting(false);
       }
     },
-    [address, items, sessionId, onSuccess, onError, router]
+    [address, items, sessionId, onSuccess, onError]
   );
 
   return (
