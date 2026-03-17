@@ -69,13 +69,13 @@ export function StyleStep({
   if (totalSqm <= 0) return null;
 
   return (
-    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm sm:p-8">
+    <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
           4
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-pw-ink">Wallpaper type &amp; material</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Wallpaper type &amp; material</h2>
           <p className="mt-1 text-sm text-pw-muted">
             Choose how it&apos;s applied and what it feels like. Price updates live.
           </p>
@@ -98,24 +98,20 @@ export function StyleStep({
                 className={[
                   "flex flex-col gap-2 rounded-pw-card border p-4 text-left transition-all touch-manipulation min-h-[44px]",
                   isSelected
-                    ? "border-pw-ink bg-pw-ink"
-                    : "border-pw-stone bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface",
+                    ? "border-pw-ink bg-pw-surface shadow-pw-sm ring-1 ring-pw-ink/20"
+                    : "border-[rgba(26,23,20,0.1)] bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface",
                 ].join(" ")}
               >
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className={["text-base font-semibold", isSelected ? "text-white" : "text-pw-ink"].join(" ")}>
-                    {t.label}
-                  </span>
+                  <span className="text-base font-semibold text-pw-ink">{t.label}</span>
                   <span className={[
                     "text-[10px] font-semibold rounded-full px-2 py-0.5 uppercase tracking-wide",
-                    isSelected ? "bg-white/20 text-white" : "bg-pw-stone text-pw-muted",
+                    isSelected ? "bg-pw-ink text-white" : "bg-pw-stone text-pw-muted",
                   ].join(" ")}>
                     {t.tagline}
                   </span>
                 </div>
-                <p className={["text-xs leading-snug", isSelected ? "text-white/75" : "text-pw-muted"].join(" ")}>
-                  {t.description}
-                </p>
+                <p className="text-xs leading-snug text-pw-muted">{t.description}</p>
               </button>
             );
           })}
@@ -158,8 +154,8 @@ export function StyleStep({
                 className={[
                   "flex flex-col rounded-pw-card border p-4 text-left transition-all touch-manipulation min-h-[44px]",
                   isSelected
-                    ? "border-pw-ink bg-pw-surface shadow-pw-sm ring-1 ring-pw-ink"
-                    : "border-pw-stone bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface hover:shadow-pw-sm",
+                    ? "border-pw-ink bg-pw-accent-soft shadow-pw-sm ring-1 ring-pw-ink/25"
+                    : "border-[rgba(26,23,20,0.1)] bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface hover:shadow-pw-sm",
                 ].join(" ")}
               >
                 <div className={["w-full h-14 rounded-pw border border-pw-stone overflow-hidden mb-3", m.textureClass].join(" ")} aria-hidden />

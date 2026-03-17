@@ -146,7 +146,7 @@ export function PreviewEditStep({
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
     setIsDragging(true);
     setDragStart({ panX, panY, clientX: e.clientX, clientY: e.clientY });
   };
@@ -212,14 +212,14 @@ export function PreviewEditStep({
       : null;
 
   return (
-    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm sm:p-8">
+    <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       {/* Step header */}
       <div className="flex items-start gap-4 mb-6">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
           3
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-pw-ink">
+          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">
             Position your image{wallLabel ?? ""}
           </h2>
           <p className="mt-1 text-sm text-pw-muted">
@@ -281,9 +281,12 @@ export function PreviewEditStep({
                   />
                 </div>
 
-                {/* Drag overlay */}
+                {/* Drag overlay — touch-action:none tells the browser not to scroll
+                    on this element so pointer events fire cleanly. Scrolling the
+                    page still works by touching outside this frame. */}
                 <div
-                  className="absolute inset-0 cursor-grab active:cursor-grabbing touch-manipulation rounded-md"
+                  className="absolute inset-0 cursor-grab active:cursor-grabbing rounded-md"
+                  style={{ touchAction: "none" }}
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
@@ -313,7 +316,8 @@ export function PreviewEditStep({
         </div>
 
         <p className="mt-3 text-xs text-pw-muted text-center">
-          Only what is visible inside the inner framed wall area is saved and printed.
+          Only what is visible inside the bordered area is printed.
+          <span className="sm:hidden"> Drag inside the frame to reposition — scroll outside it to move down the page.</span>
         </p>
       </div>
 

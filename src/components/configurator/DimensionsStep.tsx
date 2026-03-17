@@ -127,20 +127,20 @@ export function DimensionsStep({
 
   const pillBtn = (active: boolean) =>
     [
-      "rounded-pw border px-5 py-2.5 text-sm font-medium transition-colors",
+      "rounded-pw border px-5 py-2.5 text-sm font-medium transition-colors touch-manipulation",
       active
-        ? "border-pw-ink bg-pw-ink text-white"
-        : "border-pw-stone bg-pw-surface text-pw-muted hover:border-pw-stone-dark hover:text-pw-ink",
+        ? "border-pw-ink bg-pw-surface text-pw-ink shadow-pw-sm ring-1 ring-pw-ink/20"
+        : "border-[rgba(26,23,20,0.1)] bg-pw-bg text-pw-muted hover:border-pw-stone-dark hover:text-pw-ink",
     ].join(" ");
 
   return (
-    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm sm:p-8">
+    <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
           2
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-pw-ink">Wall dimensions</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Wall dimensions</h2>
           <p className="mt-1 text-sm text-pw-muted">
             Enter the width and height in centimetres. Add 5–10 cm each side for a trimmed edge.
           </p>

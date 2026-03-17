@@ -24,18 +24,18 @@ export function InstallationStep({ totalSqm, application, onApplicationChange }:
     [
       "flex w-full min-h-[52px] touch-manipulation items-start justify-between rounded-pw-card border p-5 text-left transition-all",
       active
-        ? "border-pw-ink bg-pw-ink"
-        : "border-pw-stone bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface",
+        ? "border-pw-ink bg-pw-surface shadow-pw-sm ring-1 ring-pw-ink/20"
+        : "border-[rgba(26,23,20,0.1)] bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface",
     ].join(" ");
 
   return (
-    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm sm:p-8">
+    <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
           5
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-pw-ink">Installation</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Installation</h2>
           <p className="mt-1 text-sm text-pw-muted">
             How do you want to apply the wallpaper?
           </p>
@@ -46,16 +46,12 @@ export function InstallationStep({ totalSqm, application, onApplicationChange }:
         {/* DIY */}
         <button type="button" onClick={() => handlePrimary("diy")} className={primaryBtn(isDiy)}>
           <div>
-            <p className={["text-base font-semibold", isDiy ? "text-white" : "text-pw-ink"].join(" ")}>
-              DIY
-            </p>
-            <p className={["mt-0.5 text-sm", isDiy ? "text-white/70" : "text-pw-muted"].join(" ")}>
+            <p className="text-base font-semibold text-pw-ink">DIY</p>
+            <p className="mt-0.5 text-sm text-pw-muted">
               You apply it yourself. Step-by-step guide included with every order.
             </p>
           </div>
-          <span className={["ml-4 text-base font-bold shrink-0", isDiy ? "text-white" : "text-pw-ink"].join(" ")}>
-            Free
-          </span>
+          <span className="ml-4 text-base font-bold shrink-0 text-pw-ink">Free</span>
         </button>
 
         {/* Optional DIY kit add-on — visually nested under DIY */}
@@ -106,23 +102,17 @@ export function InstallationStep({ totalSqm, application, onApplicationChange }:
         <button type="button" onClick={() => handlePrimary("pro_installer")} className={[primaryBtn(isProSelected), "flex-col"].join(" ")}>
           <div className="flex w-full items-start justify-between">
             <div>
-              <p className={["text-base font-semibold", isProSelected ? "text-white" : "text-pw-ink"].join(" ")}>
-                Pro installer
-              </p>
-              <p className={["mt-0.5 text-sm", isProSelected ? "text-white/70" : "text-pw-muted"].join(" ")}>
+              <p className="text-base font-semibold text-pw-ink">Pro installer</p>
+              <p className="mt-0.5 text-sm text-pw-muted">
                 We send a certified installer to your address. All materials included.
               </p>
             </div>
             <div className="ml-4 text-right shrink-0">
-              <p className={["text-base font-bold", isProSelected ? "text-white" : "text-pw-ink"].join(" ")}>
-                {formatZar(proTotal)}
-              </p>
-              <p className={["text-xs", isProSelected ? "text-white/60" : "text-pw-muted-light"].join(" ")}>
-                for {totalSqm.toFixed(1)} m²
-              </p>
+              <p className="text-base font-bold text-pw-ink">{formatZar(proTotal)}</p>
+              <p className="text-xs text-pw-muted-light">for {totalSqm.toFixed(1)} m²</p>
             </div>
           </div>
-          <div className={["mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs", isProSelected ? "text-white/60" : "text-pw-muted-light"].join(" ")}>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-pw-muted-light">
             <span>R250/m² labour</span>
             <span>R500 call-out fee</span>
             <span>All materials included</span>

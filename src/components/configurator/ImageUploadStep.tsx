@@ -99,8 +99,8 @@ function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUplo
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start gap-4 rounded-pw-card border border-pw-stone bg-pw-bg p-4">
-        <div className="h-20 w-24 shrink-0 overflow-hidden rounded-pw border border-pw-stone bg-pw-stone">
+      <div className="flex items-start gap-4 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-4">
+        <div className="h-20 w-24 shrink-0 overflow-hidden rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-stone">
           <img src={imagePreviewUrl} alt="Preview" className="h-full w-full object-cover" />
         </div>
         <div className="flex-1 min-w-0 py-1">
@@ -150,13 +150,13 @@ export function ImageUploadStep({
   const isMultiDifferent = multiWallMode === "different" && walls.length > 0;
 
   return (
-    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm sm:p-8">
+    <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
           1
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-pw-ink">
+          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">
             Upload your image{walls.length > 1 ? "s" : ""}
           </h2>
           <p className="mt-1 text-sm text-pw-muted">

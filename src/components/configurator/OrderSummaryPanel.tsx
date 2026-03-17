@@ -40,7 +40,7 @@ type Props = {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-pw-stone last:border-0">
+    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-[rgba(26,23,20,0.08)] last:border-0">
       <span className="text-sm text-pw-muted shrink-0">{label}</span>
       <span className="text-sm font-medium text-pw-ink text-right">{value}</span>
     </div>
@@ -75,7 +75,7 @@ export function OrderSummaryPanel({
     <>
       {/* ── Desktop sticky panel ──────────────────────────────────────────────── */}
       <div className="hidden lg:block sticky top-6">
-        <div className="rounded-pw-card border border-pw-stone bg-pw-surface shadow-pw-sm overflow-hidden">
+        <div className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface shadow-pw-sm overflow-hidden">
           {/* Image preview */}
           <div className="aspect-video bg-pw-bg relative">
             {imagePreviewUrl ? (
@@ -111,7 +111,7 @@ export function OrderSummaryPanel({
             </div>
 
             {/* Price breakdown */}
-            <div className="mt-4 pt-4 border-t border-pw-stone space-y-1.5">
+            <div className="mt-4 pt-4 border-t border-[rgba(26,23,20,0.08)] space-y-1.5">
               {hasDetails ? (
                 <>
                   <div className="flex justify-between text-sm text-pw-muted">
@@ -124,13 +124,12 @@ export function OrderSummaryPanel({
                   </div>
                   <div className="flex justify-between text-sm text-pw-muted">
                     <span>Shipping</span>
-                    <span>At checkout</span>
+                    <span className="text-green-600 font-medium">Free</span>
                   </div>
-                  <div className="flex items-baseline justify-between mt-3 pt-3 border-t border-pw-stone">
+                  <div className="flex items-baseline justify-between mt-3 pt-3 border-t border-[rgba(26,23,20,0.08)]">
                     <span className="text-sm font-semibold text-pw-ink">Total</span>
                     <span className="text-2xl font-bold text-pw-ink">{formatZar(subtotalCents)}</span>
                   </div>
-                  <p className="text-xs text-pw-muted-light">Excluding shipping</p>
                 </>
               ) : (
                 <p className="text-sm text-pw-muted">Enter wall dimensions to see your price.</p>
@@ -154,11 +153,11 @@ export function OrderSummaryPanel({
       </div>
 
       {/* ── Mobile sticky bottom bar ──────────────────────────────────────────── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-pw-stone bg-pw-surface/95 backdrop-blur-sm px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-pw-md">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[rgba(26,23,20,0.12)] bg-pw-surface/97 backdrop-blur-md px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_24px_rgba(26,23,20,0.08)]">
         <div className="mx-auto flex max-w-lg items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-[11px] text-pw-muted font-medium uppercase tracking-wide">
-              Total (excl. shipping)
+              Total · Free shipping
             </p>
             <p className="text-xl font-bold text-pw-ink leading-none mt-0.5">
               {hasDetails ? formatZar(subtotalCents) : "—"}
