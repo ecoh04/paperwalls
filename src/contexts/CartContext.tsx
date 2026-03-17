@@ -11,19 +11,31 @@ import {
 import type { CartItem } from "@/types/cart";
 
 const STORAGE_KEY = "paperwalls-cart";
-const SESSION_KEY  = "paperwalls-session";
+const SESSION_KEY = "paperwalls-session";
 
 // Standard Omit<Union, K> only keeps keys common to ALL union members.
 // DistributiveOmit applies Omit to each member individually, preserving unique fields.
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
+// UTM + click-ID attribution captured from URL on first visit
+interface SessionAttribution {
+  utm_source?:   string;
+  utm_medium?:   string;
+  utm_campaign?: string;
+  utm_content?:  string;
+  utm_term?:     string;
+  fbclid?:       string;
+  gclid?:        string;
+  landing_page?: string;
+}
+
 type CartContextValue = {
-  items: CartItem[];
-  sessionId: string;
-  addItem: (item: DistributiveOmit<CartItem, "id">) => void;
-  removeItem: (id: string) => void;
-  clearCart: () => void;
-  identifyCustomer: (email: string, name?: string, phone?: string) => void;
+  items:              CartItem[];
+  sessionId:          string;
+  addItem:            (item: DistributiveOmit<CartItem, "id">) => void;
+  removeItem:         (id: string) => void;
+  clearCart:          () => void;
+  identifyCustomer:   (email: string, name?: string, phone?: string) => void;
 };
 
 export const CartContext = createContext<CartContextValue | null>(null);
@@ -67,18 +79,62 @@ function loadOrCreateSessionId(): string {
   }
 }
 
+/**
+ * Reads UTM params and click IDs from the current URL.
+ * Only called once on first page load — captures first-touch attribution.
+ * Also persists fbclid/gclid in sessionStorage so they survive page navigations
+ * within the same session (they appear in the landing URL, not all URLs).
+ */
+function captureAttribution(): SessionAttribution {
+  if (typeof window === "undefined") return {};
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const attr: SessionAttribution = {
+      landing_page: window.location.pathname,
+    };
+
+    const utm_source   = params.get("utm_source")   || undefined;
+    const utm_medium   = params.get("utm_medium")   || undefined;
+    const utm_campaign = params.get("utm_campaign") || undefined;
+    const utm_content  = params.get("utm_content")  || undefined;
+    const utm_term     = params.get("utm_term")     || undefined;
+
+    if (utm_source)   attr.utm_source   = utm_source;
+    if (utm_medium)   attr.utm_medium   = utm_medium;
+    if (utm_campaign) attr.utm_campaign = utm_campaign;
+    if (utm_content)  attr.utm_content  = utm_content;
+    if (utm_term)     attr.utm_term     = utm_term;
+
+    // Click IDs: persist in sessionStorage so they survive navigation
+    const fbclid = params.get("fbclid") || sessionStorage.getItem("pw_fbclid") || undefined;
+    const gclid  = params.get("gclid")  || sessionStorage.getItem("pw_gclid")  || undefined;
+
+    if (params.get("fbclid")) sessionStorage.setItem("pw_fbclid", params.get("fbclid")!);
+    if (params.get("gclid"))  sessionStorage.setItem("pw_gclid",  params.get("gclid")!);
+
+    if (fbclid) attr.fbclid = fbclid;
+    if (gclid)  attr.gclid  = gclid;
+
+    return attr;
+  } catch {
+    return {};
+  }
+}
+
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems]       = useState<CartItem[]>([]);
+  const [items, setItems]         = useState<CartItem[]>([]);
   const [sessionId, setSessionId] = useState<string>("");
-  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Avoid syncing on the first render (hydration from localStorage)
-  const isFirstRender = useRef(true);
+  const attribution               = useRef<SessionAttribution>({});
+  const syncTimer                 = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender             = useRef(true);
 
   useEffect(() => {
     setItems(loadCart());
-    setSessionId(loadOrCreateSessionId());
+    const sid = loadOrCreateSessionId();
+    setSessionId(sid);
+    attribution.current = captureAttribution();
   }, []);
 
   // Debounced backend sync — fire and forget, never blocks the UI
@@ -88,15 +144,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (syncTimer.current) clearTimeout(syncTimer.current);
       syncTimer.current = setTimeout(() => {
         fetch("/api/cart/sync", {
-          method: "POST",
+          method:  "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            session_id: currentSessionId,
-            items: currentItems,
-            user_agent:
-              typeof navigator !== "undefined" ? navigator.userAgent : undefined,
-            referrer:
-              typeof document !== "undefined" ? document.referrer || undefined : undefined,
+            session_id:   currentSessionId,
+            items:        currentItems,
+            user_agent:   typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+            referrer:     typeof document  !== "undefined" ? document.referrer || undefined : undefined,
+            ...attribution.current,
           }),
         }).catch(() => {});
       }, 900);
@@ -137,12 +192,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     saveCart([]);
   }, []);
 
-  // Identify the customer behind this session (called from checkout form on email blur)
+  // Called from CheckoutForm on email blur — links this session to a named customer
   const identifyCustomer = useCallback(
     (email: string, name?: string, phone?: string) => {
       if (!sessionId || !email) return;
       fetch("/api/cart/identify", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: sessionId, email, name, phone }),
       }).catch(() => {});
@@ -165,11 +220,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 // ── Consumer hook ─────────────────────────────────────────────────────────────
 
 const emptyCartValue: CartContextValue = {
-  items: [],
-  sessionId: "",
-  addItem: () => {},
-  removeItem: () => {},
-  clearCart: () => {},
+  items:            [],
+  sessionId:        "",
+  addItem:          () => {},
+  removeItem:       () => {},
+  clearCart:        () => {},
   identifyCustomer: () => {},
 };
 

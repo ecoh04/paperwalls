@@ -9,11 +9,9 @@ import {
   formatZarCents,
 } from "@/lib/admin-labels";
 import { OrderStatusSelect } from "@/components/admin/OrderStatusSelect";
-import { OrderFactorySelect } from "@/components/admin/OrderFactorySelect";
 import { OrderNoteForm } from "@/components/admin/OrderNoteForm";
 import {
   updateOrderStatus,
-  assignOrderFactory,
   addOrderNote,
 } from "@/app/admin/orders/actions";
 import { OrderEditForm } from "@/components/admin/OrderEditForm";
@@ -25,6 +23,9 @@ export const dynamic = "force-dynamic";
 type Row = {
   id: string;
   order_number: string;
+  status: string;
+  product_type: string;
+  quantity: number;
   customer_name: string;
   customer_email: string;
   customer_phone: string;
@@ -33,37 +34,41 @@ type Row = {
   city: string;
   province: string;
   postal_code: string;
-  wall_width_m: number;
-  wall_height_m: number;
+  wall_width_m: number | null;
+  wall_height_m: number | null;
   wall_count: number;
-  total_sqm: number;
-  image_url: string;
+  total_sqm: number | null;
+  image_url: string | null;
   image_urls: string[] | null;
   walls_spec: { widthM: number; heightM: number }[] | null;
-  wallpaper_style: string;
-  application_method: string;
+  wallpaper_style: string | null;
+  application_method: string | null;
   subtotal_cents: number;
   shipping_cents: number;
+  discount_cents: number;
+  discount_code: string | null;
   total_cents: number;
-  status: string;
-  stitch_payment_id: string | null;
-  assigned_factory_id: string | null;
+  payment_id: string | null;
+  payments: { gateway_payment_id: string | null; status: string } | null;
+  shipping_notes: string | null;
+  notes: string | null;
+  utm_source: string | null;
+  utm_campaign: string | null;
   shipped_at: string | null;
   delivered_at: string | null;
   created_at: string;
   updated_at: string;
   refunded_at: string | null;
   deleted_at: string | null;
-  factories: { code: string; name: string } | null;
 };
 
 type ActivityRow = {
   id: string;
   action: string;
+  actor_email: string;
   old_value: string | null;
   new_value: string | null;
   created_at: string;
-  profiles: { full_name: string | null; email: string } | { full_name: string | null; email: string }[] | null;
 };
 
 function parseImageUrls(urls: unknown): string[] {
@@ -110,7 +115,7 @@ export default async function AdminOrderDetailPage({
 
   const { data: order, error } = await supabase
     .from("orders")
-    .select("*, factories(code, name)")
+    .select("*, payments(gateway_payment_id, status)")
     .eq("id", id)
     .single();
 
@@ -118,31 +123,22 @@ export default async function AdminOrderDetailPage({
     notFound();
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user?.id ?? "")
-    .single();
-  const isAdmin = profile?.role === "admin";
-
-  const { data: factories } = isAdmin
-    ? await supabase.from("factories").select("id, code, name").order("code")
-    : { data: [] };
+  const isAdmin = true; // single-admin setup
 
   const { data: activity } = await supabase
     .from("order_activity")
-    .select("id, action, old_value, new_value, created_at, profiles(full_name, email)")
+    .select("id, action, actor_email, old_value, new_value, created_at")
     .eq("order_id", id)
     .order("created_at", { ascending: false })
     .limit(50);
 
   const row = order as Row;
   const imageUrls = parseImageUrls(row.image_urls);
-  const urls = imageUrls.length > 0 ? imageUrls : [row.image_url];
+  const urls = imageUrls.length > 0 ? imageUrls : row.image_url ? [row.image_url] : [];
   const status = (row.status ?? "new") as OrderStatus;
   const provinceLabel = PROVINCE_LABELS[(row.province as ShippingProvince) ?? "other"] ?? row.province;
   const activityList = ((activity ?? []) as unknown) as ActivityRow[];
+  const needsInstaller = row.application_method === "installer";
 
   return (
     <div className="space-y-8">
@@ -159,16 +155,10 @@ export default async function AdminOrderDetailPage({
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          {isAdmin && factories && factories.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-stone-500">Factory</span>
-              <OrderFactorySelect
-                orderId={id}
-                currentFactoryId={row.assigned_factory_id}
-                factories={factories}
-                assignFactory={assignOrderFactory}
-              />
-            </div>
+          {needsInstaller && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+              <span>🔧</span> Installer required — arrange externally
+            </span>
           )}
           <div className="flex items-center gap-2">
             <span className="text-sm text-stone-500">Status</span>
@@ -206,27 +196,27 @@ export default async function AdminOrderDetailPage({
         />
       </div>
 
-      {isAdmin && (
-      <OrderEditForm
-        orderId={id}
-        initial={{
-          customer_name: row.customer_name,
-          customer_email: row.customer_email,
-          customer_phone: row.customer_phone,
-          address_line1: row.address_line1,
-          address_line2: row.address_line2,
-          city: row.city,
-          province: row.province,
-          postal_code: row.postal_code,
-          wall_width_m: Number(row.wall_width_m),
-          wall_height_m: Number(row.wall_height_m),
-          wall_count: row.wall_count,
-          total_sqm: Number(row.total_sqm),
-          wallpaper_style: row.wallpaper_style,
-          application_method: row.application_method,
-          walls_spec: row.walls_spec ?? null,
-        }}
-      />
+      {isAdmin && row.product_type === "wallpaper" && (
+        <OrderEditForm
+          orderId={id}
+          initial={{
+            customer_name:      row.customer_name,
+            customer_email:     row.customer_email,
+            customer_phone:     row.customer_phone,
+            address_line1:      row.address_line1,
+            address_line2:      row.address_line2,
+            city:               row.city,
+            province:           row.province,
+            postal_code:        row.postal_code,
+            wall_width_m:       Number(row.wall_width_m ?? 0),
+            wall_height_m:      Number(row.wall_height_m ?? 0),
+            wall_count:         row.wall_count,
+            total_sqm:          Number(row.total_sqm ?? 0),
+            wallpaper_style:    row.wallpaper_style ?? "",
+            application_method: row.application_method ?? "",
+            walls_spec:         row.walls_spec ?? null,
+          }}
+        />
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -342,9 +332,46 @@ export default async function AdminOrderDetailPage({
           </div>
           <div>
             <dt className="text-xs text-stone-500">Payment reference</dt>
-            <dd className="font-mono text-xs text-stone-600">{row.stitch_payment_id ?? "—"}</dd>
+            <dd className="font-mono text-xs text-stone-600">
+              {row.payments?.gateway_payment_id ?? "—"}
+              {row.payments?.status && row.payments.status !== "paid" && (
+                <span className="ml-2 rounded bg-amber-100 px-1 py-0.5 text-xs text-amber-800">
+                  {row.payments.status}
+                </span>
+              )}
+            </dd>
           </div>
+          {row.discount_code && (
+            <div>
+              <dt className="text-xs text-stone-500">Discount</dt>
+              <dd className="font-mono text-xs text-stone-600">
+                {row.discount_code}
+                {row.discount_cents > 0 && (
+                  <span className="ml-2 text-green-700">−{formatZarCents(row.discount_cents)}</span>
+                )}
+              </dd>
+            </div>
+          )}
         </dl>
+        {(row.shipping_notes || row.utm_source) && (
+          <div className="mt-4 grid gap-2 border-t border-stone-200 pt-4 sm:grid-cols-2">
+            {row.shipping_notes && (
+              <div>
+                <span className="text-xs font-medium text-stone-500">Shipping notes</span>
+                <p className="mt-0.5 text-sm text-stone-900">{row.shipping_notes}</p>
+              </div>
+            )}
+            {row.utm_source && (
+              <div>
+                <span className="text-xs font-medium text-stone-500">Source</span>
+                <p className="mt-0.5 text-sm text-stone-600">
+                  {row.utm_source}
+                  {row.utm_campaign && <span className="ml-2 text-stone-400">/ {row.utm_campaign}</span>}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
         <div className="mt-4 grid gap-2 border-t border-stone-200 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <span className="text-stone-500">Created</span>
@@ -398,10 +425,7 @@ export default async function AdminOrderDetailPage({
                   {formatActivity(a.action, a.old_value, a.new_value)}
                 </span>
                 <span className="text-xs text-stone-500">
-                  {(Array.isArray(a.profiles) ? a.profiles[0] : a.profiles)?.full_name ||
-                    (Array.isArray(a.profiles) ? a.profiles[0] : a.profiles)?.email ||
-                    "Someone"}{" "}
-                  ·{" "}
+                  {a.actor_email || "System"}{" "}·{" "}
                   {new Date(a.created_at).toLocaleString("en-ZA")}
                 </span>
               </li>

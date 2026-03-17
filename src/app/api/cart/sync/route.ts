@@ -5,48 +5,79 @@ import type { CartItem } from "@/types/cart";
 /**
  * POST /api/cart/sync
  *
- * Called from CartContext whenever the cart changes (debounced).
- * Upserts the session and active cart, then replaces cart_items with the
- * current client state (strip image data — only store printable spec).
+ * Called from CartContext whenever the cart changes (debounced ~900ms).
+ * Upserts the session (including UTM attribution), upserts the active cart,
+ * and replaces cart_items with the current client state.
  *
- * This is fire-and-forget from the client; always returns 200 so the
- * frontend is never blocked or errored by a backend issue.
+ * Image data is never stored here — only printable spec (dimensions, style, etc.).
+ * Fire-and-forget from the client — always returns 200.
  */
 export async function POST(request: Request) {
   try {
     if (!supabase) return NextResponse.json({ ok: true });
 
     const body = await request.json().catch(() => ({}));
-    const { session_id, items, user_agent, referrer } = body as {
-      session_id?: string;
-      items?: CartItem[];
-      user_agent?: string;
-      referrer?: string;
+    const {
+      session_id,
+      items,
+      user_agent,
+      referrer,
+      landing_page,
+      utm_source,
+      utm_medium,
+      utm_campaign,
+      utm_content,
+      utm_term,
+      fbclid,
+      gclid,
+    } = body as {
+      session_id?:   string;
+      items?:        CartItem[];
+      user_agent?:   string;
+      referrer?:     string;
+      landing_page?: string;
+      utm_source?:   string;
+      utm_medium?:   string;
+      utm_campaign?: string;
+      utm_content?:  string;
+      utm_term?:     string;
+      fbclid?:       string;
+      gclid?:        string;
     };
 
     if (!session_id || typeof session_id !== "string") {
       return NextResponse.json({ ok: true });
     }
 
-    // 1. Upsert session (touch last_seen_at)
+    // ── Upsert session with UTM attribution ───────────────────────────────────
+    // Only set UTM fields if they have a value — this preserves the original
+    // first-touch attribution if the user navigates without UTM params later.
+    const sessionUpdate: Record<string, unknown> = {
+      id:           session_id,
+      last_seen_at: new Date().toISOString(),
+    };
+
+    if (user_agent)   sessionUpdate.user_agent   = user_agent;
+    if (referrer)     sessionUpdate.referrer      = referrer;
+    if (landing_page) sessionUpdate.landing_page  = landing_page;
+    if (utm_source)   sessionUpdate.utm_source    = utm_source;
+    if (utm_medium)   sessionUpdate.utm_medium    = utm_medium;
+    if (utm_campaign) sessionUpdate.utm_campaign  = utm_campaign;
+    if (utm_content)  sessionUpdate.utm_content   = utm_content;
+    if (utm_term)     sessionUpdate.utm_term      = utm_term;
+    if (fbclid)       sessionUpdate.fbclid        = fbclid;
+    if (gclid)        sessionUpdate.gclid         = gclid;
+
     const { error: sessionError } = await supabase
       .from("sessions")
-      .upsert(
-        {
-          id: session_id,
-          user_agent: user_agent ?? null,
-          referrer: referrer ?? null,
-          last_seen_at: new Date().toISOString(),
-        },
-        { onConflict: "id" }
-      );
+      .upsert(sessionUpdate, { onConflict: "id" });
 
     if (sessionError) {
       console.error("cart/sync session upsert error:", sessionError.message);
       return NextResponse.json({ ok: true });
     }
 
-    // 2. Upsert active cart for this session
+    // ── Upsert active cart ────────────────────────────────────────────────────
     const { data: existingCart } = await supabase
       .from("carts")
       .select("id")
@@ -58,8 +89,7 @@ export async function POST(request: Request) {
 
     if (existingCart?.id) {
       cartId = existingCart.id;
-      await supabase
-        .from("carts")
+      await supabase.from("carts")
         .update({ updated_at: new Date().toISOString() })
         .eq("id", cartId);
     } else {
@@ -76,34 +106,32 @@ export async function POST(request: Request) {
       cartId = newCart.id;
     }
 
-    // 3. Replace cart_items with current client state
-    //    Strip imageDataUrl / imageDataUrls (too large, not needed for recovery)
+    // ── Replace cart_items ────────────────────────────────────────────────────
     if (Array.isArray(items)) {
       await supabase.from("cart_items").delete().eq("cart_id", cartId);
 
       if (items.length > 0) {
         const rows = items.map((item) => {
-          const spec =
-            item.type === "wallpaper"
-              ? {
-                  width_m: item.widthM,
-                  height_m: item.heightM,
-                  wall_count: item.wallCount,
-                  total_sqm: item.totalSqm,
-                  style: item.style,
-                  application: item.application,
-                  walls: item.walls ?? [],
-                }
-              : {};
+          const spec = item.type === "wallpaper"
+            ? {
+                width_m:     item.widthM,
+                height_m:    item.heightM,
+                wall_count:  item.wallCount,
+                total_sqm:   item.totalSqm,
+                style:       item.style,
+                application: item.application,
+                walls:       item.walls ?? [],
+              }
+            : {};
 
           return {
-            cart_id: cartId,
-            product_type: item.type,
-            quantity: item.type === "sample_pack" ? item.quantity : 1,
+            cart_id:         cartId,
+            product_type:    item.type,
+            quantity:        item.type === "sample_pack" ? item.quantity : 1,
             unit_price_cents: item.subtotalCents,
-            subtotal_cents: item.subtotalCents,
+            subtotal_cents:  item.subtotalCents,
             spec,
-            client_item_id: item.id,
+            client_item_id:  item.id,
           };
         });
 
@@ -116,14 +144,14 @@ export async function POST(request: Request) {
         }
       }
 
-      // 4. Log event (only when cart has items to keep events table clean)
+      // Log cart.updated event (only when cart has items)
       if (items.length > 0) {
         const totalCents = items.reduce((s, i) => s + i.subtotalCents, 0);
         await supabase.from("events").insert({
-          type: "cart.updated",
+          type:       "cart.updated",
           session_id,
-          cart_id: cartId,
-          payload: { item_count: items.length, total_cents: totalCents },
+          cart_id:    cartId,
+          payload:    { item_count: items.length, total_cents: totalCents, utm_source },
         });
       }
     }

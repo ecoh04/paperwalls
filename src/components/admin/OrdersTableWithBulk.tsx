@@ -22,24 +22,25 @@ type OrderRow = {
   updated_at: string;
   shipped_at: string | null;
   delivered_at: string | null;
-  assigned_factory_id: string | null;
   wall_count: number;
-  wall_width_m: number;
-  wall_height_m: number;
-  wallpaper_style: string;
+  wall_width_m: number | null;
+  wall_height_m: number | null;
+  wallpaper_style: string | null;
+  application_method?: string | null;
+  product_type?: string;
+  customer_email?: string;
+  utm_source?: string | null;
   last_activity_at: string | null;
   last_activity_preview: string | null;
   refunded_at: string | null;
-  factories: { code: string; name: string } | null;
 };
 
 type Props = {
   orders: OrderRow[];
-  factories: { id: string; name: string }[];
   isAdmin: boolean;
 };
 
-export function OrdersTableWithBulk({ orders, factories, isAdmin }: Props) {
+export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   function toggle(id: string) {
@@ -72,9 +73,7 @@ export function OrdersTableWithBulk({ orders, factories, isAdmin }: Props) {
       {selectedIds.size > 0 && (
         <OrdersBulkBar
           selectedIds={Array.from(selectedIds)}
-          factories={factories}
           bulkUpdateStatus={bulkUpdateStatus}
-          bulkAssignFactory={bulkAssignFactory}
           onClearSelection={() => setSelectedIds(new Set())}
         />
       )}
@@ -99,11 +98,9 @@ export function OrdersTableWithBulk({ orders, factories, isAdmin }: Props) {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500 sm:px-6">
                   Customer
                 </th>
-                {isAdmin && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500 sm:px-6">
-                    Factory
-                  </th>
-                )}
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500 sm:px-6">
+                  Source
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500 sm:px-6">
                   Status
                 </th>
@@ -146,11 +143,9 @@ export function OrdersTableWithBulk({ orders, factories, isAdmin }: Props) {
                     <td className="max-w-[160px] truncate px-4 py-3 text-sm text-stone-600 sm:px-6">
                       {row.customer_name}
                     </td>
-                    {isAdmin && (
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-stone-500 sm:px-6">
-                        {row.factories?.name ?? "—"}
-                      </td>
-                    )}
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-stone-400 sm:px-6">
+                      {row.utm_source ?? "—"}
+                    </td>
                     <OrderRowActions
                       orderId={row.id}
                       currentStatus={status}

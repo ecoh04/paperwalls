@@ -5,11 +5,12 @@ import type { OrderStatus } from "@/types/order";
 import { OrdersTableWithBulk } from "@/components/admin/OrdersTableWithBulk";
 import { OrdersFiltersCollapse } from "@/components/admin/OrdersFiltersCollapse";
 
+// Note: factory routing is removed — orders are manually assigned externally.
+
 export const dynamic = "force-dynamic";
 
 type SearchParams = {
   status?: string;
-  factory?: string;
   from?: string;
   to?: string;
   q?: string;
@@ -35,7 +36,6 @@ export default async function AdminOrdersPage({
   try {
     const params = await searchParams;
     const statusFilter = params.status;
-    const factoryFilter = params.factory;
     const fromDate = params.from;
     const toDate = params.to;
     const searchQ = (params.q ?? "").trim();
@@ -59,24 +59,7 @@ export default async function AdminOrdersPage({
       );
     }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, factory_id")
-      .eq("id", user.id)
-      .single();
-
-    const isAdmin = profile?.role === "admin";
-
-    let factories: { id: string; code: string; name: string }[] = [];
-    try {
-      const { data: factoriesData } = await supabase
-        .from("factories")
-        .select("id, code, name")
-        .order("code");
-      factories = (factoriesData ?? []) as { id: string; code: string; name: string }[];
-    } catch {
-      // factories table may not exist
-    }
+    const isAdmin = true; // single-admin setup — all authenticated users are admins
 
     // Summary counts (lightweight)
     let counts: Record<string, number> = {};
@@ -101,7 +84,7 @@ export default async function AdminOrdersPage({
     let query = supabase
       .from("orders")
       .select(
-        "id, order_number, customer_name, status, total_cents, created_at, updated_at, shipped_at, delivered_at, assigned_factory_id, wall_count, wall_width_m, wall_height_m, wallpaper_style, last_activity_at, last_activity_preview, refunded_at, deleted_at, factories(code, name)"
+        "id, order_number, customer_name, customer_email, status, product_type, application_method, total_cents, created_at, updated_at, shipped_at, delivered_at, wall_count, wall_width_m, wall_height_m, wallpaper_style, last_activity_at, last_activity_preview, refunded_at, deleted_at, utm_source"
       );
 
     if (!showArchived) {
@@ -112,14 +95,9 @@ export default async function AdminOrdersPage({
     } else if (validStatus) {
       query = query.eq("status", validStatus);
     }
-    if (factoryFilter === "unassigned") {
-      query = query.is("assigned_factory_id", null);
-    } else if (factoryFilter && factories?.some((f) => f.id === factoryFilter)) {
-      query = query.eq("assigned_factory_id", factoryFilter);
-    }
     if (searchQ) {
       const term = `%${searchQ.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
-      query = query.or(`order_number.ilike.${term},customer_name.ilike.${term}`);
+      query = query.or(`order_number.ilike.${term},customer_name.ilike.${term},customer_email.ilike.${term}`);
     }
     if (fromDate) {
       query = query.gte("created_at", fromDate + "T00:00:00.000Z");
@@ -160,7 +138,6 @@ export default async function AdminOrdersPage({
     const buildHref = (overrides: Partial<SearchParams>) => {
       const q = new URLSearchParams();
       if (validStatus) q.set("status", validStatus);
-      if (factoryFilter) q.set("factory", factoryFilter);
       if (fromDate) q.set("from", fromDate);
       if (toDate) q.set("to", toDate);
       if (searchQ) q.set("q", searchQ);
@@ -177,7 +154,6 @@ export default async function AdminOrdersPage({
 
     const exportHref = `/api/admin/orders/export?${new URLSearchParams({
       ...(validStatus && { status: validStatus }),
-      ...(factoryFilter && { factory: factoryFilter }),
       ...(fromDate && { from: fromDate }),
       ...(toDate && { to: toDate }),
       ...(searchQ && { q: searchQ }),
@@ -241,8 +217,6 @@ export default async function AdminOrdersPage({
         <OrdersFiltersCollapse
           validStatus={validStatus}
           statusFilter={statusFilter}
-          factoryFilter={factoryFilter}
-          factories={factories.map((f) => ({ id: f.id, name: f.name }))}
           fromDate={fromDate}
           toDate={toDate}
           searchQ={searchQ}
@@ -255,7 +229,6 @@ export default async function AdminOrdersPage({
 
         <OrdersTableWithBulk
           orders={list as Parameters<typeof OrdersTableWithBulk>[0]["orders"]}
-          factories={factories.map((f) => ({ id: f.id, name: f.name }))}
           isAdmin={!!isAdmin}
         />
       </div>

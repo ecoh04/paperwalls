@@ -34,8 +34,6 @@ function buildHref(current: Params, overrides: Partial<Params>): string {
 type Props = {
   validStatus: OrderStatus | null;
   statusFilter: string | undefined;
-  factoryFilter: string | undefined;
-  factories: { id: string; name: string }[];
   fromDate: string | undefined;
   toDate: string | undefined;
   searchQ: string;
@@ -49,8 +47,6 @@ type Props = {
 export function OrdersFiltersCollapse({
   validStatus,
   statusFilter,
-  factoryFilter,
-  factories,
   fromDate,
   toDate,
   searchQ,
@@ -65,7 +61,6 @@ export function OrdersFiltersCollapse({
   const currentParams: Params = useMemo(
     () => ({
       status: statusFilter ?? undefined,
-      factory: factoryFilter ?? undefined,
       from: fromDate ?? undefined,
       to: toDate ?? undefined,
       q: searchQ || undefined,
@@ -73,7 +68,7 @@ export function OrdersFiltersCollapse({
       show_archived: showArchived ? "1" : undefined,
       refunded: refundedOnly ? "1" : undefined,
     }),
-    [statusFilter, factoryFilter, fromDate, toDate, searchQ, sortBy, showArchived, refundedOnly]
+    [statusFilter, fromDate, toDate, searchQ, sortBy, showArchived, refundedOnly]
   );
 
   const href = (overrides: Partial<Params>) => buildHref(currentParams, overrides);
@@ -94,7 +89,6 @@ export function OrdersFiltersCollapse({
         <div className="border-t border-stone-200 p-4">
           <form method="get" className="space-y-4">
             <input type="hidden" name="status" value={statusFilter ?? ""} />
-            <input type="hidden" name="factory" value={factoryFilter ?? ""} />
             <input type="hidden" name="show_archived" value={showArchived ? "1" : ""} />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
@@ -185,38 +179,6 @@ export function OrdersFiltersCollapse({
                 >
                   Show archived
                 </Link>
-                {factories.length > 0 && (
-                  <>
-                    <span className="text-xs text-stone-400">Factory:</span>
-                    <Link
-                      href={href({ factory: undefined })}
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                        !factoryFilter ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                      }`}
-                    >
-                      All
-                    </Link>
-                    <Link
-                      href={href({ factory: "unassigned" })}
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                        factoryFilter === "unassigned" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                      }`}
-                    >
-                      Unassigned
-                    </Link>
-                    {factories.map((f) => (
-                      <Link
-                        key={f.id}
-                        href={href({ factory: f.id })}
-                        className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                          factoryFilter === f.id ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                        }`}
-                      >
-                        {f.name}
-                      </Link>
-                    ))}
-                  </>
-                )}
                 <a
                   href={exportHref}
                   className="ml-auto rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50"
