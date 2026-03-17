@@ -73,11 +73,11 @@ export function OrderSummaryPanel({
 
   return (
     <>
-      {/* ── Desktop sticky panel ──────────────────────────────────────────────── */}
-      <div className="hidden lg:block sticky top-6">
+      {/* ── Summary panel — inline on mobile, sticky on desktop ───────────────── */}
+      <div className="sticky top-6">
         <div className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface shadow-pw-sm overflow-hidden">
-          {/* Image preview */}
-          <div className="aspect-video bg-pw-bg relative">
+          {/* Image preview — only shown on desktop where space allows */}
+          <div className="hidden lg:block aspect-video bg-pw-bg relative">
             {imagePreviewUrl ? (
               <img
                 src={imagePreviewUrl}
@@ -149,28 +149,6 @@ export function OrderSummaryPanel({
               <p className="mt-2 text-center text-xs text-pw-muted">{addToCartLabel}</p>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* ── Mobile sticky bottom bar ──────────────────────────────────────────── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[rgba(26,23,20,0.12)] bg-pw-surface/97 backdrop-blur-md px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_24px_rgba(26,23,20,0.08)]">
-        <div className="mx-auto flex max-w-lg items-center gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-pw-muted font-medium uppercase tracking-wide">
-              Total · Free shipping
-            </p>
-            <p className="text-xl font-bold text-pw-ink leading-none mt-0.5">
-              {hasDetails ? formatZar(subtotalCents) : "—"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onAddToCart}
-            disabled={!canAddToCart}
-            className="shrink-0 rounded-pw bg-pw-ink px-6 py-3 text-sm font-medium text-white hover:bg-pw-ink-soft disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[48px] touch-manipulation"
-          >
-            {canAddToCart ? "Add to cart →" : "Continue →"}
-          </button>
         </div>
       </div>
     </>

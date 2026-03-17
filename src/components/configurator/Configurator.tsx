@@ -232,7 +232,7 @@ export function Configurator() {
   return (
     <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start">
       {/* ── Left column: step cards ─────────────────────────────────────── */}
-      <div className="space-y-4 pb-28 lg:pb-8">
+      <div className="space-y-4 pb-8">
         <ImageUploadStep
           imagePreviewUrl={state.imagePreviewUrl}
           onFileSelect={handleFileSelect}
