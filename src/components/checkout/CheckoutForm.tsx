@@ -7,6 +7,7 @@ import type { ShippingProvince } from "@/types/order";
 import { PROVINCES } from "@/lib/shipping";
 import { getShippingCents } from "@/lib/shipping";
 import { formatZar } from "@/lib/pricing";
+import { useCart } from "@/contexts/CartContext";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_NAME = 2;
@@ -14,6 +15,7 @@ const MIN_PHONE = 10;
 
 type CheckoutFormProps = {
   items: CartItem[];
+  sessionId?: string;
   onSuccess: (payfastUrl: string, fields: Record<string, string>, orderNumbers: string[]) => void;
   onError: (message: string) => void;
 };
@@ -44,7 +46,8 @@ function validateAddress(a: CheckoutAddress): string | null {
   return null;
 }
 
-export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
+export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutFormProps) {
+  const { identifyCustomer } = useCart();
   const [address, setAddress] = useState<CheckoutAddress>(emptyAddress);
   const [submitting, setSubmitting] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -77,6 +80,7 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
               address_line2: address.address_line2 || null,
             },
             cart: items,
+            session_id: sessionId,
           }),
         });
         const data = await res.json();
@@ -95,7 +99,7 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
         setSubmitting(false);
       }
     },
-    [address, items, onSuccess, onError]
+    [address, items, sessionId, onSuccess, onError]
   );
 
   return (
@@ -130,6 +134,13 @@ export function CheckoutForm({ items, onSuccess, onError }: CheckoutFormProps) {
               autoComplete="email"
               value={address.customer_email}
               onChange={(e) => set("customer_email", e.target.value)}
+              onBlur={(e) => {
+                setTouched((t) => ({ ...t, customer_email: true }));
+                const email = e.target.value.trim();
+                if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                  identifyCustomer(email, address.customer_name || undefined, address.customer_phone || undefined);
+                }
+              }}
               className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
               placeholder="you@example.com"
             />

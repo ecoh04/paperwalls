@@ -116,12 +116,36 @@ export async function POST(request: Request) {
     }
 
     if (paymentStatus === "COMPLETE") {
-      // Mark orders as paid: pending → new, store pf_payment_id in stitch_payment_id column as generic payment reference
+      // 1. Insert a row into payments — this fixes the stitch_payment_id mess.
+      //    gateway_payment_id is now clearly visible in the dashboard.
+      const { data: paymentRow, error: paymentInsertError } = await supabase
+        .from("payments")
+        .insert({
+          gateway: "payfast",
+          gateway_payment_id: pfPaymentId,
+          status: "paid",
+          amount_cents: Math.round(amountGross * 100),
+          currency: "ZAR",
+          order_numbers: orderNumbers,
+          raw_payload: pfData,
+        })
+        .select("id")
+        .single();
+
+      if (paymentInsertError) {
+        console.error("PayFast ITN payment insert error", paymentInsertError);
+        // Non-fatal: still mark orders paid
+      }
+
+      const paymentId = paymentRow?.id ?? null;
+
+      // 2. Mark orders paid; link to the new payments row
       const { error: updateError } = await supabase
         .from("orders")
         .update({
           status: "new",
-          stitch_payment_id: pfPaymentId,
+          stitch_payment_id: pfPaymentId, // kept for backward compat
+          payment_id: paymentId,
         })
         .in("order_number", orderNumbers)
         .eq("status", "pending");
@@ -130,6 +154,17 @@ export async function POST(request: Request) {
         console.error("PayFast ITN order update error", updateError);
         return NextResponse.json({ error: "Update failed" }, { status: 200 });
       }
+
+      // 3. Log payment.completed event
+      await supabase.from("events").insert({
+        type: "payment.completed",
+        payload: {
+          gateway: "payfast",
+          gateway_payment_id: pfPaymentId,
+          amount_cents: Math.round(amountGross * 100),
+          order_numbers: orderNumbers,
+        },
+      });
     }
 
     return NextResponse.json({ received: true }, { status: 200 });

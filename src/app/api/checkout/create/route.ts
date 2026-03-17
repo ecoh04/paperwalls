@@ -26,7 +26,11 @@ function validateProvince(p: string): p is ShippingProvince {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { address, cart } = body as { address?: CheckoutAddress; cart?: CartItem[] };
+    const { address, cart, session_id } = body as {
+      address?: CheckoutAddress;
+      cart?: CartItem[];
+      session_id?: string;
+    };
 
     if (!address || !cart || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json(
@@ -213,13 +217,72 @@ export async function POST(request: Request) {
       });
     }
 
-    const { error: insertError } = await supabase.from("orders").insert(
-      orderRows.map((row) => ({
-        ...row,
-        image_urls: row.image_urls,
-        walls_spec: row.walls_spec,
-      }))
-    );
+    // ── Upsert customer (best-effort, non-blocking) ──────────────────────────
+    let customerId: string | null = null;
+    try {
+      const { data: customer } = await supabase
+        .from("customers")
+        .upsert(
+          {
+            email: a.customer_email.trim().toLowerCase(),
+            name: a.customer_name.trim(),
+            phone: a.customer_phone.trim(),
+            last_seen_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "email" }
+        )
+        .select("id")
+        .single();
+      customerId = customer?.id ?? null;
+    } catch {
+      // Non-fatal: orders still get created without a customer_id
+    }
+
+    // ── Resolve active cart for this session ─────────────────────────────────
+    let cartId: string | null = null;
+    if (session_id) {
+      try {
+        const { data: activeCart } = await supabase
+          .from("carts")
+          .select("id")
+          .eq("session_id", session_id)
+          .eq("status", "active")
+          .maybeSingle();
+        cartId = activeCart?.id ?? null;
+
+        // Link customer to session now that we know who they are
+        if (customerId) {
+          await supabase
+            .from("sessions")
+            .update({ customer_id: customerId })
+            .eq("id", session_id);
+          if (cartId) {
+            await supabase
+              .from("carts")
+              .update({ customer_id: customerId })
+              .eq("id", cartId);
+          }
+        }
+      } catch {
+        // Non-fatal
+      }
+    }
+
+    // ── Insert orders ─────────────────────────────────────────────────────────
+    const { data: insertedOrders, error: insertError } = await supabase
+      .from("orders")
+      .insert(
+        orderRows.map((row) => ({
+          ...row,
+          image_urls: row.image_urls,
+          walls_spec: row.walls_spec,
+          customer_id: customerId,
+          cart_id: cartId,
+          session_id: session_id ?? null,
+        }))
+      )
+      .select("id, order_number, product_type, quantity, subtotal_cents");
 
     if (insertError) {
       console.error("Orders insert error:", insertError);
@@ -228,6 +291,69 @@ export async function POST(request: Request) {
         { error: message.includes("row-level security") ? "Database permission error. Check Supabase RLS policies on orders." : "Failed to create order. Please try again." },
         { status: 500 }
       );
+    }
+
+    // ── Insert order_items (one per inserted order) ───────────────────────────
+    if (insertedOrders?.length) {
+      try {
+        const orderItemRows = insertedOrders.map((o, idx) => {
+          const cartItem = cart[idx];
+          const spec =
+            cartItem?.type === "wallpaper"
+              ? {
+                  width_m: cartItem.widthM,
+                  height_m: cartItem.heightM,
+                  wall_count: cartItem.wallCount,
+                  total_sqm: cartItem.totalSqm,
+                  style: cartItem.style,
+                  application: cartItem.application,
+                  walls: cartItem.walls ?? [],
+                }
+              : {};
+          return {
+            order_id: o.id,
+            product_type: o.product_type,
+            quantity: o.quantity,
+            unit_price_cents: o.subtotal_cents,
+            subtotal_cents: o.subtotal_cents,
+            spec,
+          };
+        });
+        await supabase.from("order_items").insert(orderItemRows);
+      } catch {
+        // Non-fatal: order_items are supplementary
+      }
+    }
+
+    // ── Mark cart as converted ────────────────────────────────────────────────
+    if (cartId) {
+      void supabase
+        .from("carts")
+        .update({ status: "converted" })
+        .eq("id", cartId);
+    }
+
+    // ── Log order.created events ──────────────────────────────────────────────
+    if (insertedOrders?.length) {
+      const totalCents = orderRows.reduce((s, r) => s + r.total_cents, 0);
+      void supabase
+        .from("events")
+        .insert({
+          type: "order.created",
+          session_id: session_id ?? null,
+          customer_id: customerId,
+          cart_id: cartId,
+          payload: {
+            order_numbers: orderNumbers,
+            total_cents: totalCents,
+            item_count: cart.length,
+          },
+        });
+    }
+
+    // ── Update customer stats ─────────────────────────────────────────────────
+    if (customerId) {
+      void supabase.rpc("update_customer_stats", { p_customer_id: customerId });
     }
 
     const totalPaymentCents = orderRows.reduce((s, r) => s + r.total_cents, 0);

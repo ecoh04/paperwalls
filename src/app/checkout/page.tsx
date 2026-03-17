@@ -9,7 +9,7 @@ import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { formatZar } from "@/lib/pricing";
 
 export default function CheckoutPage() {
-  const { items } = useCart();
+  const { items, sessionId } = useCart();
   const [error, setError] = useState<string | null>(null);
 
   const handleSuccess = useCallback(
@@ -81,7 +81,7 @@ export default function CheckoutPage() {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-3">
         <div className="order-2 lg:order-1 lg:col-span-2">
-          <CheckoutForm items={items} onSuccess={handleSuccess} onError={handleError} />
+          <CheckoutForm items={items} sessionId={sessionId} onSuccess={handleSuccess} onError={handleError} />
         </div>
         <div className="order-1 lg:order-2 lg:col-span-1">
           <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
