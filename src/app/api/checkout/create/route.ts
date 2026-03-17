@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { CheckoutAddress } from "@/types/checkout";
 import type { CartItem } from "@/types/cart";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
 import { getShippingCents } from "@/lib/shipping";
 import { uploadPrintImage } from "@/lib/storage";
 import { buildPayfastFormFields } from "@/lib/payfast";
