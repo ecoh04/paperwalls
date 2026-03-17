@@ -7,13 +7,11 @@ import { ImageUploadStep } from "./ImageUploadStep";
 import { PreviewEditStep } from "./PreviewEditStep";
 import { StyleStep } from "./StyleStep";
 import { InstallationStep } from "./InstallationStep";
-import { PriceSummary } from "./PriceSummary";
+import { OrderSummaryPanel } from "./OrderSummaryPanel";
 import { useCart } from "@/contexts/CartContext";
 import { calculateSubtotalCents } from "@/lib/pricing";
 import { DEFAULT_CONFIG, type ConfiguratorState, type WallSpec } from "@/types/configurator";
 
-// Minimum resolution to accept at upload time (px per side).
-// Below this threshold, even a 1×1 m wall would look terrible.
 const MIN_UPLOAD_PX = 400;
 
 function blobToDataUrl(blob: Blob): Promise<string> {
@@ -28,10 +26,10 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 export function Configurator() {
   const router = useRouter();
   const { addItem } = useCart();
-  const getCroppedBlobRef = useRef<(() => Promise<Blob | null>) | null>(null);
+  const getCroppedBlobRef  = useRef<(() => Promise<Blob | null>) | null>(null);
   const getCroppedBlobRefs = useRef<((() => Promise<Blob | null>) | null)[]>([]);
 
-  const [state, setState] = useState<ConfiguratorState>(DEFAULT_CONFIG);
+  const [state, setState]       = useState<ConfiguratorState>(DEFAULT_CONFIG);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const totalSqm =
@@ -101,12 +99,11 @@ export function Configurator() {
         const widthPx  = img.naturalWidth  || img.width;
         const heightPx = img.naturalHeight || img.height;
 
-        // Hard quality gate: reject images that are far too low-res for any wall.
         if (widthPx < MIN_UPLOAD_PX || heightPx < MIN_UPLOAD_PX) {
           URL.revokeObjectURL(objectUrl);
           setUploadError(
-            `This image is too low resolution (${widthPx}×${heightPx}px) and will look very poor when printed. ` +
-            `Please upload a higher-quality image — at least ${MIN_UPLOAD_PX}×${MIN_UPLOAD_PX}px.`
+            `This image is only ${widthPx}×${heightPx}px — far too small for a quality print. ` +
+            `Please use a higher-resolution file (minimum ${MIN_UPLOAD_PX}×${MIN_UPLOAD_PX}px).`
           );
           return;
         }
@@ -216,8 +213,8 @@ export function Configurator() {
   const addToCartLabel = canAddToCart
     ? "Add to cart"
     : !allWallImagesUploaded
-    ? "Upload an image to continue →"
-    : "Enter wall dimensions to continue →";
+    ? "Upload an image to continue"
+    : "Enter your wall dimensions to continue";
 
   const setCropReady = useCallback((getBlob: () => Promise<Blob | null>) => {
     getCroppedBlobRef.current = getBlob;
@@ -227,97 +224,110 @@ export function Configurator() {
     getCroppedBlobRefs.current[wallIndex] = getBlob;
   }, []);
 
-  return (
-    <div className="space-y-6 pb-24 md:pb-8 md:space-y-8">
-      <ImageUploadStep
-        imagePreviewUrl={state.imagePreviewUrl}
-        onFileSelect={handleFileSelect}
-        multiWallMode={state.multiWallMode}
-        walls={isMultiDifferent ? state.walls : []}
-        onWallFileSelect={handleWallFileSelect}
-        uploadError={uploadError}
-      />
+  // Use the first available image for the summary preview
+  const summaryImageUrl = isMultiDifferent
+    ? (state.walls[0]?.imagePreviewUrl ?? null)
+    : state.imagePreviewUrl;
 
-      <DimensionsStep
+  return (
+    <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start">
+      {/* ── Left column: step cards ─────────────────────────────────────── */}
+      <div className="space-y-4 pb-28 lg:pb-8">
+        <ImageUploadStep
+          imagePreviewUrl={state.imagePreviewUrl}
+          onFileSelect={handleFileSelect}
+          multiWallMode={state.multiWallMode}
+          walls={isMultiDifferent ? state.walls : []}
+          onWallFileSelect={handleWallFileSelect}
+          uploadError={uploadError}
+        />
+
+        <DimensionsStep
+          widthM={state.widthM}
+          heightM={state.heightM}
+          wallCount={state.wallCount}
+          multiWallMode={state.multiWallMode}
+          walls={state.walls}
+          imageWidthPx={state.imageWidthPx ?? undefined}
+          imageHeightPx={state.imageHeightPx ?? undefined}
+          onWidthChange={(v) => setState((s) => ({ ...s, widthM: v }))}
+          onHeightChange={(v) => setState((s) => ({ ...s, heightM: v }))}
+          onWallCountChange={(v) =>
+            setState((s) => ({
+              ...s,
+              wallCount: v,
+              ...(v === 1 ? { multiWallMode: "same" as const, walls: [] } : {}),
+            }))
+          }
+          onMultiWallModeChange={(m) =>
+            setState((s) => ({
+              ...s,
+              multiWallMode: m,
+              ...(m === "different" && s.walls.length !== s.wallCount
+                ? {
+                    walls: Array.from({ length: s.wallCount }, (_, i) =>
+                      s.walls[i] ? { ...s.walls[i] } : { widthM: s.widthM, heightM: s.heightM }
+                    ),
+                  }
+                : {}),
+            }))
+          }
+          onWallsChange={(w) => setState((s) => ({ ...s, walls: w }))}
+        />
+
+        {!isMultiDifferent && (
+          <PreviewEditStep
+            imageUrl={state.imagePreviewUrl}
+            widthM={previewWidth}
+            heightM={previewHeight}
+            wallCount={state.wallCount}
+            panX={state.panX}
+            panY={state.panY}
+            scale={state.scale}
+            onPanChange={setPan}
+            onScaleChange={setScale}
+            onCropDataReady={setCropReady}
+          />
+        )}
+
+        {isMultiDifferent &&
+          state.walls.map((wall, i) => (
+            <PreviewEditStep
+              key={i}
+              imageUrl={wall.imagePreviewUrl ?? null}
+              widthM={wall.widthM}
+              heightM={wall.heightM}
+              wallLabel={` · Wall ${i + 1}`}
+              panX={wall.panX ?? 0}
+              panY={wall.panY ?? 0}
+              scale={wall.scale ?? 1}
+              onPanChange={(x, y) => setWallPan(i, x, y)}
+              onScaleChange={(s) => setWallScale(i, s)}
+              onCropDataReady={(getBlob) => setCropReadyWall(i, getBlob)}
+            />
+          ))}
+
+        <StyleStep
+          totalSqm={totalSqm}
+          wallpaperType={state.wallpaperType}
+          material={state.material}
+          onWallpaperTypeChange={(t) => setState((prev) => ({ ...prev, wallpaperType: t }))}
+          onMaterialChange={(m) => setState((prev) => ({ ...prev, material: m }))}
+        />
+
+        <InstallationStep
+          totalSqm={totalSqm}
+          application={state.application}
+          onApplicationChange={(a) => setState((prev) => ({ ...prev, application: a }))}
+        />
+      </div>
+
+      {/* ── Right column: sticky order summary ──────────────────────────── */}
+      <OrderSummaryPanel
+        imagePreviewUrl={summaryImageUrl}
         widthM={state.widthM}
         heightM={state.heightM}
         wallCount={state.wallCount}
-        multiWallMode={state.multiWallMode}
-        walls={state.walls}
-        imageWidthPx={state.imageWidthPx ?? undefined}
-        imageHeightPx={state.imageHeightPx ?? undefined}
-        onWidthChange={(v) => setState((s) => ({ ...s, widthM: v }))}
-        onHeightChange={(v) => setState((s) => ({ ...s, heightM: v }))}
-        onWallCountChange={(v) =>
-          setState((s) => ({
-            ...s,
-            wallCount: v,
-            ...(v === 1 ? { multiWallMode: "same" as const, walls: [] } : {}),
-          }))
-        }
-        onMultiWallModeChange={(m) =>
-          setState((s) => ({
-            ...s,
-            multiWallMode: m,
-            ...(m === "different" && s.walls.length !== s.wallCount
-              ? {
-                  walls: Array.from({ length: s.wallCount }, (_, i) =>
-                    s.walls[i] ? { ...s.walls[i] } : { widthM: s.widthM, heightM: s.heightM }
-                  ),
-                }
-              : {}),
-          }))
-        }
-        onWallsChange={(w) => setState((s) => ({ ...s, walls: w }))}
-      />
-
-      {!isMultiDifferent && (
-        <PreviewEditStep
-          imageUrl={state.imagePreviewUrl}
-          widthM={previewWidth}
-          heightM={previewHeight}
-          wallCount={state.wallCount}
-          panX={state.panX}
-          panY={state.panY}
-          scale={state.scale}
-          onPanChange={setPan}
-          onScaleChange={setScale}
-          onCropDataReady={setCropReady}
-        />
-      )}
-
-      {isMultiDifferent &&
-        state.walls.map((wall, i) => (
-          <PreviewEditStep
-            key={i}
-            imageUrl={wall.imagePreviewUrl ?? null}
-            widthM={wall.widthM}
-            heightM={wall.heightM}
-            wallLabel={` · Wall ${i + 1}`}
-            panX={wall.panX ?? 0}
-            panY={wall.panY ?? 0}
-            scale={wall.scale ?? 1}
-            onPanChange={(x, y) => setWallPan(i, x, y)}
-            onScaleChange={(s) => setWallScale(i, s)}
-            onCropDataReady={(getBlob) => setCropReadyWall(i, getBlob)}
-          />
-        ))}
-
-      <StyleStep
-        totalSqm={totalSqm}
-        wallpaperType={state.wallpaperType}
-        material={state.material}
-        onWallpaperTypeChange={(t) => setState((prev) => ({ ...prev, wallpaperType: t }))}
-        onMaterialChange={(m) => setState((prev) => ({ ...prev, material: m }))}
-      />
-
-      <InstallationStep
-        totalSqm={totalSqm}
-        application={state.application}
-        onApplicationChange={(a) => setState((prev) => ({ ...prev, application: a }))}
-      />
-
-      <PriceSummary
         totalSqm={totalSqm}
         wallpaperType={state.wallpaperType}
         material={state.material}

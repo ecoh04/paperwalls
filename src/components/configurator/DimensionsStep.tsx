@@ -17,76 +17,110 @@ type DimensionsStepProps = {
   onWallsChange: (walls: WallSpec[]) => void;
 };
 
+const MIN_PX_PER_MM = 0.83;
+
+type QualityLevel = "good" | "borderline" | "too_low";
+
+function getQuality(
+  imageWidthPx: number,
+  imageHeightPx: number,
+  widthM: number,
+  heightM: number
+): { level: QualityLevel; maxWidthM: number; maxHeightM: number; pxPerMm: number } {
+  const wallWidthMm  = widthM  * 1000;
+  const wallHeightMm = heightM * 1000;
+  const pxPerMmW = imageWidthPx  / wallWidthMm;
+  const pxPerMmH = imageHeightPx / wallHeightMm;
+  const pxPerMm  = Math.min(pxPerMmW, pxPerMmH);
+  const maxWidthM  = imageWidthPx  / (MIN_PX_PER_MM * 1000);
+  const maxHeightM = imageHeightPx / (MIN_PX_PER_MM * 1000);
+  let level: QualityLevel;
+  if      (pxPerMm < MIN_PX_PER_MM * 0.7)  level = "too_low";
+  else if (pxPerMm < MIN_PX_PER_MM * 1.2)  level = "borderline";
+  else                                       level = "good";
+  return { level, maxWidthM, maxHeightM, pxPerMm };
+}
+
+function QualityBadge({
+  level, maxWidthM, maxHeightM,
+}: { level: QualityLevel; maxWidthM: number; maxHeightM: number }) {
+  if (level === "good") {
+    return (
+      <div className="flex gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
+        <svg className="mt-0.5 h-5 w-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        <div>
+          <p className="text-sm font-semibold text-green-800">Image quality looks great</p>
+          <p className="mt-0.5 text-sm text-green-700">
+            Your image has enough resolution for a sharp, professional print at this size.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  if (level === "borderline") {
+    return (
+      <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+          />
+        </svg>
+        <div>
+          <p className="text-sm font-semibold text-amber-800">Quality is on the limit</p>
+          <p className="mt-0.5 text-sm text-amber-700">
+            Your image will look fine from a normal viewing distance, but won't be razor-sharp up close.
+            For maximum crispness, reduce the wall size slightly or use a higher-res file.
+            Max recommended: <strong>{(maxWidthM * 100).toFixed(0)} × {(maxHeightM * 100).toFixed(0)} cm</strong>.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+      <svg className="mt-0.5 h-5 w-5 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+        />
+      </svg>
+      <div>
+        <p className="text-sm font-semibold text-red-800">Image too low-res for this wall size</p>
+        <p className="mt-0.5 text-sm text-red-700">
+          The print will look pixelated at this size. We strongly recommend using a higher-resolution
+          image or reducing the dimensions. Max recommended: <strong>{(maxWidthM * 100).toFixed(0)} × {(maxHeightM * 100).toFixed(0)} cm</strong>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const inputClass =
+  "block w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3.5 text-lg text-stone-900 placeholder:text-stone-300 focus:border-stone-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition";
+
 export function DimensionsStep({
-  widthM,
-  heightM,
-  wallCount,
-  multiWallMode,
-  walls,
-  imageWidthPx,
-  imageHeightPx,
-  onWidthChange,
-  onHeightChange,
-  onWallCountChange,
-  onMultiWallModeChange,
-  onWallsChange,
+  widthM, heightM, wallCount, multiWallMode, walls,
+  imageWidthPx, imageHeightPx,
+  onWidthChange, onHeightChange, onWallCountChange,
+  onMultiWallModeChange, onWallsChange,
 }: DimensionsStepProps) {
   const isMulti = wallCount > 1;
-  const totalSqmSame = widthM * heightM * Math.max(1, wallCount);
-  const totalSqmDifferent =
-    walls.length > 0
-      ? walls.reduce((sum, w) => sum + w.widthM * w.heightM, 0)
-      : 0;
-  const totalSqm = isMulti && multiWallMode === "different" ? totalSqmDifferent : totalSqmSame;
-  const isValidSame = widthM > 0 && heightM > 0;
-  const isValidDifferent =
-    walls.length === wallCount &&
-    walls.every((w) => w.widthM > 0 && w.heightM > 0);
+  const totalSqmSame       = widthM * heightM * Math.max(1, wallCount);
+  const totalSqmDifferent  = walls.length > 0 ? walls.reduce((s, w) => s + w.widthM * w.heightM, 0) : 0;
+  const totalSqm           = isMulti && multiWallMode === "different" ? totalSqmDifferent : totalSqmSame;
+  const isValidSame        = widthM > 0 && heightM > 0;
+  const isValidDifferent   = walls.length === wallCount && walls.every((w) => w.widthM > 0 && w.heightM > 0);
 
-  const widthCm = widthM * 100;
-  const heightCm = heightM * 100;
-
-  let qualityText: string | null = null;
-  if (imageWidthPx && imageHeightPx && widthM > 0 && heightM > 0) {
-    const wallWidthMm = widthM * 1000;
-    const wallHeightMm = heightM * 1000;
-    const pxPerMmW = imageWidthPx / wallWidthMm;
-    const pxPerMmH = imageHeightPx / wallHeightMm;
-    const pxPerMm = Math.min(pxPerMmW, pxPerMmH);
-    // Photowall-style minimum quality is ~21 dpi ≈ 0.83 px/mm.
-    // We derive max recommended wall size from this threshold.
-    const MIN_PX_PER_MM = 0.83;
-    const maxWidthM = imageWidthPx / (MIN_PX_PER_MM * 1000);
-    const maxHeightM = imageHeightPx / (MIN_PX_PER_MM * 1000);
-
-    let level: "good" | "borderline" | "too_low";
-    if (pxPerMm < MIN_PX_PER_MM * 0.7) level = "too_low";
-    else if (pxPerMm < MIN_PX_PER_MM * 1.2) level = "borderline";
-    else level = "good";
-
-    const base = `At this size your image has about ${pxPerMm.toFixed(2)} px/mm. `;
-    const maxText = `Max recommended size at our minimum quality (≈21 dpi) is approximately ${(maxWidthM * 100).toFixed(0)} × ${(maxHeightM * 100).toFixed(0)} cm.`;
-    if (level === "good") {
-      qualityText = base + "Quality looks good for this wall size. " + maxText;
-    } else if (level === "borderline") {
-      qualityText =
-        base +
-        "Quality is on the edge for this wall size. Consider reducing the dimensions slightly for a crisper print. " +
-        maxText;
-    } else {
-      qualityText =
-        base +
-        "Image resolution is low for this wall size. We recommend using a higher‑resolution file or reducing the dimensions. " +
-        maxText;
-    }
-  }
+  const quality =
+    imageWidthPx && imageHeightPx && widthM > 0 && heightM > 0
+      ? getQuality(imageWidthPx, imageHeightPx, widthM, heightM)
+      : null;
 
   const ensureWallsLength = (n: number) => {
     if (walls.length === n) return;
     const next: WallSpec[] = [];
-    for (let i = 0; i < n; i++) {
-      next.push(walls[i] ?? { widthM: 0, heightM: 0 });
-    }
+    for (let i = 0; i < n; i++) next.push(walls[i] ?? { widthM: 0, heightM: 0 });
     onWallsChange(next);
   };
 
@@ -108,24 +142,36 @@ export function DimensionsStep({
   };
 
   return (
-    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-4 sm:p-6 shadow-pw-sm">
-      <h2 className="text-lg font-semibold text-pw-ink">2. Wall dimensions</h2>
-      <p className="mt-1 text-sm text-pw-muted">
-        Enter the width and height of your wall(s) in centimetres. We'll convert to meters and area for pricing.
-      </p>
+    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+      {/* Step header */}
+      <div className="flex items-start gap-4 mb-6">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-900 text-sm font-bold text-white">
+          2
+        </span>
+        <div>
+          <h2 className="text-xl font-semibold text-stone-900">Wall dimensions</h2>
+          <p className="mt-1 text-sm text-stone-500">
+            Enter the width and height of your wall in centimetres.
+            Add 5–10 cm on each side for trimming.
+          </p>
+        </div>
+      </div>
 
-      <div className="mt-6">
-        <label className="block text-sm font-medium text-pw-ink">How many walls?</label>
-        <div className="mt-2 flex flex-wrap gap-2">
+      {/* Wall count */}
+      <div>
+        <label className="block text-sm font-semibold text-stone-700 mb-3">
+          How many walls?
+        </label>
+        <div className="flex flex-wrap gap-2">
           {[1, 2, 3, 4].map((n) => (
             <button
               key={n}
               type="button"
               onClick={() => handleWallCountChange(n)}
-              className={`rounded-pw border px-4 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-xl border px-5 py-2.5 text-sm font-semibold transition-colors ${
                 wallCount === n
-                  ? "border-pw-ink bg-pw-ink text-white"
-                  : "border-pw-stone bg-pw-surface text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
+                  ? "border-stone-900 bg-stone-900 text-white"
+                  : "border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-400"
               }`}
             >
               {n} wall{n > 1 ? "s" : ""}
@@ -134,143 +180,135 @@ export function DimensionsStep({
         </div>
       </div>
 
+      {/* Multi-wall mode */}
       {isMulti && (
         <div className="mt-6">
-          <label className="block text-sm font-medium text-pw-ink">
-            Same size and image for all walls?
+          <label className="block text-sm font-semibold text-stone-700 mb-1">
+            Same image and size for all walls?
           </label>
-          <p className="mt-0.5 text-xs text-pw-muted">
-            Same: one size and one image, we print that for each wall. Different: enter dimensions (and later image) for each wall.
+          <p className="text-sm text-stone-500 mb-3">
+            If all walls are the same, we print one design across all of them at the same size.
           </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => handleMultiWallMode("same")}
-              className={`rounded-pw border px-4 py-2 text-sm font-medium transition-colors ${
-                multiWallMode === "same"
-                  ? "border-pw-ink bg-pw-ink text-white"
-                  : "border-pw-stone bg-pw-surface text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
-              }`}
-            >
-              Yes, same for all
-            </button>
-            <button
-              type="button"
-              onClick={() => handleMultiWallMode("different")}
-              className={`rounded-pw border px-4 py-2 text-sm font-medium transition-colors ${
-                multiWallMode === "different"
-                  ? "border-pw-ink bg-pw-ink text-white"
-                  : "border-pw-stone bg-pw-surface text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
-              }`}
-            >
-              No, different sizes
-            </button>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "same", label: "Yes, same for all" },
+              { id: "different", label: "No, different per wall" },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => handleMultiWallMode(opt.id as MultiWallMode)}
+                className={`rounded-xl border px-5 py-2.5 text-sm font-semibold transition-colors ${
+                  multiWallMode === opt.id
+                    ? "border-stone-900 bg-stone-900 text-white"
+                    : "border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-400"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
+      {/* Single size inputs */}
       {(!isMulti || multiWallMode === "same") && (
-        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <div>
-            <label htmlFor="width" className="block text-sm font-medium text-pw-ink">
-              Width (cm)
+            <label htmlFor="dim-width" className="block text-sm font-semibold text-stone-700 mb-2">
+              Width <span className="font-normal text-stone-400">(cm)</span>
             </label>
             <input
-              id="width"
+              id="dim-width"
               type="number"
               min={10}
               max={2000}
               step={1}
-              value={widthCm ? Math.round(widthCm) : ""}
+              value={widthM > 0 ? Math.round(widthM * 100) : ""}
               onChange={(e) => {
                 const cm = parseFloat(e.target.value) || 0;
                 let m = cm / 100;
                 if (imageWidthPx) {
-                  // Global limit: don't exceed Photowall-style quality threshold (~21 dpi ≈ 0.83 px/mm)
-                  const MIN_PX_PER_MM = 0.83;
                   const maxM = imageWidthPx / (MIN_PX_PER_MM * 1000);
-                  if (m > maxM) m = Math.round(maxM * 100) / 100; // round to nearest cm
+                  if (m > maxM) m = Math.round(maxM * 100) / 100;
                 }
                 onWidthChange(m);
               }}
               placeholder="e.g. 400"
-              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
+              className={inputClass}
             />
             {widthM > 0 && (
-              <p className="mt-1 text-xs text-pw-muted">{widthCm.toFixed(0)} cm = {widthM.toFixed(2)} m</p>
+              <p className="mt-1.5 text-xs text-stone-400">{(widthM * 100).toFixed(0)} cm = {widthM.toFixed(2)} m</p>
             )}
           </div>
           <div>
-            <label htmlFor="height" className="block text-sm font-medium text-pw-ink">
-              Height (cm)
+            <label htmlFor="dim-height" className="block text-sm font-semibold text-stone-700 mb-2">
+              Height <span className="font-normal text-stone-400">(cm)</span>
             </label>
             <input
-              id="height"
+              id="dim-height"
               type="number"
               min={10}
               max={2000}
               step={1}
-              value={heightCm ? Math.round(heightCm) : ""}
+              value={heightM > 0 ? Math.round(heightM * 100) : ""}
               onChange={(e) => {
                 const cm = parseFloat(e.target.value) || 0;
                 let m = cm / 100;
                 if (imageHeightPx) {
-                  const MIN_PX_PER_MM = 0.83;
                   const maxM = imageHeightPx / (MIN_PX_PER_MM * 1000);
-                  if (m > maxM) m = Math.round(maxM * 100) / 100; // round to nearest cm
+                  if (m > maxM) m = Math.round(maxM * 100) / 100;
                 }
                 onHeightChange(m);
               }}
               placeholder="e.g. 240"
-              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
+              className={inputClass}
             />
             {heightM > 0 && (
-              <p className="mt-1 text-xs text-pw-muted">{heightCm.toFixed(0)} cm = {heightM.toFixed(2)} m</p>
+              <p className="mt-1.5 text-xs text-stone-400">{(heightM * 100).toFixed(0)} cm = {heightM.toFixed(2)} m</p>
             )}
           </div>
         </div>
       )}
 
+      {/* Per-wall inputs for different mode */}
       {isMulti && multiWallMode === "different" && (
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-4">
           {Array.from({ length: wallCount }, (_, i) => {
             const w = walls[i] ?? { widthM: 0, heightM: 0 };
             return (
-              <div
-                key={i}
-                className="rounded-pw-card border border-pw-stone bg-pw-bg p-4"
-              >
-                <h3 className="text-sm font-medium text-pw-ink">Wall {i + 1}</h3>
-                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div key={i} className="rounded-xl border border-stone-100 bg-stone-50 p-4">
+                <p className="text-sm font-semibold text-stone-700 mb-3">Wall {i + 1}</p>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-medium text-pw-muted">Width (m)</label>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1.5">Width (cm)</label>
                     <input
                       type="number"
-                      min={0.1}
-                      max={20}
-                      step={0.1}
-                      value={w.widthM || ""}
-                      onChange={(e) => setWall(i, "widthM", parseFloat(e.target.value) || 0)}
-                      placeholder="e.g. 3.5"
-                      className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-sm text-pw-ink focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
+                      min={10}
+                      max={2000}
+                      step={1}
+                      value={w.widthM > 0 ? Math.round(w.widthM * 100) : ""}
+                      onChange={(e) => setWall(i, "widthM", (parseFloat(e.target.value) || 0) / 100)}
+                      placeholder="e.g. 400"
+                      className="block w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base text-stone-900 placeholder:text-stone-300 focus:border-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-pw-muted">Height (m)</label>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1.5">Height (cm)</label>
                     <input
                       type="number"
-                      min={0.1}
-                      max={20}
-                      step={0.1}
-                      value={w.heightM || ""}
-                      onChange={(e) => setWall(i, "heightM", parseFloat(e.target.value) || 0)}
-                      placeholder="e.g. 2.4"
-                      className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-sm text-pw-ink focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
+                      min={10}
+                      max={2000}
+                      step={1}
+                      value={w.heightM > 0 ? Math.round(w.heightM * 100) : ""}
+                      onChange={(e) => setWall(i, "heightM", (parseFloat(e.target.value) || 0) / 100)}
+                      placeholder="e.g. 240"
+                      className="block w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-base text-stone-900 placeholder:text-stone-300 focus:border-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900/10 transition"
                     />
                   </div>
                 </div>
                 {w.widthM > 0 && w.heightM > 0 && (
-                  <p className="mt-2 text-xs text-pw-muted">
+                  <p className="mt-2 text-xs text-stone-500 font-medium">
                     {(w.widthM * w.heightM).toFixed(1)} m²
                   </p>
                 )}
@@ -280,18 +318,27 @@ export function DimensionsStep({
         </div>
       )}
 
-      {((!isMulti && isValidSame) || (isMulti && multiWallMode === "same" && isValidSame) || (isMulti && multiWallMode === "different" && isValidDifferent)) && (
-        <p className="mt-6 text-sm font-medium text-pw-muted">
-          Total area: <span className="text-pw-ink">{totalSqm.toFixed(1)} m²</span>
-        </p>
+      {/* Total area display */}
+      {totalSqm > 0 && (
+        ((!isMulti && isValidSame) ||
+         (isMulti && multiWallMode === "same" && isValidSame) ||
+         (isMulti && multiWallMode === "different" && isValidDifferent)) && (
+          <div className="mt-5 flex items-center justify-between rounded-xl bg-stone-50 border border-stone-100 px-4 py-3">
+            <span className="text-sm text-stone-600">Total print area</span>
+            <span className="text-lg font-bold text-stone-900">{totalSqm.toFixed(2)} m²</span>
+          </div>
+        )
       )}
-      {!isMulti && qualityText && (
-        <p className="mt-2 text-xs text-pw-muted">
-          {qualityText}{" "}
-          <span className="block text-[11px] text-pw-accent mt-1">
-            Tip: add 6–10 cm to both width and height so you can trim the wallpaper perfectly on site.
-          </span>
-        </p>
+
+      {/* Quality indicator */}
+      {!isMulti && quality && (
+        <div className="mt-4">
+          <QualityBadge
+            level={quality.level}
+            maxWidthM={quality.maxWidthM}
+            maxHeightM={quality.maxHeightM}
+          />
+        </div>
       )}
     </section>
   );

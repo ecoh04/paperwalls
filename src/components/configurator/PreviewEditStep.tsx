@@ -212,11 +212,21 @@ export function PreviewEditStep({
       : null;
 
   return (
-    <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-lg font-semibold text-stone-900">3. Preview & crop</h2>
-      <p className="mt-2 text-sm text-stone-600">
-        Drag the photo to decide exactly what lands on your wall. Only the area inside the dark frame will be printed.
-      </p>
+    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+      {/* Step header */}
+      <div className="flex items-start gap-4 mb-6">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-900 text-sm font-bold text-white">
+          3
+        </span>
+        <div>
+          <h2 className="text-xl font-semibold text-stone-900">
+            Position your image{wallLabel ?? ""}
+          </h2>
+          <p className="mt-1 text-sm text-stone-500">
+            Drag to reframe. Only what's inside the bordered area will be printed.
+          </p>
+        </div>
+      </div>
 
       {/* Wall preview and crop area – Photowall-style grey grid with centred wall */}
       <div className="mt-6 flex flex-col">
@@ -307,22 +317,36 @@ export function PreviewEditStep({
         </p>
       </div>
 
-      {quality && (
-        <div className="mt-6 rounded-lg border border-stone-200 bg-stone-50 p-4">
-          <p className="text-xs text-stone-600">
-            {quality.level === "good" && "Your image quality looks good for this wall size."}
-            {quality.level === "borderline" &&
-              "You’re close to the limit for this size. If you want a crisper print, consider making the wall a bit smaller."}
-            {quality.level === "too_low" &&
-              "This is larger than we recommend for this file. For best results, use a higher‑resolution image or make the wall smaller."}
-          </p>
-          <p className="mt-1 text-[11px] text-stone-500">
-            For this image, our maximum recommended size at print distance (≈21 dpi) is{" "}
-            <span className="font-medium">
-              {quality.maxWidthM.toFixed(2)}×{quality.maxHeightM.toFixed(2)} m
-            </span>
-            .
-          </p>
+
+      {quality && quality.level !== "good" && (
+        <div
+          className={[
+            "mt-5 flex gap-3 rounded-xl border p-4",
+            quality.level === "too_low"
+              ? "border-red-200 bg-red-50"
+              : "border-amber-200 bg-amber-50",
+          ].join(" ")}
+        >
+          <svg
+            className={["mt-0.5 h-5 w-5 shrink-0", quality.level === "too_low" ? "text-red-500" : "text-amber-500"].join(" ")}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+            />
+          </svg>
+          <div>
+            <p className={["text-sm font-semibold", quality.level === "too_low" ? "text-red-800" : "text-amber-800"].join(" ")}>
+              {quality.level === "too_low" ? "Image too low-res for this wall size" : "Quality is close to the limit"}
+            </p>
+            <p className={["mt-0.5 text-sm", quality.level === "too_low" ? "text-red-700" : "text-amber-700"].join(" ")}>
+              {quality.level === "too_low"
+                ? "The print may look pixelated. Consider a higher-res file or reduce the wall size."
+                : "Will look good from a normal viewing distance. For sharper results, reduce dimensions slightly."}{" "}
+              Max recommended:{" "}
+              <strong>{quality.maxWidthM.toFixed(2)} x {quality.maxHeightM.toFixed(2)} m</strong>.
+            </p>
+          </div>
         </div>
       )}
     </section>

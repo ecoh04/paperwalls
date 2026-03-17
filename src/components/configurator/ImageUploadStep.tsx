@@ -5,24 +5,48 @@ import { useCallback, useState } from "react";
 const MAX_SIZE_MB = 50;
 const ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
 
+function UploadIcon() {
+  return (
+    <svg className="h-8 w-8 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+        d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+      />
+    </svg>
+  );
+}
+
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <div className="flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+      <svg className="mt-0.5 h-5 w-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+        />
+      </svg>
+      <div>
+        <p className="text-sm font-semibold text-red-800">Image resolution too low</p>
+        <p className="mt-0.5 text-sm text-red-700">{message}</p>
+      </div>
+    </div>
+  );
+}
+
 type SingleUploadProps = {
   imagePreviewUrl: string | null;
   onFileSelect: (file: File | null) => void;
+  uploadError?: string | null;
 };
 
-function SingleUpload({ imagePreviewUrl, onFileSelect }: SingleUploadProps) {
+function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUploadProps) {
   const [dragActive, setDragActive] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [sizeError, setSizeError] = useState<string | null>(null);
 
   const validateAndSet = useCallback(
     (file: File | null) => {
-      setError(null);
-      if (!file) {
-        onFileSelect(null);
-        return;
-      }
+      setSizeError(null);
+      if (!file) { onFileSelect(null); return; }
       if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-        setError(`File must be under ${MAX_SIZE_MB}MB.`);
+        setSizeError(`File must be under ${MAX_SIZE_MB}MB.`);
         return;
       }
       onFileSelect(file);
@@ -37,61 +61,87 @@ function SingleUpload({ imagePreviewUrl, onFileSelect }: SingleUploadProps) {
     if (file) validateAndSet(file);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    validateAndSet(file ?? null);
-  };
+  const displayError = uploadError || sizeError;
 
   if (!imagePreviewUrl) {
     return (
-      <div>
+      <div className="space-y-3">
         <label
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
           onDrop={handleDrop}
-          className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors touch-manipulation sm:min-h-[180px] ${
-            dragActive ? "border-stone-900 bg-stone-50" : "border-stone-300 hover:border-stone-400 hover:bg-stone-50 active:bg-stone-100"
+          className={`flex min-h-[200px] cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed transition-all touch-manipulation ${
+            dragActive
+              ? "border-stone-800 bg-stone-100"
+              : "border-stone-200 bg-stone-50 hover:border-stone-300 hover:bg-stone-100/70"
           }`}
         >
-          <input type="file" accept={ACCEPT} onChange={handleChange} className="hidden" />
-          <span className="text-sm font-medium text-stone-600 text-center px-4">
-            Drag and drop here, or tap to browse
-          </span>
+          <input
+            type="file"
+            accept={ACCEPT}
+            onChange={(e) => validateAndSet(e.target.files?.[0] ?? null)}
+            className="hidden"
+          />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm border border-stone-100">
+            <UploadIcon />
+          </div>
+          <div className="text-center px-6">
+            <p className="text-base font-semibold text-stone-800">
+              {dragActive ? "Drop it here" : "Drag & drop, or tap to browse"}
+            </p>
+            <p className="mt-1 text-sm text-stone-500">
+              JPG, PNG, WebP or PDF — up to 50MB
+            </p>
+          </div>
+          <p className="text-xs text-stone-400 px-6 text-center">
+            Tip: use the highest resolution file available for the sharpest print
+          </p>
         </label>
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+
+        {displayError && <ErrorBanner message={displayError} />}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-      <div className="aspect-video w-full max-w-[280px] overflow-hidden rounded-lg border border-stone-200 bg-stone-100 shrink-0">
-        <img src={imagePreviewUrl} alt="Preview" className="h-full w-full object-cover" />
+    <div className="space-y-3">
+      <div className="flex items-start gap-4 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <div className="h-20 w-24 shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
+          <img src={imagePreviewUrl} alt="Preview" className="h-full w-full object-cover" />
+        </div>
+        <div className="flex-1 min-w-0 py-1">
+          <div className="flex items-center gap-2">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500 shrink-0">
+              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 10 10">
+                <path d="M1.5 5L4 7.5L8.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <p className="text-sm font-semibold text-stone-900">Image uploaded</p>
+          </div>
+          <p className="mt-1 text-sm text-stone-500">
+            Position it on your wall in the preview step below.
+          </p>
+          <button
+            type="button"
+            onClick={() => onFileSelect(null)}
+            className="mt-2 text-sm font-medium text-stone-600 underline underline-offset-2 hover:text-stone-900 transition-colors"
+          >
+            Choose a different image
+          </button>
+        </div>
       </div>
-      <div className="flex flex-col gap-2 min-h-[44px] justify-center">
-        <p className="text-sm text-stone-600">Image uploaded. Adjust position in the next step.</p>
-        <button
-          type="button"
-          onClick={() => onFileSelect(null)}
-          className="text-sm font-medium text-stone-700 underline hover:no-underline py-2 -ml-2 min-h-[44px] flex items-center touch-manipulation"
-        >
-          Choose a different image
-        </button>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-      </div>
+
+      {displayError && <ErrorBanner message={displayError} />}
     </div>
   );
 }
 
 type ImageUploadStepProps = {
-  /** Single image (1 wall or same for all) */
   imagePreviewUrl: string | null;
   onFileSelect: (file: File | null) => void;
-  /** When different walls: one image per wall */
   multiWallMode?: "same" | "different";
   walls?: { imagePreviewUrl?: string | null }[];
   onWallFileSelect?: (wallIndex: number, file: File | null) => void;
-  /** Error from parent (e.g. resolution too low) */
   uploadError?: string | null;
 };
 
@@ -106,28 +156,35 @@ export function ImageUploadStep({
   const isMultiDifferent = multiWallMode === "different" && walls.length > 0;
 
   return (
-    <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-      <h2 className="text-lg font-semibold text-stone-900">1. Upload your image{walls.length > 1 ? "s" : ""}</h2>
-      <p className="mt-1 text-sm text-stone-600">
-        {isMultiDifferent
-          ? "Start by uploading one image per wall. Next you’ll set the exact wall size and fine-tune the crop. JPG, PNG, WebP or PDF. Max 50MB each."
-          : "Start by uploading the image for your wall. Next you’ll set the exact wall size and fine-tune the crop. JPG, PNG, WebP or PDF. Max 50MB."}
-      </p>
+    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+      {/* Step header */}
+      <div className="flex items-start gap-4 mb-6">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-900 text-sm font-bold text-white">
+          1
+        </span>
+        <div>
+          <h2 className="text-xl font-semibold text-stone-900">
+            Upload your image{walls.length > 1 ? "s" : ""}
+          </h2>
+          <p className="mt-1 text-sm text-stone-500">
+            {isMultiDifferent
+              ? "Upload one image per wall — we'll tile them exactly to size."
+              : "Any photo, artwork or pattern. We'll print it to your exact wall dimensions."}
+          </p>
+        </div>
+      </div>
 
       {!isMultiDifferent ? (
-        <div className="mt-6">
-          <SingleUpload imagePreviewUrl={imagePreviewUrl} onFileSelect={onFileSelect} />
-          {uploadError && (
-            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {uploadError}
-            </div>
-          )}
-        </div>
+        <SingleUpload
+          imagePreviewUrl={imagePreviewUrl}
+          onFileSelect={onFileSelect}
+          uploadError={uploadError}
+        />
       ) : (
-        <div className="mt-6 space-y-6">
+        <div className="space-y-4">
           {walls.map((wall, i) => (
-            <div key={i} className="rounded-lg border border-stone-200 bg-stone-50/50 p-4">
-              <h3 className="text-sm font-medium text-stone-800 mb-3">Wall {i + 1}</h3>
+            <div key={i} className="rounded-xl border border-stone-100 bg-stone-50 p-4">
+              <p className="text-sm font-semibold text-stone-700 mb-3">Wall {i + 1}</p>
               <SingleUpload
                 imagePreviewUrl={wall.imagePreviewUrl ?? null}
                 onFileSelect={(file) => onWallFileSelect?.(i, file)}
