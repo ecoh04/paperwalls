@@ -12,24 +12,13 @@ export default function CheckoutPage() {
   const { items, sessionId } = useCart();
   const [error, setError] = useState<string | null>(null);
 
-  const handleSuccess = useCallback(
-    (payfastUrl: string, fields: Record<string, string>) => {
-      setError(null);
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = payfastUrl;
-      Object.entries(fields).forEach(([name, value]) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = name;
-        input.value = value;
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
-    },
-    []
-  );
+  // Called by CheckoutForm after the PayFast modal confirms payment
+  // (or immediately before redirect in the fallback flow)
+  const handleSuccess = useCallback((_orderNumbers: string[]) => {
+    setError(null);
+    // Navigation is handled inside CheckoutForm for onsite flow.
+    // For the redirect fallback, the form.submit() takes over.
+  }, []);
 
   const handleError = useCallback((message: string) => {
     setError(message);

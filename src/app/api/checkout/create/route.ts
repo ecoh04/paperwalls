@@ -4,7 +4,7 @@ import type { CartItem } from "@/types/cart";
 import { supabase } from "@/lib/supabase";
 import { getShippingCents } from "@/lib/shipping";
 import { uploadPrintImage } from "@/lib/storage";
-import { buildPayfastFormFields } from "@/lib/payfast";
+import { generateOnsiteIdentifier, buildPayfastFormFields, getPayfastSandbox } from "@/lib/payfast";
 import type { ShippingProvince } from "@/types/order";
 
 function validateProvince(p: string): p is ShippingProvince {
@@ -377,15 +377,28 @@ export async function POST(request: Request) {
       void supabase.rpc("update_customer_stats", { p_customer_id: customerId });
     }
 
-    // ── Build PayFast form ────────────────────────────────────────────────────
-    const { url: payfastUrl, fields: payfastFields } = buildPayfastFormFields({
+    const payfastParams = {
       orderNumbers,
-      amountCents:    totalPaymentCents,
-      customerName:   a.customer_name.trim(),
-      customerEmail:  a.customer_email.trim(),
-      customerPhone:  a.customer_phone.trim(),
-    });
+      amountCents:   totalPaymentCents,
+      customerName:  a.customer_name.trim(),
+      customerEmail: a.customer_email.trim(),
+      customerPhone: a.customer_phone.trim(),
+    };
 
+    // ── Try onsite (embedded modal) first, fall back to redirect ─────────────
+    try {
+      const uuid = await generateOnsiteIdentifier(payfastParams);
+      return NextResponse.json({
+        uuid,
+        orderNumbers,
+        sandbox: getPayfastSandbox(),
+      });
+    } catch (onsiteErr) {
+      console.warn("[Checkout] Onsite identifier failed, falling back to redirect:", onsiteErr);
+    }
+
+    // Fallback: classic redirect form
+    const { url: payfastUrl, fields: payfastFields } = buildPayfastFormFields(payfastParams);
     return NextResponse.json({ payfastUrl, payfastFields, orderNumbers });
   } catch (e) {
     console.error("Checkout create error:", e);
