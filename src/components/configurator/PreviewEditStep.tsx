@@ -212,17 +212,17 @@ export function PreviewEditStep({
       : null;
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm sm:p-8">
       {/* Step header */}
       <div className="flex items-start gap-4 mb-6">
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-900 text-sm font-bold text-white">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
           3
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-stone-900">
+          <h2 className="text-xl font-semibold text-pw-ink">
             Position your image{wallLabel ?? ""}
           </h2>
-          <p className="mt-1 text-sm text-stone-500">
+          <p className="mt-1 text-sm text-pw-muted">
             Drag to reframe. Only what's inside the bordered area will be printed.
           </p>
         </div>
@@ -232,7 +232,7 @@ export function PreviewEditStep({
       <div className="mt-6 flex flex-col">
         <div className="mx-auto w-full max-w-5xl">
           <div
-            className="relative w-full rounded-xl border border-stone-200 bg-stone-100/90 overflow-hidden"
+            className="relative w-full rounded-xl border border-pw-stone bg-pw-bg/90 overflow-hidden"
             style={{
               // Subtle diagonal grid in the outer area, similar to Photowall's guides
               backgroundImage:
@@ -259,12 +259,12 @@ export function PreviewEditStep({
             {/* Wall frame */}
             <div className="relative mx-auto my-8 w-[78%] max-w-[840px]">
               <div
-                className="relative w-full bg-stone-200/80 rounded-md shadow-sm"
+                className="relative w-full bg-pw-stone/80 rounded-md shadow-sm"
                 style={{ aspectRatio: `${widthM} / ${heightM}` }}
               >
                 <div
                   ref={frameRef}
-                  className="absolute inset-0 rounded-md border-[3px] border-stone-800/80 shadow-[0_0_0_1px_rgba(0,0,0,0.25)] overflow-hidden bg-stone-50/90"
+                  className="absolute inset-0 rounded-md border-[3px] border-pw-ink/80 shadow-[0_0_0_1px_rgba(0,0,0,0.25)] overflow-hidden bg-pw-surface/90"
                 >
                   <img
                     ref={imgRef}
@@ -293,26 +293,26 @@ export function PreviewEditStep({
 
               {/* Bottom width ruler-style label */}
               <div className="mt-3 flex items-center justify-center gap-2">
-                <div className="h-px flex-1 bg-stone-600" />
-                <span className="text-xs font-medium text-stone-800 tracking-wide">
+                <div className="h-px flex-1 bg-pw-muted" />
+                <span className="text-xs font-medium text-pw-ink tracking-wide">
                   {widthCm.toFixed(0)} cm
                 </span>
-                <div className="h-px flex-1 bg-stone-600" />
+                <div className="h-px flex-1 bg-pw-muted" />
               </div>
 
               {/* Right-hand height label */}
               <div className="absolute inset-y-0 -right-10 hidden md:flex flex-col items-center justify-center gap-2">
-                <div className="w-px flex-1 bg-stone-600" />
-                <span className="text-xs font-medium text-stone-800 rotate-90 whitespace-nowrap tracking-wide">
+                <div className="w-px flex-1 bg-pw-muted" />
+                <span className="text-xs font-medium text-pw-ink rotate-90 whitespace-nowrap tracking-wide">
                   {heightCm.toFixed(0)} cm
                 </span>
-                <div className="w-px flex-1 bg-stone-600" />
+                <div className="w-px flex-1 bg-pw-muted" />
               </div>
             </div>
           </div>
         </div>
 
-        <p className="mt-3 text-xs text-stone-500 text-center">
+        <p className="mt-3 text-xs text-pw-muted text-center">
           Only what is visible inside the inner framed wall area is saved and printed.
         </p>
       </div>
