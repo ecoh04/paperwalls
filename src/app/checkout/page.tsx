@@ -89,22 +89,41 @@ export default function CheckoutPage() {
             <ul className="mt-4 space-y-3">
               {items.map((item) => (
                 <li key={item.id} className="flex gap-3 border-b border-stone-100 pb-3 last:border-0">
-                  <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded border border-stone-200 bg-stone-100">
-                    <img
-                      src={item.imageDataUrls?.[0] ?? item.imageDataUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-stone-900">Custom wallpaper</p>
-                    <p className="text-xs text-stone-500">
-                      {item.walls?.length
-                        ? item.walls.map((w, i) => `Wall ${i + 1}: ${w.widthM}×${w.heightM} m`).join(" · ")
-                        : `${item.widthM}×${item.heightM} m${item.wallCount > 1 ? ` × ${item.wallCount}` : ""}`}
-                      {" "}· {item.totalSqm.toFixed(1)} m² · {item.style}
-                    </p>
-                  </div>
+                  {item.type === "sample_pack" ? (
+                    <>
+                      <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded border border-stone-200 bg-stone-100">
+                        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden>
+                          <rect x="3" y="3" width="12" height="12" rx="2.5" fill="#C4622D" />
+                          <rect x="17" y="3" width="12" height="12" rx="2.5" fill="#C4622D" opacity="0.45" />
+                          <rect x="3" y="17" width="12" height="12" rx="2.5" fill="#C4622D" opacity="0.25" />
+                          <rect x="17" y="17" width="12" height="12" rx="2.5" fill="#C4622D" opacity="0.12" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-stone-900">Sample Swatch Pack</p>
+                        <p className="text-xs text-stone-500">All 4 materials · Qty: {item.quantity}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded border border-stone-200 bg-stone-100">
+                        <img
+                          src={item.imageDataUrls?.[0] ?? item.imageDataUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-stone-900">Custom wallpaper</p>
+                        <p className="text-xs text-stone-500">
+                          {item.walls?.length
+                            ? item.walls.map((w, i) => `Wall ${i + 1}: ${w.widthM}×${w.heightM} m`).join(" · ")
+                            : `${item.widthM}×${item.heightM} m${item.wallCount > 1 ? ` × ${item.wallCount}` : ""}`}
+                          {" "}· {item.totalSqm.toFixed(1)} m² · {item.style}
+                        </p>
+                      </div>
+                    </>
+                  )}
                   <p className="text-sm font-semibold text-stone-900">{formatZar(item.subtotalCents)}</p>
                 </li>
               ))}
