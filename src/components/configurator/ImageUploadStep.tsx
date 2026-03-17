@@ -7,7 +7,7 @@ const ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
 
 function UploadIcon() {
   return (
-    <svg className="h-8 w-8 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-7 w-7 text-pw-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
         d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
       />
@@ -17,7 +17,7 @@ function UploadIcon() {
 
 function ErrorBanner({ message }: { message: string }) {
   return (
-    <div className="flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+    <div className="flex gap-3 rounded-pw border border-red-200 bg-red-50 p-4">
       <svg className="mt-0.5 h-5 w-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
@@ -39,7 +39,7 @@ type SingleUploadProps = {
 
 function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUploadProps) {
   const [dragActive, setDragActive] = useState(false);
-  const [sizeError, setSizeError] = useState<string | null>(null);
+  const [sizeError, setSizeError]   = useState<string | null>(null);
 
   const validateAndSet = useCallback(
     (file: File | null) => {
@@ -54,13 +54,6 @@ function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUplo
     [onFileSelect]
   );
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(false);
-    const file = e.dataTransfer.files[0];
-    if (file) validateAndSet(file);
-  };
-
   const displayError = uploadError || sizeError;
 
   if (!imagePreviewUrl) {
@@ -69,12 +62,13 @@ function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUplo
         <label
           onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
-          onDrop={handleDrop}
-          className={`flex min-h-[200px] cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed transition-all touch-manipulation ${
+          onDrop={(e) => { e.preventDefault(); setDragActive(false); const f = e.dataTransfer.files[0]; if (f) validateAndSet(f); }}
+          className={[
+            "flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-4 rounded-pw-card border-2 border-dashed transition-all touch-manipulation",
             dragActive
-              ? "border-stone-800 bg-stone-100"
-              : "border-stone-200 bg-stone-50 hover:border-stone-300 hover:bg-stone-100/70"
-          }`}
+              ? "border-pw-ink bg-pw-accent-soft"
+              : "border-pw-stone hover:border-pw-stone-dark hover:bg-pw-accent-soft/40",
+          ].join(" ")}
         >
           <input
             type="file"
@@ -82,19 +76,19 @@ function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUplo
             onChange={(e) => validateAndSet(e.target.files?.[0] ?? null)}
             className="hidden"
           />
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm border border-stone-100">
+          <div className="flex h-14 w-14 items-center justify-center rounded-pw-card bg-pw-surface shadow-pw-sm border border-pw-stone">
             <UploadIcon />
           </div>
           <div className="text-center px-6">
-            <p className="text-base font-semibold text-stone-800">
+            <p className="text-base font-medium text-pw-ink">
               {dragActive ? "Drop it here" : "Drag & drop, or tap to browse"}
             </p>
-            <p className="mt-1 text-sm text-stone-500">
+            <p className="mt-1 text-sm text-pw-muted">
               JPG, PNG, WebP or PDF — up to 50MB
             </p>
           </div>
-          <p className="text-xs text-stone-400 px-6 text-center">
-            Tip: use the highest resolution file available for the sharpest print
+          <p className="text-xs text-pw-muted-light px-6 text-center">
+            Use the highest resolution file available for the sharpest print
           </p>
         </label>
 
@@ -105,8 +99,8 @@ function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUplo
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start gap-4 rounded-2xl border border-stone-200 bg-stone-50 p-4">
-        <div className="h-20 w-24 shrink-0 overflow-hidden rounded-xl border border-stone-200 bg-stone-100">
+      <div className="flex items-start gap-4 rounded-pw-card border border-pw-stone bg-pw-bg p-4">
+        <div className="h-20 w-24 shrink-0 overflow-hidden rounded-pw border border-pw-stone bg-pw-stone">
           <img src={imagePreviewUrl} alt="Preview" className="h-full w-full object-cover" />
         </div>
         <div className="flex-1 min-w-0 py-1">
@@ -116,15 +110,15 @@ function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUplo
                 <path d="M1.5 5L4 7.5L8.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <p className="text-sm font-semibold text-stone-900">Image uploaded</p>
+            <p className="text-sm font-semibold text-pw-ink">Image uploaded</p>
           </div>
-          <p className="mt-1 text-sm text-stone-500">
+          <p className="mt-1 text-sm text-pw-muted">
             Position it on your wall in the preview step below.
           </p>
           <button
             type="button"
             onClick={() => onFileSelect(null)}
-            className="mt-2 text-sm font-medium text-stone-600 underline underline-offset-2 hover:text-stone-900 transition-colors"
+            className="mt-2 text-sm font-medium text-pw-muted hover:text-pw-ink underline underline-offset-2 transition-colors"
           >
             Choose a different image
           </button>
@@ -156,20 +150,19 @@ export function ImageUploadStep({
   const isMultiDifferent = multiWallMode === "different" && walls.length > 0;
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
-      {/* Step header */}
+    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-900 text-sm font-bold text-white">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
           1
         </span>
         <div>
-          <h2 className="text-xl font-semibold text-stone-900">
+          <h2 className="text-xl font-semibold text-pw-ink">
             Upload your image{walls.length > 1 ? "s" : ""}
           </h2>
-          <p className="mt-1 text-sm text-stone-500">
+          <p className="mt-1 text-sm text-pw-muted">
             {isMultiDifferent
-              ? "Upload one image per wall — we'll tile them exactly to size."
-              : "Any photo, artwork or pattern. We'll print it to your exact wall dimensions."}
+              ? "Upload one image per wall — printed and cut to each wall's exact size."
+              : "Any photo, artwork or pattern. We print it to your exact wall dimensions."}
           </p>
         </div>
       </div>
@@ -183,8 +176,8 @@ export function ImageUploadStep({
       ) : (
         <div className="space-y-4">
           {walls.map((wall, i) => (
-            <div key={i} className="rounded-xl border border-stone-100 bg-stone-50 p-4">
-              <p className="text-sm font-semibold text-stone-700 mb-3">Wall {i + 1}</p>
+            <div key={i} className="rounded-pw border border-pw-stone bg-pw-bg p-4">
+              <p className="text-sm font-semibold text-pw-ink mb-3">Wall {i + 1}</p>
               <SingleUpload
                 imagePreviewUrl={wall.imagePreviewUrl ?? null}
                 onFileSelect={(file) => onWallFileSelect?.(i, file)}
