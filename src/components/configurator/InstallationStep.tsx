@@ -58,42 +58,48 @@ export function InstallationStep({ totalSqm, application, onApplicationChange }:
           </span>
         </button>
 
-        {/* Optional DIY kit add-on */}
+        {/* Optional DIY kit add-on — visually nested under DIY */}
         {isDiy && (
-          <button
-            type="button"
-            onClick={() => onApplicationChange(hasKit ? "diy" : "diy_kit")}
-            className={[
-              "flex w-full min-h-[44px] touch-manipulation items-start gap-4 rounded-pw-card border p-4 text-left transition-all",
-              hasKit
-                ? "border-pw-accent bg-pw-accent-soft"
-                : "border-pw-stone bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface",
-            ].join(" ")}
-          >
-            <div
+          <div className="flex gap-2 pl-4">
+            {/* Connector line */}
+            <div className="flex flex-col items-center shrink-0 pt-1">
+              <div className="w-px flex-1 bg-pw-stone-dark" />
+            </div>
+            <button
+              type="button"
+              onClick={() => onApplicationChange(hasKit ? "diy" : "diy_kit")}
               className={[
-                "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors",
-                hasKit ? "border-pw-accent bg-pw-accent" : "border-pw-stone-dark",
+                "flex w-full min-h-[44px] touch-manipulation items-start gap-3 rounded-pw border p-3.5 text-left transition-all",
+                hasKit
+                  ? "border-pw-accent bg-pw-accent-soft"
+                  : "border-pw-stone bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface",
               ].join(" ")}
-              aria-hidden
             >
-              {hasKit && (
-                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 10 10">
-                  <path d="M1.5 5L4 7.5L8.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-pw-ink">
-                Add installation kit{" "}
-                <span className="font-normal text-pw-muted text-xs">(optional)</span>
-              </p>
-              <p className="mt-0.5 text-sm text-pw-muted">
-                Includes wallpaper paste or adhesive activator, squeegee and smoothing brush.
-              </p>
-            </div>
-            <span className="ml-2 text-sm font-bold text-pw-ink shrink-0">+{formatZar(60000)}</span>
-          </button>
+              <div
+                className={[
+                  "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors",
+                  hasKit ? "border-pw-accent bg-pw-accent" : "border-pw-stone-dark",
+                ].join(" ")}
+                aria-hidden
+              >
+                {hasKit && (
+                  <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10">
+                    <path d="M1.5 5L4 7.5L8.5 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-pw-ink">
+                  Add installation kit
+                  <span className="ml-1.5 text-xs font-normal text-pw-muted-light">optional</span>
+                </p>
+                <p className="mt-0.5 text-xs text-pw-muted">
+                  Paste or adhesive activator, squeegee &amp; smoothing brush.
+                </p>
+              </div>
+              <span className="ml-2 text-sm font-semibold text-pw-ink shrink-0">+{formatZar(60000)}</span>
+            </button>
+          </div>
         )}
 
         {/* Pro installer */}
