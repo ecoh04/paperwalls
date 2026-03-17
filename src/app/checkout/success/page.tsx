@@ -62,22 +62,22 @@ function SuccessContent() {
             <li className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft text-xs font-semibold text-pw-accent">1</span>
               <div>
-                <p className="text-sm font-medium text-pw-ink">We review your file</p>
-                <p className="mt-0.5 text-xs text-pw-muted">Our team checks your image quality and dimensions within 2 hours.</p>
+                <p className="text-sm font-medium text-pw-ink">We confirm your order</p>
+                <p className="mt-0.5 text-xs text-pw-muted">Payment received. Your order is being picked up by our team within 2 hours.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft text-xs font-semibold text-pw-accent">2</span>
               <div>
-                <p className="text-sm font-medium text-pw-ink">Production confirmation</p>
-                <p className="mt-0.5 text-xs text-pw-muted">You&apos;ll receive an email confirming your order is on the press.</p>
+                <p className="text-sm font-medium text-pw-ink">Printed &amp; packed in Cape Town</p>
+                <p className="mt-0.5 text-xs text-pw-muted">You&apos;ll receive an email once your order is on the press and ready to ship.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft text-xs font-semibold text-pw-accent">3</span>
               <div>
-                <p className="text-sm font-medium text-pw-ink">Your wallpaper ships within 72 hours</p>
-                <p className="mt-0.5 text-xs text-pw-muted">We&apos;ll email your tracking number as soon as it leaves our facility.</p>
+                <p className="text-sm font-medium text-pw-ink">Dispatched within 72 hours</p>
+                <p className="mt-0.5 text-xs text-pw-muted">Your tracking number is emailed as soon as your order leaves our facility. All SA deliveries are insured.</p>
               </div>
             </li>
           </ol>

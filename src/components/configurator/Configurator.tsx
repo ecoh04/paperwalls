@@ -148,6 +148,7 @@ export function Configurator() {
       if (imageDataUrls.some((u) => !u)) return;
       const subtotalCents = calculateSubtotalCents(totalSqm, state.style, state.application);
       addItem({
+        type: "wallpaper",
         widthM: state.walls[0].widthM,
         heightM: state.walls[0].heightM,
         wallCount: state.wallCount,
@@ -168,6 +169,7 @@ export function Configurator() {
       }
       const subtotalCents = calculateSubtotalCents(totalSqm, state.style, state.application);
       addItem({
+        type: "wallpaper",
         widthM: state.widthM,
         heightM: state.heightM,
         wallCount: state.wallCount,
