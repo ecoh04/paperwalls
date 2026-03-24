@@ -27,16 +27,23 @@ const IDEAS = [
   },
 ];
 
+const STARTER_PROMPTS = [
+  "Moody abstract mural for a modern bedroom",
+  "Warm neutral textured landscape for lounge wall",
+  "Botanical line art in soft beige and clay tones",
+  "Minimal geometric pattern for office feature wall",
+];
+
 export default function InspirationPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Inspiration" }]} />
 
       <div className="max-w-3xl">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-pw-accent">Gallery</p>
-        <h1 className="mt-3 text-3xl sm:text-4xl font-semibold text-pw-ink">Inspiration</h1>
-        <p className="mt-4 text-base text-pw-muted leading-relaxed">
-          Explore ideas, then upload your own image to create a one-of-one wall for your space.
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">Gallery</p>
+        <h1 className="mt-3 font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Inspiration</h1>
+        <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
+          Use these styles as direction, then upload your own image to build a one-of-one wall.
         </p>
       </div>
 
@@ -48,21 +55,33 @@ export default function InspirationPage() {
           >
             <div className="h-48 w-full" style={{ background: idea.style }} />
             <div className="p-4">
-              <h2 className="text-base font-semibold text-pw-ink">{idea.title}</h2>
-              <p className="mt-1 text-sm text-pw-muted">{idea.caption}</p>
+              <h2 className="font-sans text-lg font-semibold text-pw-ink">{idea.title}</h2>
+              <p className="mt-1 text-sm text-pw-ink/75">{idea.caption}</p>
             </div>
           </article>
         ))}
       </div>
 
-      <div className="mt-10 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-6">
-        <p className="text-pw-ink font-medium">Use your own image, not a template.</p>
-        <p className="mt-1 text-sm text-pw-muted">
+      <div className="mt-8 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-6">
+        <h2 className="font-sans text-lg font-semibold text-pw-ink">Prompt ideas for generating artwork</h2>
+        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+          {STARTER_PROMPTS.map((prompt) => (
+            <li key={prompt} className="rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-surface px-3 py-2 text-sm text-pw-ink/80">
+              {prompt}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-8 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-6">
+        <p className="font-sans text-lg font-semibold text-pw-ink">Use your own image, not a template.</p>
+        <p className="mt-1 text-sm text-pw-ink/75">
           Every order is custom printed to your dimensions and cropped to fit your wall.
+          You stay in control of the final look.
         </p>
         <Link
           href="/config"
-          className="mt-4 inline-flex rounded-pw bg-pw-ink px-5 py-3 text-sm font-medium text-white hover:bg-pw-ink-soft"
+          className="mt-4 inline-flex rounded-pw bg-pw-ink px-5 py-3 text-sm font-semibold text-white hover:bg-pw-ink-soft"
         >
           Upload your design
         </Link>

@@ -34,16 +34,23 @@ const STEPS = [
   },
 ];
 
+const CHECKLIST = [
+  "Measure full wall width and height at the widest points",
+  "Add 5-10 cm trim allowance per side where needed",
+  "Use the highest-resolution image available",
+  "Confirm wallpaper type, material, and installation method",
+];
+
 export default function HowItWorksPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "How it works" }]} />
 
       <div className="max-w-3xl">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-pw-accent">The process</p>
-        <h1 className="mt-3 text-3xl sm:text-4xl font-semibold text-pw-ink">How it works</h1>
-        <p className="mt-4 text-base text-pw-muted leading-relaxed">
-          A simple flow designed to keep things clear: upload, measure, choose finish, and checkout.
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">The process</p>
+        <h1 className="mt-3 font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">How it works</h1>
+        <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
+          This is the exact order flow customers follow. Clear inputs up front, live pricing, then secure checkout.
         </p>
       </div>
 
@@ -53,20 +60,44 @@ export default function HowItWorksPage() {
             key={step.num}
             className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5"
           >
-            <p className="text-3xl font-serif text-pw-stone-dark">{step.num}</p>
-            <h2 className="mt-2 text-lg font-semibold text-pw-ink">{step.title}</h2>
-            <p className="mt-2 text-sm text-pw-muted leading-relaxed">{step.body}</p>
-            <p className="mt-4 text-[11px] font-medium uppercase tracking-[0.1em] text-pw-accent">{step.tag}</p>
+            <p className="text-3xl font-bold tracking-tight text-pw-ink/45">{step.num}</p>
+            <h2 className="mt-2 font-sans text-xl font-semibold text-pw-ink">{step.title}</h2>
+            <p className="mt-2 text-[15px] text-pw-ink/75 leading-relaxed">{step.body}</p>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-pw-accent">{step.tag}</p>
           </article>
         ))}
       </div>
 
-      <div className="mt-10 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-6">
-        <p className="text-pw-ink font-medium">Ready to start?</p>
-        <p className="mt-1 text-sm text-pw-muted">Upload your image and get your price in under a minute.</p>
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-6">
+          <h2 className="font-sans text-lg font-semibold text-pw-ink">Before you start: quick checklist</h2>
+          <ul className="mt-4 space-y-2">
+            {CHECKLIST.map((item) => (
+              <li key={item} className="flex gap-2 text-sm text-pw-ink/80">
+                <span className="mt-0.5 text-pw-accent">•</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-6">
+          <h2 className="font-sans text-lg font-semibold text-pw-ink">What happens after checkout</h2>
+          <ul className="mt-4 space-y-2 text-sm text-pw-ink/80">
+            <li>Order confirmed and queued for production</li>
+            <li>Printed and packed in Cape Town</li>
+            <li>Dispatched within 72 hours</li>
+            <li>Free tracked delivery nationwide</li>
+          </ul>
+        </section>
+      </div>
+
+      <div className="mt-8 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-6">
+        <p className="font-sans text-lg font-semibold text-pw-ink">Ready to start?</p>
+        <p className="mt-1 text-sm text-pw-ink/75">Upload your image and get your live price in under a minute.</p>
         <Link
           href="/config"
-          className="mt-4 inline-flex rounded-pw bg-pw-ink px-5 py-3 text-sm font-medium text-white hover:bg-pw-ink-soft"
+          className="mt-4 inline-flex rounded-pw bg-pw-ink px-5 py-3 text-sm font-semibold text-white hover:bg-pw-ink-soft"
         >
           Start designing
         </Link>
