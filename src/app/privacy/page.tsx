@@ -10,9 +10,9 @@ export default function PrivacyPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Privacy policy" }]} />
-      <h1 className="text-3xl sm:text-4xl font-semibold text-pw-ink">Privacy policy</h1>
+      <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Privacy policy</h1>
       <p className="mt-2 text-sm text-pw-muted-light">Last updated: {new Date().toLocaleDateString("en-ZA")}</p>
-      <div className="mt-8 max-w-3xl space-y-6 text-pw-muted leading-relaxed">
+      <div className="mt-8 max-w-3xl space-y-6 text-pw-ink/80 leading-relaxed">
         <p>
           PaperWalls collects the information you provide when you place an order (name, email, 
           phone, address) and your uploaded images. We use this to fulfil your order, communicate 

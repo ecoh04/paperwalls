@@ -29,18 +29,23 @@ export default function CustomWallpaperPage() {
           </div>
         </div>
         <div>
-          <h1 className="text-3xl sm:text-4xl font-semibold text-pw-ink">Custom wallpaper</h1>
-          <p className="mt-4 text-pw-muted leading-relaxed">
+          <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Custom wallpaper</h1>
+          <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
             Turn any image into wall‑size wallpaper. Enter your wall size in centimetres, upload a photo, artwork,
             or pattern, and choose your finish. We print to order in South Africa and deliver nationwide.
           </p>
-          <ul className="mt-6 list-inside list-disc space-y-2 text-sm text-pw-muted">
+          <ul className="mt-6 list-inside list-disc space-y-2 text-sm text-pw-ink/80">
             <li>Your image, your exact wall size (no standard rolls)</li>
             <li>Traditional or Peel & Stick wallpaper types</li>
             <li>Satin, Matte, or Linen material options</li>
             <li>DIY (optional kit) or Pro installer option</li>
             <li>Printed locally, priced in ZAR, delivered across South Africa</li>
           </ul>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <p className="rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-bg px-3 py-2 text-sm text-pw-ink/80">72-hour production</p>
+            <p className="rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-bg px-3 py-2 text-sm text-pw-ink/80">Free shipping nationwide</p>
+            <p className="rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-bg px-3 py-2 text-sm text-pw-ink/80">Live quality checks</p>
+          </div>
           <Link
             href="/config"
             className="mt-8 inline-flex rounded-pw bg-pw-ink px-8 py-4 text-base font-medium text-white hover:bg-pw-ink-soft transition-colors"

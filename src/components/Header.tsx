@@ -19,25 +19,25 @@ export function Header() {
         <nav className="hidden items-center gap-1 md:flex">
           <Link
             href="/how-it-works"
-            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
+            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-ink/75 hover:bg-pw-accent-soft hover:text-pw-ink"
           >
             How it works
           </Link>
           <Link
             href="/materials"
-            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
+            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-ink/75 hover:bg-pw-accent-soft hover:text-pw-ink"
           >
             Materials
           </Link>
           <Link
             href="/inspiration"
-            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
+            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-ink/75 hover:bg-pw-accent-soft hover:text-pw-ink"
           >
             Inspiration
           </Link>
           <Link
             href="/faq"
-            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
+            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-ink/75 hover:bg-pw-accent-soft hover:text-pw-ink"
           >
             FAQ
           </Link>
@@ -50,7 +50,7 @@ export function Header() {
             className="hidden items-center gap-2 rounded-pw bg-pw-ink px-4 py-2 text-sm font-medium text-white hover:bg-pw-ink-soft sm:inline-flex"
           >
             Upload your design
-            <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-content-center rounded bg-white/15 text-xs">↗</span>
+            <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-white/15 text-xs">↗</span>
           </Link>
           <Link
             href="/cart"

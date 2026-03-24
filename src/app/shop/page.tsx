@@ -23,9 +23,9 @@ export default function ShopPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Shop" }]} />
-      <h1 className="text-3xl sm:text-4xl font-semibold text-pw-ink">Shop</h1>
-      <p className="mt-3 text-pw-muted">
-        Custom wallpaper made to your dimensions and design. More products can be added here later.
+      <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Shop</h1>
+      <p className="mt-3 max-w-3xl text-base sm:text-lg text-pw-ink/80 leading-relaxed">
+        Start with custom wallpaper or order a sample pack first. Everything is printed to order in South Africa.
       </p>
       <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {products.map((product) => (
@@ -48,6 +48,13 @@ export default function ShopPage() {
             </div>
           </Link>
         ))}
+      </div>
+      <div className="mt-8 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-6">
+        <p className="font-sans text-lg font-semibold text-pw-ink">Need help choosing?</p>
+        <p className="mt-1 text-sm text-pw-ink/75">Use the configurator to compare materials, installation options, and live pricing before checkout.</p>
+        <Link href="/config" className="mt-4 inline-flex rounded-pw bg-pw-ink px-5 py-3 text-sm font-semibold text-white hover:bg-pw-ink-soft">
+          Open configurator
+        </Link>
       </div>
     </PageContainer>
   );

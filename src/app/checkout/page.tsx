@@ -47,7 +47,7 @@ export default function CheckoutPage() {
         />
         <div className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-8 text-center">
           <h1 className="text-xl font-semibold text-pw-ink">Your cart is empty</h1>
-          <p className="mt-2 text-pw-muted">Add a design from the configurator, then return to checkout.</p>
+          <p className="mt-2 text-pw-ink/75">Add a design from the configurator, then return to checkout.</p>
           <Link
             href="/config"
             className="mt-6 inline-block rounded-pw bg-pw-ink px-6 py-3 text-sm font-medium text-white hover:bg-pw-ink-soft"
@@ -68,8 +68,8 @@ export default function CheckoutPage() {
           { label: "Checkout" },
         ]}
       />
-      <h1 className="text-3xl sm:text-4xl font-semibold text-pw-ink">Checkout</h1>
-      <p className="mt-2 text-pw-muted">
+      <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Checkout</h1>
+      <p className="mt-2 text-base text-pw-ink/80">
         Enter your details below. You’ll complete payment securely with PayFast.
       </p>
 
@@ -135,7 +135,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <p className="mt-8 text-center text-sm text-pw-muted">
+      <p className="mt-8 text-center text-sm text-pw-ink/75">
         <Link href="/cart" className="underline hover:no-underline">← Back to cart</Link>
       </p>
     </PageContainer>

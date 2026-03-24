@@ -19,8 +19,8 @@ export default function ConfigPage() {
       />
 
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-pw-ink">Design your wallpaper</h1>
-        <p className="mt-2 text-base text-pw-muted">
+        <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Design your wallpaper</h1>
+        <p className="mt-2 text-base sm:text-lg text-pw-ink/80">
           Upload any image, set your wall dimensions, choose your material — and get an instant price.
           Cut to your exact size, printed in Cape Town.
         </p>

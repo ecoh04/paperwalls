@@ -11,13 +11,13 @@ export default function AboutPage() {
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "About us" }]} />
       <div className="max-w-3xl">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-pw-accent">Our story</p>
-        <h1 className="mt-3 text-3xl sm:text-4xl font-semibold text-pw-ink">About PaperWalls</h1>
-        <p className="mt-4 text-base text-pw-muted leading-relaxed">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">Our story</p>
+        <h1 className="mt-3 font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">About PaperWalls</h1>
+        <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
           We make custom wallpaper simple: your image, your dimensions, printed locally and delivered nationwide.
         </p>
       </div>
-      <div className="mt-8 max-w-3xl space-y-6 text-pw-muted leading-relaxed">
+      <div className="mt-8 max-w-3xl space-y-6 text-pw-ink/80 leading-relaxed">
         <p>
           PaperWalls is a South African custom wallpaper company. We use commercial-grade print equipment
           to turn your photos, art, and patterns into wallpaper cut to your exact wall size.

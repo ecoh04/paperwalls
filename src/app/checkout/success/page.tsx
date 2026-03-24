@@ -36,8 +36,8 @@ function SuccessContent() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="mt-6 text-2xl font-bold text-pw-ink">Thank you for your order</h1>
-        <p className="mt-2 text-pw-muted">
+        <h1 className="mt-6 font-sans text-3xl font-bold tracking-tight text-pw-ink">Thank you for your order</h1>
+        <p className="mt-2 text-pw-ink/80">
           We&apos;ve received your payment and will start preparing your wallpaper.
         </p>
 
@@ -49,7 +49,7 @@ function SuccessContent() {
                 <li key={num}>{num}</li>
               ))}
             </ul>
-            <p className="mt-3 text-xs text-pw-muted">
+            <p className="mt-3 text-xs text-pw-ink/70">
               Keep this number for tracking. A confirmation email is on its way.
             </p>
           </div>
@@ -63,21 +63,21 @@ function SuccessContent() {
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft text-xs font-semibold text-pw-accent">1</span>
               <div>
                 <p className="text-sm font-medium text-pw-ink">We confirm your order</p>
-                <p className="mt-0.5 text-xs text-pw-muted">Payment received. Your order is being picked up by our team within 2 hours.</p>
+                <p className="mt-0.5 text-xs text-pw-ink/75">Payment received. Your order is being picked up by our team within 2 hours.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft text-xs font-semibold text-pw-accent">2</span>
               <div>
                 <p className="text-sm font-medium text-pw-ink">Printed &amp; packed in Cape Town</p>
-                <p className="mt-0.5 text-xs text-pw-muted">You&apos;ll receive an email once your order is on the press and ready to ship.</p>
+                <p className="mt-0.5 text-xs text-pw-ink/75">You&apos;ll receive an email once your order is on the press and ready to ship.</p>
               </div>
             </li>
             <li className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft text-xs font-semibold text-pw-accent">3</span>
               <div>
                 <p className="text-sm font-medium text-pw-ink">Dispatched within 72 hours</p>
-                <p className="mt-0.5 text-xs text-pw-muted">Your tracking number is emailed as soon as your order leaves our facility. All SA deliveries are insured.</p>
+                <p className="mt-0.5 text-xs text-pw-ink/75">Your tracking number is emailed as soon as your order leaves our facility. All SA deliveries are insured.</p>
               </div>
             </li>
           </ol>

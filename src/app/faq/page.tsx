@@ -1,5 +1,6 @@
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import Link from "next/link";
 
 const faqs = [
   {
@@ -34,17 +35,27 @@ export default function FAQPage() {
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "FAQ" }]} />
       <div className="max-w-3xl">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-pw-accent">Common questions</p>
-        <h1 className="mt-3 text-3xl sm:text-4xl font-semibold text-pw-ink">Frequently asked questions</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">Common questions</p>
+        <h1 className="mt-3 font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Frequently asked questions</h1>
+        <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
+          Straight answers on file quality, ordering, delivery, and installation.
+        </p>
       </div>
       <dl className="mt-10 max-w-4xl space-y-4">
         {faqs.map((faq, i) => (
           <div key={i} className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5">
-            <dt className="font-medium text-pw-ink">{faq.q}</dt>
-            <dd className="mt-2 text-pw-muted leading-relaxed">{faq.a}</dd>
+            <dt className="font-sans text-lg font-semibold text-pw-ink">{faq.q}</dt>
+            <dd className="mt-2 text-[15px] text-pw-ink/75 leading-relaxed">{faq.a}</dd>
           </div>
         ))}
       </dl>
+      <div className="mt-8 max-w-4xl rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-6">
+        <p className="font-sans text-lg font-semibold text-pw-ink">Still unsure?</p>
+        <p className="mt-1 text-sm text-pw-ink/75">Start the configurator to see pricing and image quality feedback instantly.</p>
+        <Link href="/config" className="mt-4 inline-flex rounded-pw bg-pw-ink px-5 py-3 text-sm font-semibold text-white hover:bg-pw-ink-soft">
+          Start designing
+        </Link>
+      </div>
     </PageContainer>
   );
 }

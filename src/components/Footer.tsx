@@ -4,7 +4,7 @@ const footerSections = [
   {
     title: "Shop",
     links: [
-      { href: "/products/custom-wallpaper", label: "Custom wallpaper"      },
+      { href: "/shop/custom-wallpaper",     label: "Custom wallpaper"      },
       { href: "/how-it-works",              label: "How it works"           },
       { href: "/materials",                 label: "Materials"              },
       { href: "/inspiration",               label: "Inspiration"            },
@@ -39,6 +39,26 @@ export function Footer() {
   return (
     <footer className="border-t border-pw-stone bg-pw-bg">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mb-10 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 sm:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">Why customers choose PaperWalls</p>
+              <h3 className="mt-2 font-sans text-xl font-semibold text-pw-ink">Commercial print quality with simple ordering</h3>
+              <p className="mt-1 text-sm text-pw-ink/75">Upload your image, preview your crop, and checkout with free shipping nationwide.</p>
+            </div>
+            <Link
+              href="/config"
+              className="inline-flex shrink-0 items-center justify-center rounded-pw bg-pw-ink px-5 py-3 text-sm font-semibold text-white hover:bg-pw-ink-soft"
+            >
+              Start your design
+            </Link>
+          </div>
+          <div className="mt-4 grid gap-2 text-sm text-pw-ink/80 sm:grid-cols-3">
+            <p>72-hour production</p>
+            <p>Free shipping in South Africa</p>
+            <p>DIY or pro installer options</p>
+          </div>
+        </div>
 
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:gap-12">
           {footerSections.map((section) => (
@@ -51,7 +71,7 @@ export function Footer() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm font-light text-pw-muted hover:text-pw-ink"
+                      className="text-sm text-pw-ink/75 hover:text-pw-ink"
                     >
                       {link.label}
                     </Link>

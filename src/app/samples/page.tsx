@@ -61,13 +61,13 @@ export default function SamplesPage() {
 
         {/* Header */}
         <div className="mb-10 max-w-xl">
-          <p className="mb-3 text-xs font-medium uppercase tracking-widest text-pw-accent">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">
             Not sure which material to choose?
           </p>
-          <h1 className="text-3xl font-bold text-pw-ink sm:text-4xl">
+          <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">
             Sample Swatch Pack
           </h1>
-          <p className="mt-4 text-pw-muted leading-relaxed">
+          <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
             Feel the difference before you commit. We print and ship a real A5 swatch of every material we offer — using the same commercial press that prints your final order. Touch it, hold it to your wall, see how light hits it.
           </p>
         </div>
@@ -124,14 +124,14 @@ export default function SamplesPage() {
             <div className="sticky top-24 rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm">
 
               <div className="mb-5 border-b border-pw-stone pb-5">
-                <p className="text-xs font-medium uppercase tracking-widest text-pw-muted">Sample Swatch Pack</p>
-                <p className="mt-1 text-3xl font-bold text-pw-ink">R 300</p>
-                <p className="mt-1 text-sm text-pw-muted">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-pw-muted">Sample Swatch Pack</p>
+                <p className="mt-1 font-sans text-3xl font-bold text-pw-ink">R 300</p>
+                <p className="mt-1 text-sm text-pw-ink/75">
                   Shipping included · Delivered in 3–5 days
                 </p>
               </div>
 
-              <ul className="mb-6 space-y-2 text-sm text-pw-muted">
+              <ul className="mb-6 space-y-2 text-sm text-pw-ink/80">
                 <li className="flex items-center gap-2">
                   <span className="text-pw-accent">✓</span> A5 swatch of all 4 materials
                 </li>
