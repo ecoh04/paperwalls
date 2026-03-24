@@ -8,6 +8,7 @@ import { PageContainer } from "@/components/PageContainer";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { formatZar } from "@/lib/pricing";
 import { SocialProofStrip } from "@/components/SocialProofStrip";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export default function CheckoutPage() {
   const { items, sessionId } = useCart();
@@ -69,10 +70,11 @@ export default function CheckoutPage() {
           { label: "Checkout" },
         ]}
       />
-      <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Checkout</h1>
-      <p className="mt-2 text-base text-pw-ink/80">
-        Enter your details below. You’ll complete payment securely with PayFast.
-      </p>
+      <ConversionPageIntro
+        eyebrow="Payment"
+        title="Checkout"
+        description="Enter your details below. You’ll complete payment securely with PayFast."
+      />
       <SocialProofStrip className="mt-6" />
 
       {error && (

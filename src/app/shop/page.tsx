@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 const products = [
   {
@@ -23,10 +24,11 @@ export default function ShopPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Shop" }]} />
-      <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Shop</h1>
-      <p className="mt-3 max-w-3xl text-base sm:text-lg text-pw-ink/80 leading-relaxed">
-        Start with custom wallpaper or order a sample pack first. Everything is printed to order in South Africa.
-      </p>
+      <ConversionPageIntro
+        eyebrow="Store"
+        title="Shop"
+        description="Start with custom wallpaper or order a sample pack first. Everything is printed to order in South Africa."
+      />
       <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {products.map((product) => (
           <Link

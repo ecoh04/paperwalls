@@ -1,5 +1,6 @@
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Terms of service | PaperWalls",
@@ -10,7 +11,11 @@ export default function TermsPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Terms of service" }]} />
-      <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Terms of service</h1>
+      <ConversionPageIntro
+        eyebrow="Legal"
+        title="Terms of service"
+        description="The key terms that govern purchases, custom print specifications, and service usage."
+      />
       <p className="mt-2 text-sm text-pw-muted-light">Last updated: {new Date().toLocaleDateString("en-ZA")}</p>
       <div className="mt-5 max-w-3xl rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-surface px-4 py-3 text-sm text-pw-ink/80">
         <strong className="text-pw-ink">Plain English:</strong> provide accurate info and legal image rights, and we

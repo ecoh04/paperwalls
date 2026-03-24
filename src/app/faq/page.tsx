@@ -1,6 +1,7 @@
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
 import Link from "next/link";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 const faqs = [
   {
@@ -34,13 +35,11 @@ export default function FAQPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "FAQ" }]} />
-      <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">Common questions</p>
-        <h1 className="mt-3 font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Frequently asked questions</h1>
-        <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
-          Straight answers on file quality, ordering, delivery, and installation.
-        </p>
-      </div>
+      <ConversionPageIntro
+        eyebrow="Common questions"
+        title="Frequently asked questions"
+        description="Straight answers on file quality, ordering, delivery, and installation."
+      />
       <dl className="mt-10 max-w-4xl space-y-4">
         {faqs.map((faq, i) => (
           <div key={i} className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5">

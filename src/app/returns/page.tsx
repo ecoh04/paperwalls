@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Returns & refunds | Paperwalls South Africa",
@@ -13,12 +14,11 @@ export default function ReturnsPage() {
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Returns & refunds" }]} />
 
       <div className="max-w-2xl">
-        <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Returns & refunds</h1>
-        <p className="mt-3 text-base sm:text-lg text-pw-ink/80">
-          Because every order is custom-printed to your exact dimensions and design, we are unable
-          to accept returns or exchanges once production has started — except in the cases described below.
-          Please read this policy before placing your order.
-        </p>
+        <ConversionPageIntro
+          eyebrow="Policy"
+          title="Returns & refunds"
+          description="Because every order is custom-printed to your exact dimensions and design, returns are limited once production has started."
+        />
         <div className="mt-5 rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-surface px-4 py-3 text-sm text-pw-ink/80">
           <strong className="text-pw-ink">Plain English:</strong> custom orders are non-returnable, but if there is
           a print or production defect we will reprint or refund quickly.

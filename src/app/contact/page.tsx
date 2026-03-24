@@ -1,5 +1,6 @@
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Contact | PaperWalls",
@@ -10,13 +11,11 @@ export default function ContactPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Contact" }]} />
-      <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">Support</p>
-        <h1 className="mt-3 font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Contact us</h1>
-        <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
-          Questions about your order, image quality, installation, or delivery? Reach out and our team will help.
-        </p>
-      </div>
+      <ConversionPageIntro
+        eyebrow="Support"
+        title="Contact us"
+        description="Questions about your order, image quality, installation, or delivery? Reach out and our team will help."
+      />
       <div className="mt-10 grid gap-6 sm:grid-cols-2">
         <div className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-6">
           <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-muted-light">Email</h2>

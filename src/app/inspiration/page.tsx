@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Inspiration | PaperWalls",
@@ -39,13 +40,11 @@ export default function InspirationPage() {
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Inspiration" }]} />
 
-      <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">Gallery</p>
-        <h1 className="mt-3 font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Inspiration</h1>
-        <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
-          Use these styles as direction, then upload your own image to build a one-of-one wall.
-        </p>
-      </div>
+      <ConversionPageIntro
+        eyebrow="Gallery"
+        title="Inspiration"
+        description="Use these styles as direction, then upload your own image to build a one-of-one wall."
+      />
 
       <div className="mt-10 grid gap-4 md:grid-cols-3">
         {IDEAS.map((idea) => (

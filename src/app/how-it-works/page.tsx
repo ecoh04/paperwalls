@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "How it works | PaperWalls",
@@ -46,13 +47,11 @@ export default function HowItWorksPage() {
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "How it works" }]} />
 
-      <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">The process</p>
-        <h1 className="mt-3 font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">How it works</h1>
-        <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
-          This is the exact order flow customers follow. Clear inputs up front, live pricing, then secure checkout.
-        </p>
-      </div>
+      <ConversionPageIntro
+        eyebrow="The process"
+        title="How it works"
+        description="This is the exact order flow customers follow. Clear inputs up front, live pricing, then secure checkout."
+      />
 
       <div className="mt-10 grid gap-4 md:grid-cols-2">
         {STEPS.map((step) => (

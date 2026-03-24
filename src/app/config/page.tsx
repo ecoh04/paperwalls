@@ -4,6 +4,7 @@ import { Configurator } from "@/components/configurator/Configurator";
 import { SocialProofStrip } from "@/components/SocialProofStrip";
 import { ConversionCtaCard } from "@/components/ConversionCtaCard";
 import { getVariant } from "@/lib/experiments";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Design your wallpaper | PaperWalls",
@@ -34,8 +35,7 @@ export default function ConfigPage({
       />
 
       <div className="mb-8">
-        <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">{heroTitle}</h1>
-        <p className="mt-2 max-w-4xl text-base sm:text-lg text-pw-ink/80">{heroBody}</p>
+        <ConversionPageIntro eyebrow="Configurator" title={heroTitle} description={heroBody} />
       </div>
 
       <SocialProofStrip className="mb-6" />

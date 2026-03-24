@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Shipping & delivery | Paperwalls South Africa",
@@ -13,12 +14,11 @@ export default function ShippingPage() {
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Shipping & delivery" }]} />
 
       <div className="max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">Delivery</p>
-        <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Shipping & delivery</h1>
-        <p className="mt-3 text-base sm:text-lg text-pw-ink/80">
-          All orders are printed to order at our facility and shipped nationwide via a tracked courier service.
-          Shipping is currently <strong className="text-pw-ink">free across South Africa</strong>.
-        </p>
+        <ConversionPageIntro
+          eyebrow="Delivery"
+          title="Shipping & delivery"
+          description="All orders are printed to order at our facility and shipped nationwide via tracked courier service. Shipping is currently free across South Africa."
+        />
         <div className="mt-5 rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-surface px-4 py-3 text-sm text-pw-ink/80">
           <strong className="text-pw-ink">Plain English:</strong> We print in Cape Town, dispatch in about 72 hours,
           and delivery usually takes another 2-4 business days.

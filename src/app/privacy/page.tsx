@@ -1,5 +1,6 @@
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Privacy policy | PaperWalls",
@@ -10,7 +11,11 @@ export default function PrivacyPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Privacy policy" }]} />
-      <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Privacy policy</h1>
+      <ConversionPageIntro
+        eyebrow="Legal"
+        title="Privacy policy"
+        description="How we collect, use, and protect your personal data when you browse and order from PaperWalls."
+      />
       <p className="mt-2 text-sm text-pw-muted-light">Last updated: {new Date().toLocaleDateString("en-ZA")}</p>
       <div className="mt-5 max-w-3xl rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-surface px-4 py-3 text-sm text-pw-ink/80">
         <strong className="text-pw-ink">Plain English:</strong> we only use your details to process and support your

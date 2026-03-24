@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Materials | PaperWalls",
@@ -48,13 +49,11 @@ export default function MaterialsPage() {
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Materials" }]} />
 
-      <div className="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">Substrates</p>
-        <h1 className="mt-3 font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Materials</h1>
-        <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
-          Pick a finish based on look, lighting, and room use - not guesswork.
-        </p>
-      </div>
+      <ConversionPageIntro
+        eyebrow="Substrates"
+        title="Materials"
+        description="Pick a finish based on look, lighting, and room use - not guesswork."
+      />
 
       <div className="mt-10 grid gap-4 md:grid-cols-3">
         {MATERIALS.map((m) => (
