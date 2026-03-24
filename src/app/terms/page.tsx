@@ -12,6 +12,10 @@ export default function TermsPage() {
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Terms of service" }]} />
       <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Terms of service</h1>
       <p className="mt-2 text-sm text-pw-muted-light">Last updated: {new Date().toLocaleDateString("en-ZA")}</p>
+      <div className="mt-5 max-w-3xl rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-surface px-4 py-3 text-sm text-pw-ink/80">
+        <strong className="text-pw-ink">Plain English:</strong> provide accurate info and legal image rights, and we
+        print exactly to the specifications you confirm at checkout.
+      </div>
       <div className="mt-8 max-w-3xl space-y-6 text-pw-ink/80 leading-relaxed">
         <p>
           By using PaperWalls and placing an order, you agree to these terms. You must provide 

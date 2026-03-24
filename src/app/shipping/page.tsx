@@ -19,6 +19,10 @@ export default function ShippingPage() {
           All orders are printed to order at our facility and shipped nationwide via a tracked courier service.
           Shipping is currently <strong className="text-pw-ink">free across South Africa</strong>.
         </p>
+        <div className="mt-5 rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-surface px-4 py-3 text-sm text-pw-ink/80">
+          <strong className="text-pw-ink">Plain English:</strong> We print in Cape Town, dispatch in about 72 hours,
+          and delivery usually takes another 2-4 business days.
+        </div>
 
         {/* Production lead time */}
         <div className="mt-10">

@@ -19,6 +19,10 @@ export default function ReturnsPage() {
           to accept returns or exchanges once production has started — except in the cases described below.
           Please read this policy before placing your order.
         </p>
+        <div className="mt-5 rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-surface px-4 py-3 text-sm text-pw-ink/80">
+          <strong className="text-pw-ink">Plain English:</strong> custom orders are non-returnable, but if there is
+          a print or production defect we will reprint or refund quickly.
+        </div>
 
         {/* No returns */}
         <div className="mt-10">

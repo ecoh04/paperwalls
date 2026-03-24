@@ -72,6 +72,48 @@ export default function MaterialsPage() {
         ))}
       </div>
 
+      <div className="mt-8 overflow-hidden rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface">
+        <div className="border-b border-[rgba(26,23,20,0.08)] px-5 py-4">
+          <h2 className="font-sans text-lg font-semibold text-pw-ink">Quick comparison</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead className="bg-pw-bg">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold text-pw-ink">Material</th>
+                <th className="px-4 py-3 text-left font-semibold text-pw-ink">Look</th>
+                <th className="px-4 py-3 text-left font-semibold text-pw-ink">Glare</th>
+                <th className="px-4 py-3 text-left font-semibold text-pw-ink">Care</th>
+                <th className="px-4 py-3 text-left font-semibold text-pw-ink">Best use</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t border-[rgba(26,23,20,0.08)]">
+                <td className="px-4 py-3 font-medium text-pw-ink">Satin</td>
+                <td className="px-4 py-3 text-pw-ink/80">Slight sheen</td>
+                <td className="px-4 py-3 text-pw-ink/80">Medium</td>
+                <td className="px-4 py-3 text-pw-ink/80">Easiest to wipe</td>
+                <td className="px-4 py-3 text-pw-ink/80">General home use</td>
+              </tr>
+              <tr className="border-t border-[rgba(26,23,20,0.08)]">
+                <td className="px-4 py-3 font-medium text-pw-ink">Matte</td>
+                <td className="px-4 py-3 text-pw-ink/80">Flat finish</td>
+                <td className="px-4 py-3 text-pw-ink/80">Low</td>
+                <td className="px-4 py-3 text-pw-ink/80">Easy care</td>
+                <td className="px-4 py-3 text-pw-ink/80">Bright rooms</td>
+              </tr>
+              <tr className="border-t border-[rgba(26,23,20,0.08)]">
+                <td className="px-4 py-3 font-medium text-pw-ink">Linen</td>
+                <td className="px-4 py-3 text-pw-ink/80">Textured premium</td>
+                <td className="px-4 py-3 text-pw-ink/80">Low to medium</td>
+                <td className="px-4 py-3 text-pw-ink/80">Gentle clean</td>
+                <td className="px-4 py-3 text-pw-ink/80">Statement walls</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         {FAQ.map((f) => (
           <article key={f.q} className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-5">
@@ -91,6 +133,12 @@ export default function MaterialsPage() {
           className="mt-4 inline-flex rounded-pw bg-pw-ink px-5 py-3 text-sm font-semibold text-white hover:bg-pw-ink-soft"
         >
           Compare live in configurator
+        </Link>
+        <Link
+          href="/samples"
+          className="mt-4 ml-3 inline-flex rounded-pw border border-[rgba(26,23,20,0.2)] px-5 py-3 text-sm font-semibold text-pw-ink hover:bg-pw-surface"
+        >
+          Order a sample pack
         </Link>
       </div>
     </PageContainer>

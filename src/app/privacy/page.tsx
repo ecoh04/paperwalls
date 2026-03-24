@@ -12,6 +12,10 @@ export default function PrivacyPage() {
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Privacy policy" }]} />
       <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Privacy policy</h1>
       <p className="mt-2 text-sm text-pw-muted-light">Last updated: {new Date().toLocaleDateString("en-ZA")}</p>
+      <div className="mt-5 max-w-3xl rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-surface px-4 py-3 text-sm text-pw-ink/80">
+        <strong className="text-pw-ink">Plain English:</strong> we only use your details to process and support your
+        order, and we do not sell your personal data.
+      </div>
       <div className="mt-8 max-w-3xl space-y-6 text-pw-ink/80 leading-relaxed">
         <p>
           PaperWalls collects the information you provide when you place an order (name, email, 

@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { getVariant } from "@/lib/experiments";
 
 export const metadata = {
   title: "Custom wallpaper | PaperWalls",
   description: "Design your custom wallpaper. Upload your image, enter dimensions, choose finish. Printed in South Africa.",
 };
 
-export default function CustomWallpaperPage() {
+export default function CustomWallpaperPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const variant = getVariant(searchParams);
+  const title = variant === "speed" ? "Turn your image into wallpaper fast" : "Custom wallpaper";
+
   return (
     <PageContainer>
       <Breadcrumbs
@@ -29,7 +37,7 @@ export default function CustomWallpaperPage() {
           </div>
         </div>
         <div>
-          <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">Custom wallpaper</h1>
+          <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">{title}</h1>
           <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
             Turn any image into wall‑size wallpaper. Enter your wall size in centimetres, upload a photo, artwork,
             or pattern, and choose your finish. We print to order in South Africa and deliver nationwide.

@@ -1,24 +1,11 @@
 import type { ShippingProvince } from "@/types/order";
 
 /**
- * Shipping cost in ZAR cents by province (South Africa).
- * Adjust tiers to match your carrier/zone pricing.
+ * Shipping is currently free nationwide.
+ * Province is still collected for address and operational routing.
  */
-const SHIPPING_CENTS_BY_PROVINCE: Record<ShippingProvince, number> = {
-  gauteng: 15000,        // R150
-  western_cape: 18000,  // R180
-  kwaZulu_natal: 18000,
-  eastern_cape: 20000,
-  free_state: 18000,
-  limpopo: 20000,
-  mpumalanga: 18000,
-  northern_cape: 22000,
-  north_west: 18000,
-  other: 22000,
-};
-
-export function getShippingCents(province: ShippingProvince): number {
-  return SHIPPING_CENTS_BY_PROVINCE[province] ?? SHIPPING_CENTS_BY_PROVINCE.other;
+export function getShippingCents(_province: ShippingProvince): number {
+  return 0;
 }
 
 /** SA provinces for checkout form (label, value). */

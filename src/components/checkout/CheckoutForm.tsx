@@ -106,7 +106,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-5 shadow-pw-sm sm:p-6">
         <h2 className="text-lg font-semibold text-pw-ink">Contact & delivery</h2>
-        <p className="mt-1 text-sm text-pw-muted">We&apos;ll use this to confirm your order and ship your wallpaper.</p>
+        <p className="mt-1 text-sm text-pw-ink/75">We&apos;ll use this to confirm your order and ship your wallpaper.</p>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -217,6 +217,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-pw-ink/65">Used for delivery routing. Shipping remains free.</p>
           </div>
           <div>
             <label htmlFor="postal_code" className="block text-sm font-medium text-pw-ink">
@@ -244,16 +245,17 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
           </div>
           <div className="flex justify-between">
             <dt className="text-pw-muted">Shipping</dt>
-            <dd className="font-medium text-pw-ink">{formatZar(shippingCents)}</dd>
+            <dd className="font-medium text-green-700">Free</dd>
           </div>
           <div className="flex justify-between border-t border-pw-stone pt-3 text-base">
             <dt className="font-semibold text-pw-ink">Total</dt>
             <dd className="font-semibold text-pw-ink">{formatZar(totalCents)}</dd>
           </div>
         </dl>
-        <p className="mt-3 text-xs text-pw-muted">
-          You&apos;ll complete payment securely on the next screen (PayFast).
-        </p>
+        <div className="mt-3 space-y-1 text-xs text-pw-ink/75">
+          <p>You&apos;ll complete payment securely on the next screen (PayFast).</p>
+          <p>We never store card details on PaperWalls.</p>
+        </div>
         <button
           type="submit"
           disabled={submitting}

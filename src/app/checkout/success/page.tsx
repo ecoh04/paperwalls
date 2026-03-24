@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
+import { SocialProofStrip } from "@/components/SocialProofStrip";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -90,6 +91,7 @@ function SuccessContent() {
           Back to home
         </Link>
       </div>
+      <SocialProofStrip className="mx-auto mt-6 max-w-xl" />
     </PageContainer>
   );
 }

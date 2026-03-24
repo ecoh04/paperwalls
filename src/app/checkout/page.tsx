@@ -7,6 +7,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { formatZar } from "@/lib/pricing";
+import { SocialProofStrip } from "@/components/SocialProofStrip";
 
 export default function CheckoutPage() {
   const { items, sessionId } = useCart();
@@ -72,6 +73,7 @@ export default function CheckoutPage() {
       <p className="mt-2 text-base text-pw-ink/80">
         Enter your details below. You’ll complete payment securely with PayFast.
       </p>
+      <SocialProofStrip className="mt-6" />
 
       {error && (
         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
@@ -133,6 +135,12 @@ export default function CheckoutPage() {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="mt-8 grid gap-3 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-5 text-sm text-pw-ink/80 sm:grid-cols-3">
+        <p>Secure payment via PayFast</p>
+        <p>Free shipping nationwide</p>
+        <p>Support replies within 1 business day</p>
       </div>
 
       <p className="mt-8 text-center text-sm text-pw-ink/75">

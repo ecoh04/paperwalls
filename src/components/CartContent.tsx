@@ -121,9 +121,9 @@ export function CartContent() {
       <div className="sticky bottom-0 left-0 right-0 z-20 border-t border-pw-stone bg-pw-surface/95 pb-4 pt-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] sm:static sm:rounded-pw-card sm:border sm:bg-pw-bg sm:py-6 sm:shadow-none">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-1 sm:px-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-pw-muted">Subtotal (excl. shipping)</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-pw-muted">Subtotal</p>
             <p className="text-lg font-semibold text-pw-ink">{formatZar(totalCents)}</p>
-            <p className="mt-0.5 text-xs text-pw-muted">Shipping is added at checkout based on your address.</p>
+            <p className="mt-0.5 text-xs text-pw-ink/75">Free shipping nationwide • Secure checkout via PayFast.</p>
           </div>
           <Link
             href="/checkout"
@@ -131,6 +131,16 @@ export function CartContent() {
           >
             Checkout
           </Link>
+        </div>
+      </div>
+
+      <div className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-4">
+        <p className="text-sm font-semibold text-pw-ink">Checkout confidence</p>
+        <div className="mt-2 grid gap-1 text-sm text-pw-ink/80 sm:grid-cols-2">
+          <p>• Secure PayFast payment gateway</p>
+          <p>• Free shipping nationwide</p>
+          <p>• 72-hour production before dispatch</p>
+          <p>• Support responds within 1 business day</p>
         </div>
       </div>
     </div>
