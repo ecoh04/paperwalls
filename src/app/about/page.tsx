@@ -10,20 +10,26 @@ export default function AboutPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "About us" }]} />
-      <h1 className="text-3xl font-bold text-stone-900">About PaperWalls</h1>
-      <div className="mt-8 max-w-2xl space-y-6 text-stone-600">
+      <div className="max-w-3xl">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-pw-accent">Our story</p>
+        <h1 className="mt-3 text-3xl sm:text-4xl font-semibold text-pw-ink">About PaperWalls</h1>
+        <p className="mt-4 text-base text-pw-muted leading-relaxed">
+          We make custom wallpaper simple: your image, your dimensions, printed locally and delivered nationwide.
+        </p>
+      </div>
+      <div className="mt-8 max-w-3xl space-y-6 text-pw-muted leading-relaxed">
         <p>
-          PaperWalls is a South African custom wallpaper company. We own a printing factory and 
-          use industrial printers to turn your images into wallpaper—at your exact wall dimensions.
+          PaperWalls is a South African custom wallpaper company. We use commercial-grade print equipment
+          to turn your photos, art, and patterns into wallpaper cut to your exact wall size.
         </p>
         <p>
-          You upload your design, tell us the size of your wall, choose a finish and how you want 
-          it applied (DIY, DIY kit, or professional installer). We print, then ship or install 
-          across South Africa. All prices are in ZAR.
+          You upload your design, enter your dimensions, choose your wallpaper type and material,
+          then decide between DIY or a pro installer. We print to order in Cape Town and ship across
+          South Africa.
         </p>
         <p>
-          Our goal is to make custom wallpaper simple: no minimum order, clear pricing, and 
-          support from design to delivery.
+          Our goal is premium print quality with a clear, low-friction ordering experience:
+          upfront pricing, helpful quality guidance, and reliable support from upload to install.
         </p>
       </div>
     </PageContainer>

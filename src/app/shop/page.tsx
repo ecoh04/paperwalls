@@ -23,8 +23,8 @@ export default function ShopPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Shop" }]} />
-      <h1 className="text-3xl font-bold text-stone-900">Shop</h1>
-      <p className="mt-2 text-stone-600">
+      <h1 className="text-3xl sm:text-4xl font-semibold text-pw-ink">Shop</h1>
+      <p className="mt-3 text-pw-muted">
         Custom wallpaper made to your dimensions and design. More products can be added here later.
       </p>
       <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -32,17 +32,17 @@ export default function ShopPage() {
           <Link
             key={product.slug}
             href={product.href}
-            className="group overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-stone-300 hover:shadow-md"
+            className="group overflow-hidden rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface transition hover:border-pw-stone-dark hover:shadow-pw-sm"
           >
-            <div className="aspect-[4/3] bg-stone-200 flex items-center justify-center">
+            <div className="aspect-[4/3] bg-pw-stone flex items-center justify-center">
               {product.imagePlaceholder ? (
-                <span className="text-sm text-stone-500">Product image</span>
+                <span className="text-sm text-pw-muted">Product image</span>
               ) : null}
             </div>
             <div className="p-4">
-              <h2 className="font-semibold text-stone-900 group-hover:underline">{product.name}</h2>
-              <p className="mt-1 text-sm text-stone-600 line-clamp-2">{product.description}</p>
-              <span className="mt-3 inline-block text-sm font-medium text-stone-900 group-hover:underline">
+              <h2 className="font-semibold text-pw-ink group-hover:underline">{product.name}</h2>
+              <p className="mt-1 text-sm text-pw-muted line-clamp-2">{product.description}</p>
+              <span className="mt-3 inline-block text-sm font-medium text-pw-ink group-hover:underline">
                 {product.cta} →
               </span>
             </div>

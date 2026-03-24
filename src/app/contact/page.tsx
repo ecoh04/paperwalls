@@ -10,24 +10,29 @@ export default function ContactPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Contact" }]} />
-      <h1 className="text-3xl font-bold text-stone-900">Contact us</h1>
-      <p className="mt-2 text-stone-600">
-        Questions about your order, custom wallpaper, or installation? Reach out below.
-      </p>
-      <div className="mt-10 grid gap-10 sm:grid-cols-2">
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500">Email</h2>
-          <a href="mailto:hello@paperwalls.co.za" className="mt-2 block text-stone-900 hover:underline">
+      <div className="max-w-3xl">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-pw-accent">Support</p>
+        <h1 className="mt-3 text-3xl sm:text-4xl font-semibold text-pw-ink">Contact us</h1>
+        <p className="mt-4 text-base text-pw-muted leading-relaxed">
+          Questions about your order, image quality, installation, or delivery? Reach out and our team will help.
+        </p>
+      </div>
+      <div className="mt-10 grid gap-6 sm:grid-cols-2">
+        <div className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-6">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-muted-light">Email</h2>
+          <a href="mailto:hello@paperwalls.co.za" className="mt-2 block text-pw-ink hover:underline">
             hello@paperwalls.co.za
           </a>
+          <p className="mt-2 text-sm text-pw-muted">Best for order support, artwork checks, and project quotes.</p>
         </div>
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-500">Phone</h2>
-          <p className="mt-2 text-stone-900">Add your phone number here</p>
+        <div className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-6">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-muted-light">Phone</h2>
+          <p className="mt-2 text-pw-ink">Phone support coming soon</p>
+          <p className="mt-2 text-sm text-pw-muted">For now, email is the fastest way to reach us.</p>
         </div>
       </div>
-      <p className="mt-10 text-sm text-stone-500">
-        A contact form can be added here when you’re ready (e.g. name, email, message).
+      <p className="mt-8 text-sm text-pw-muted">
+        We typically respond within one business day.
       </p>
     </PageContainer>
   );

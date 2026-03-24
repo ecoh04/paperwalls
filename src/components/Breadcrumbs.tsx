@@ -7,16 +7,16 @@ type BreadcrumbsProps = { items: BreadcrumbItem[] };
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
   return (
     <nav aria-label="Breadcrumb" className="mb-6">
-      <ol className="flex flex-wrap items-center gap-x-2 text-sm text-stone-500">
+      <ol className="flex flex-wrap items-center gap-x-2 text-sm text-pw-muted">
         {items.map((item, i) => (
           <li key={i} className="flex items-center gap-x-2">
-            {i > 0 && <span className="text-stone-400">/</span>}
+            {i > 0 && <span className="text-pw-muted-light">/</span>}
             {item.href ? (
-              <Link href={item.href} className="hover:text-stone-900">
+              <Link href={item.href} className="hover:text-pw-ink transition-colors">
                 {item.label}
               </Link>
             ) : (
-              <span className="text-stone-700 font-medium">{item.label}</span>
+              <span className="text-pw-ink font-medium">{item.label}</span>
             )}
           </li>
         ))}

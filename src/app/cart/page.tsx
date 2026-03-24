@@ -11,7 +11,7 @@ export default function CartPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Cart" }]} />
-      <h1 className="text-3xl font-bold text-stone-900">Shopping cart</h1>
+      <h1 className="text-3xl sm:text-4xl font-semibold text-pw-ink">Shopping cart</h1>
       <CartContent />
     </PageContainer>
   );

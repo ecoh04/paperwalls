@@ -33,12 +33,15 @@ export default function FAQPage() {
   return (
     <PageContainer>
       <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "FAQ" }]} />
-      <h1 className="text-3xl font-bold text-stone-900">Frequently asked questions</h1>
-      <dl className="mt-10 space-y-8">
+      <div className="max-w-3xl">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-pw-accent">Common questions</p>
+        <h1 className="mt-3 text-3xl sm:text-4xl font-semibold text-pw-ink">Frequently asked questions</h1>
+      </div>
+      <dl className="mt-10 max-w-4xl space-y-4">
         {faqs.map((faq, i) => (
-          <div key={i}>
-            <dt className="font-medium text-stone-900">{faq.q}</dt>
-            <dd className="mt-2 text-stone-600">{faq.a}</dd>
+          <div key={i} className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5">
+            <dt className="font-medium text-pw-ink">{faq.q}</dt>
+            <dd className="mt-2 text-pw-muted leading-relaxed">{faq.a}</dd>
           </div>
         ))}
       </dl>
