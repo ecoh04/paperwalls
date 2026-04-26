@@ -220,6 +220,29 @@ export function PreviewEditStep({
           className="relative w-full overflow-hidden rounded-pw-card bg-pw-ink"
           style={{ paddingTop: "62%" }}
         >
+          {/*
+            Dimmed full-image backdrop — shows the customer what's being cropped
+            away. Sits behind the wall frame, anchored to the same preview-surface
+            centre + pan, so it aligns pixel-for-pixel with the in-frame image.
+          */}
+          {ready && imgSize && (
+            <div className="pointer-events-none absolute inset-0" aria-hidden>
+              <div
+                className="absolute left-1/2 top-1/2"
+                style={{
+                  width:  dispW,
+                  height: dispH,
+                  transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
+                  backgroundImage:  `url(${imageUrl})`,
+                  backgroundSize:   "100% 100%",
+                  backgroundRepeat: "no-repeat",
+                  filter:           "brightness(0.32) saturate(0.85)",
+                  willChange:       isDragging ? "transform" : undefined,
+                }}
+              />
+            </div>
+          )}
+
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[78%] max-w-[760px]">
             <div
               className="relative w-full"
