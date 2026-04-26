@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState, useEffect } from "react";
 import { getQuality, formatMaxSizeCm } from "@/lib/quality";
-import { exportContainCropJpeg } from "@/lib/imageCrop";
+import { exportCroppedJpeg } from "@/lib/imageCrop";
 
 type PreviewEditStepProps = {
   /** Step chip label. Not shown when `compact` is true. */
@@ -16,7 +16,7 @@ type PreviewEditStepProps = {
   heightM:          number;
   panX:             number;
   panY:             number;
-  /** 1 = whole image visible (contain). >1 zooms in for a tighter crop. */
+  /** 1 = cover-fit (image fills wall). >1 zooms in for a tighter crop. */
   zoom:             number;
   onPanChange:      (x: number, y: number) => void;
   onZoomChange:     (zoom: number) => void;
@@ -33,19 +33,15 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-/** Smallest factor at which the whole image fits inside the frame. */
-function computeContain(img: Size, frame: Size): number {
-  return Math.min(frame.w / img.w, frame.h / img.h);
+/** Cover-fit: smallest factor at which the image fully covers the frame (no white edges). */
+function computeCover(img: Size, frame: Size): number {
+  return Math.max(frame.w / img.w, frame.h / img.h);
 }
 
 function panBounds(img: Size, frame: Size, effScale: number) {
-  const dispW = img.w * effScale;
-  const dispH = img.h * effScale;
   return {
-    // When the image is smaller than the frame on an axis, lock pan to 0
-    // (image stays centred). When larger, allow pan within cover bounds.
-    maxPanX: Math.max(0, (dispW - frame.w) / 2),
-    maxPanY: Math.max(0, (dispH - frame.h) / 2),
+    maxPanX: Math.max(0, (img.w * effScale - frame.w) / 2),
+    maxPanY: Math.max(0, (img.h * effScale - frame.h) / 2),
   };
 }
 
@@ -72,12 +68,10 @@ export function PreviewEditStep({
   const [imgSize,    setImgSize]    = useState<Size | null>(null);
   const [frameSize,  setFrameSize]  = useState<Size | null>(null);
 
-  // ── Reset image-bound state when the URL changes ────────────────────────
   useEffect(() => {
     setImgSize(null);
   }, [imageUrl]);
 
-  // ── ResizeObserver for the frame element ────────────────────────────────
   useEffect(() => {
     const frame = frameRef.current;
     if (!frame) return;
@@ -103,10 +97,10 @@ export function PreviewEditStep({
     return () => window.removeEventListener("resize", measure);
   }, [widthM, heightM]);
 
-  // ── Re-clamp pan when sizes or zoom change ──────────────────────────────
+  // Re-clamp pan when sizes or zoom change so pan never lets background through.
   useEffect(() => {
     if (!imgSize || !frameSize) return;
-    const effScale = computeContain(imgSize, frameSize) * zoom;
+    const effScale = computeCover(imgSize, frameSize) * zoom;
     const { maxPanX, maxPanY } = panBounds(imgSize, frameSize, effScale);
     const cx = clamp(panX, -maxPanX, maxPanX);
     const cy = clamp(panY, -maxPanY, maxPanY);
@@ -116,22 +110,29 @@ export function PreviewEditStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imgSize, frameSize, zoom]);
 
-  // ── Crop blob ───────────────────────────────────────────────────────────
+  // ── Crop blob (exact pixels visible in frame, exported as JPEG) ─────────
   const getCroppedBlob = useCallback(async (): Promise<Blob | null> => {
     const frame = frameRef.current;
     if (!frame || !imageUrl || !imgSize) return null;
-    const rect = frame.getBoundingClientRect();
-    return exportContainCropJpeg({
-      imageUrl,
-      imgWidthPx:  imgSize.w,
-      imgHeightPx: imgSize.h,
-      frameWidth:  rect.width,
-      frameHeight: rect.height,
-      panX,
-      panY,
-      zoom,
-    });
-  }, [imageUrl, imgSize, panX, panY, zoom]);
+
+    const rect    = frame.getBoundingClientRect();
+    const frameW  = rect.width;
+    const frameH  = rect.height;
+    const natW    = imgSize.w;
+    const natH    = imgSize.h;
+    const cover   = Math.max(frameW / natW, frameH / natH) * zoom;
+
+    const sourceW = frameW / cover;
+    const sourceH = frameH / cover;
+    const sourceX = natW / 2 - sourceW / 2 - panX / cover;
+    const sourceY = natH / 2 - sourceH / 2 - panY / cover;
+    const sx      = clamp(sourceX, 0, Math.max(0, natW - sourceW));
+    const sy      = clamp(sourceY, 0, Math.max(0, natH - sourceH));
+    const sw      = Math.min(sourceW, natW - sx);
+    const sh      = Math.min(sourceH, natH - sy);
+
+    return exportCroppedJpeg(imageUrl, { x: sx, y: sy, width: sw, height: sh });
+  }, [imageUrl, panX, panY, zoom, imgSize]);
 
   useEffect(() => {
     if (onCropDataReady) onCropDataReady(getCroppedBlob);
@@ -160,7 +161,7 @@ export function PreviewEditStep({
     const dx = e.clientX - start.clientX;
     const dy = e.clientY - start.clientY;
 
-    const effScale = computeContain(imgSize, frameSize) * zoom;
+    const effScale = computeCover(imgSize, frameSize) * zoom;
     const { maxPanX, maxPanY } = panBounds(imgSize, frameSize, effScale);
 
     const nextX = clamp(start.panX + dx, -maxPanX, maxPanX);
@@ -196,21 +197,17 @@ export function PreviewEditStep({
   if (!imageUrl || widthM <= 0 || heightM <= 0) return null;
 
   const ready = imgSize !== null && frameSize !== null;
-  const effScale = ready ? computeContain(imgSize, frameSize) * zoom : 1;
+  const effScale = ready ? computeCover(imgSize, frameSize) * zoom : 1;
   const dispW    = ready ? imgSize.w * effScale : 0;
   const dispH    = ready ? imgSize.h * effScale : 0;
-
-  // True if there is letterbox on either axis (image smaller than frame somewhere)
-  const hasLetterbox = ready && (dispW < frameSize.w - 0.5 || dispH < frameSize.h - 0.5);
 
   const widthCm  = widthM  * 100;
   const heightCm = heightM * 100;
 
-  // Quality reflects the image at current zoom — past zoom 1 the printable
-  // pixel area shrinks proportionally.
+  // Quality reflects the actually-printed pixel area (which shrinks as the user zooms in).
   const effImgW = imgSize ? imgSize.w / Math.max(zoom, 1) : 0;
   const effImgH = imgSize ? imgSize.h / Math.max(zoom, 1) : 0;
-  const quality = imgSize && widthM > 0 && heightM > 0 && zoom > 1
+  const quality = imgSize && widthM > 0 && heightM > 0
     ? getQuality(effImgW, effImgH, widthM, heightM)
     : null;
 
@@ -223,18 +220,16 @@ export function PreviewEditStep({
           className="relative w-full overflow-hidden rounded-pw-card bg-pw-ink"
           style={{ paddingTop: "62%" }}
         >
-          {/* Wall frame container */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[78%] max-w-[760px]">
             <div
               className="relative w-full"
               style={{ aspectRatio: `${widthM} / ${heightM}` }}
             >
-              {/* Wall surface — white background. This is the "wall" the customer sees their print on. */}
               <div
                 ref={frameRef}
-                className="absolute inset-0 overflow-hidden rounded-md ring-2 ring-white/95 shadow-[0_8px_24px_rgba(0,0,0,0.4)] bg-white"
+                className="absolute inset-0 overflow-hidden rounded-md ring-2 ring-white/95 shadow-[0_8px_24px_rgba(0,0,0,0.4)] bg-pw-stone"
               >
-                {/* Hidden loader — drives onLoad without showing the unscaled native image */}
+                {/* Hidden loader image — drives onLoad to capture natural dimensions */}
                 <img
                   ref={imgRef}
                   src={imageUrl}
@@ -270,26 +265,22 @@ export function PreviewEditStep({
                   </div>
                 )}
 
-                {/* 3×3 rule-of-thirds grid — guides centring without overpowering the image */}
+                {/* 3×3 rule-of-thirds grid */}
                 {ready && (
                   <div className="pointer-events-none absolute inset-0" aria-hidden>
-                    <div className="absolute top-0 bottom-0 left-1/3   w-px bg-pw-ink/15" />
-                    <div className="absolute top-0 bottom-0 left-2/3   w-px bg-pw-ink/15" />
-                    <div className="absolute left-0 right-0 top-1/3    h-px bg-pw-ink/15" />
-                    <div className="absolute left-0 right-0 top-2/3    h-px bg-pw-ink/15" />
+                    <div className="absolute top-0 bottom-0 left-1/3   w-px bg-white/30" />
+                    <div className="absolute top-0 bottom-0 left-2/3   w-px bg-white/30" />
+                    <div className="absolute left-0 right-0 top-1/3    h-px bg-white/30" />
+                    <div className="absolute left-0 right-0 top-2/3    h-px bg-white/30" />
                   </div>
                 )}
               </div>
 
-              {/* Drag overlay — captures pointer events for pan */}
+              {/* Drag overlay */}
               <div
                 className={[
                   "absolute inset-0 rounded-md",
-                  ready
-                    ? (dispW > frameSize!.w + 0.5 || dispH > frameSize!.h + 0.5)
-                      ? "cursor-grab active:cursor-grabbing"
-                      : "cursor-default"
-                    : "cursor-progress",
+                  ready ? "cursor-grab active:cursor-grabbing" : "cursor-progress",
                 ].join(" ")}
                 style={{ touchAction: "none" }}
                 onPointerDown={handlePointerDown}
@@ -356,9 +347,7 @@ export function PreviewEditStep({
       </div>
 
       <p className="mt-2 text-xs text-pw-muted-light text-center">
-        {hasLetterbox && zoom <= 1.001
-          ? "Whole image shown — white edges will print as white. Use the slider to zoom in."
-          : "Drag to reposition · Use the slider to zoom in for a tighter crop."}
+        Drag to reposition · Use the slider to zoom in for a tighter crop
       </p>
 
       {quality && quality.level !== "good" && (
@@ -386,7 +375,7 @@ export function PreviewEditStep({
             </p>
             <p className="mt-0.5 text-sm text-amber-800">
               {quality.level === "too_low"
-                ? "We can't print this sharply at the current zoom. Use a higher-resolution image, zoom out a little, or reduce the wall."
+                ? "We can't print this sharply at this size. Use a higher-resolution image, zoom out a little, or reduce the wall."
                 : "It'll look fine from a normal viewing distance. For sharper results, zoom out slightly or use a higher-res image."}{" "}
               Best up to: <strong>{formatMaxSizeCm(quality.maxWidthM, quality.maxHeightM)}</strong>.
             </p>
@@ -420,7 +409,7 @@ export function PreviewEditStep({
             Place it on your wall{wallLabel ?? ""}
           </h2>
           <p className="mt-1 text-sm text-pw-muted">
-            See your whole image fitted to the wall. Slide the zoom up for a tighter crop.
+            Drag to reframe. Use the slider to zoom in for a tighter crop. Only what's inside the frame will be printed.
           </p>
         </div>
       </div>
