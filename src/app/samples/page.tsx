@@ -133,16 +133,16 @@ export default function SamplesPage() {
 
               <ul className="mb-6 space-y-2 text-sm text-pw-ink/80">
                 <li className="flex items-center gap-2">
-                  <span className="text-pw-accent">✓</span> A5 swatch of all 4 materials
+                  <span className="text-pw-accent">✓</span> A5 swatch of every material we offer
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-pw-accent">✓</span> Printed on the same press as your order
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="text-pw-accent">✓</span> R300 credited toward your first wallpaper order
+                  <span className="text-pw-accent">✓</span> Free shipping nationwide, fully tracked
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="text-pw-accent">✓</span> Ships nationwide, fully tracked
+                  <span className="text-pw-accent">✓</span> Delivered in 3–5 business days
                 </li>
               </ul>
 
@@ -168,7 +168,7 @@ export default function SamplesPage() {
               )}
 
               <p className="mt-4 text-center text-xs text-pw-muted">
-                Already ordered? The R300 is automatically credited against your next custom wallpaper order.
+                Pay once, keep the swatches. Order any time you want to compare again.
               </p>
             </div>
           </div>

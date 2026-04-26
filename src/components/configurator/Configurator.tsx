@@ -449,6 +449,8 @@ export function Configurator() {
         widthM={state.widthM}
         heightM={state.heightM}
         wallCount={state.wallCount}
+        walls={isMultiDifferent ? state.walls.map((w) => ({ widthM: w.widthM, heightM: w.heightM })) : undefined}
+        isMultiDifferent={isMultiDifferent}
         totalSqm={totalSqm}
         wallpaperType={state.wallpaperType}
         material={state.material}

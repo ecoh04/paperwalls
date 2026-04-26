@@ -30,6 +30,10 @@ type Props = {
   widthM:          number;
   heightM:         number;
   wallCount:       number;
+  /** Per-wall dimensions when each wall is sized independently. */
+  walls?:          { widthM: number; heightM: number }[];
+  /** When true, wallCount > 1 and each wall has its own dimensions. */
+  isMultiDifferent?: boolean;
   totalSqm:        number;
   wallpaperType:   WallpaperType;
   material:        WallpaperMaterial;
@@ -54,6 +58,8 @@ export function OrderSummaryPanel({
   widthM,
   heightM,
   wallCount,
+  walls,
+  isMultiDifferent,
   totalSqm,
   wallpaperType,
   material,
@@ -68,11 +74,35 @@ export function OrderSummaryPanel({
   const pricePerSqmCents  = getPricePerSqmCents(wallpaperType, material);
   const hasDetails        = totalSqm > 0;
 
-  const widthCm  = widthM  > 0 ? `${Math.round(widthM  * 100)} cm` : null;
-  const heightCm = heightM > 0 ? `${Math.round(heightM * 100)} cm` : null;
-  const dimText  = widthCm && heightCm
-    ? `${widthCm} × ${heightCm}${wallCount > 1 ? ` × ${wallCount}` : ""} · ${totalSqm.toFixed(1)} m²`
-    : "Not set yet";
+  // Build the "Size" line. In multi-wall "different" mode each wall has its
+  // own dimensions, so showing "200 × 100 × N" is misleading — display per-wall
+  // if it fits, else fall back to "N walls (varied)".
+  const widthCm  = widthM  > 0 ? Math.round(widthM  * 100) : 0;
+  const heightCm = heightM > 0 ? Math.round(heightM * 100) : 0;
+
+  let dimText: string;
+  if (isMultiDifferent && walls && walls.length > 0 && walls.every((w) => w.widthM > 0 && w.heightM > 0)) {
+    const allSame = walls.every((w) =>
+      Math.round(w.widthM  * 100) === Math.round(walls[0].widthM  * 100) &&
+      Math.round(w.heightM * 100) === Math.round(walls[0].heightM * 100)
+    );
+    if (allSame) {
+      const w0 = Math.round(walls[0].widthM  * 100);
+      const h0 = Math.round(walls[0].heightM * 100);
+      dimText = `${w0} × ${h0} cm × ${walls.length} · ${totalSqm.toFixed(1)} m²`;
+    } else if (walls.length <= 2) {
+      // Inline both walls when there's room
+      dimText = walls
+        .map((w) => `${Math.round(w.widthM * 100)} × ${Math.round(w.heightM * 100)} cm`)
+        .join(" + ") + ` · ${totalSqm.toFixed(1)} m²`;
+    } else {
+      dimText = `${walls.length} walls (varied) · ${totalSqm.toFixed(1)} m²`;
+    }
+  } else if (widthCm > 0 && heightCm > 0) {
+    dimText = `${widthCm} × ${heightCm} cm${wallCount > 1 ? ` × ${wallCount}` : ""} · ${totalSqm.toFixed(1)} m²`;
+  } else {
+    dimText = "Not set yet";
+  }
 
   const installationLabel =
     application === "diy"           ? "Free"

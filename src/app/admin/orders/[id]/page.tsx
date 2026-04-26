@@ -228,15 +228,21 @@ export default async function AdminOrderDetailPage({
               <dd className="mt-0.5 font-medium text-stone-900">
                 {row.wall_count === 1 ? (
                   <>
-                    {Number(row.wall_width_m).toFixed(2)} m × {Number(row.wall_height_m).toFixed(2)} m
+                    {Math.round(Number(row.wall_width_m) * 100)} × {Math.round(Number(row.wall_height_m) * 100)} cm
                     {row.total_sqm ? ` (${Number(row.total_sqm).toFixed(2)} m²)` : ""}
+                  </>
+                ) : row.walls_spec?.length ? (
+                  <>
+                    {row.wall_count} walls:{" "}
+                    {row.walls_spec
+                      .map((w) => `${Math.round(w.widthM * 100)}×${Math.round(w.heightM * 100)} cm`)
+                      .join(", ")}
+                    {row.total_sqm ? ` (${Number(row.total_sqm).toFixed(2)} m² total)` : ""}
                   </>
                 ) : (
                   <>
-                    {row.wall_count} walls
-                    {row.walls_spec?.length
-                      ? `: ${row.walls_spec.map((w) => `${w.widthM}×${w.heightM}m`).join(", ")}`
-                      : `, ${Number(row.total_sqm).toFixed(2)} m² total`}
+                    {row.wall_count} × {Math.round(Number(row.wall_width_m) * 100)} × {Math.round(Number(row.wall_height_m) * 100)} cm
+                    {row.total_sqm ? ` (${Number(row.total_sqm).toFixed(2)} m² total)` : ""}
                   </>
                 )}
               </dd>
