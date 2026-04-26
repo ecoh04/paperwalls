@@ -19,6 +19,31 @@ type PreviewEditStepProps = {
   onCropDataReady?: (getBlob: () => Promise<Blob | null>) => void;
 };
 
+type Size = { w: number; h: number };
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Cover-scale fit: the smallest scale factor at which the image fully covers
+ * a frame of `frame` size (so there is never empty space inside the frame).
+ */
+function computeCover(img: Size, frame: Size): number {
+  return Math.max(frame.w / img.w, frame.h / img.h);
+}
+
+/**
+ * Pan range that keeps `img` fully covering `frame` on both axes.
+ * Returns 0 on an axis where the image fits the frame exactly (no slack).
+ */
+function panBounds(img: Size, frame: Size, cover: number): { maxPanX: number; maxPanY: number } {
+  return {
+    maxPanX: Math.max(0, (img.w * cover - frame.w) / 2),
+    maxPanY: Math.max(0, (img.h * cover - frame.h) / 2),
+  };
+}
+
 export function PreviewEditStep({
   stepNumber,
   wallLabel,
@@ -33,20 +58,74 @@ export function PreviewEditStep({
 }: PreviewEditStepProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const imgRef   = useRef<HTMLImageElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart,  setDragStart]  = useState<{ panX: number; panY: number; clientX: number; clientY: number } | null>(null);
-  const [imgSize,    setImgSize]    = useState<{ w: number; h: number } | null>(null);
-  const [frameSize,  setFrameSize]  = useState<{ w: number; h: number } | null>(null);
+  const rafRef   = useRef<number | null>(null);
+  const dragStartRef = useRef<{ panX: number; panY: number; clientX: number; clientY: number } | null>(null);
 
-  /**
-   * Exports exactly the pixels visible inside the print frame as a JPEG.
-   * Display always uses cover scale (no zoom) — the image fills the frame edge-to-edge,
-   * panning lets the user choose which portion is kept.
-   */
+  const [isDragging, setIsDragging] = useState(false);
+  const [imgSize,    setImgSize]    = useState<Size | null>(null);
+  const [frameSize,  setFrameSize]  = useState<Size | null>(null);
+
+  // ── Reset image-bound state when the URL changes ────────────────────────
+  // Without this, when the user picks a new image we render the new image
+  // src at the *previous* image's natural dimensions until the new onLoad
+  // fires — visually jumpy and gives a wrong cover scale during the gap.
+  useEffect(() => {
+    setImgSize(null);
+  }, [imageUrl]);
+
+  // ── ResizeObserver on the frame ─────────────────────────────────────────
+  // ResizeObserver catches all container size changes (window resize, layout
+  // reflow, sidebar toggling, mobile keyboard). `window.resize` only fires
+  // for actual viewport changes, missing layout-driven reflows.
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+
+    const measure = () => {
+      const rect = frame.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setFrameSize((prev) => {
+          if (prev && prev.w === rect.width && prev.h === rect.height) return prev;
+          return { w: rect.width, h: rect.height };
+        });
+      }
+    };
+
+    measure();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(measure);
+      ro.observe(frame);
+      return () => ro.disconnect();
+    }
+    // Fallback for older browsers
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [widthM, heightM]);
+
+  // ── Re-clamp pan when sizes change ──────────────────────────────────────
+  // When the user changes wall dimensions or the layout reflows, the pan
+  // range can shrink. Without this, the image can drift outside the cover
+  // bounds (showing empty space inside the frame).
+  useEffect(() => {
+    if (!imgSize || !frameSize) return;
+    const cover = computeCover(imgSize, frameSize);
+    const { maxPanX, maxPanY } = panBounds(imgSize, frameSize, cover);
+    const cx = clamp(panX, -maxPanX, maxPanX);
+    const cy = clamp(panY, -maxPanY, maxPanY);
+    if (cx !== panX || cy !== panY) {
+      onPanChange(cx, cy);
+    }
+    // Intentionally only re-runs when sizes change. Including panX/panY/onPanChange
+    // would create a feedback loop with the parent's state updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imgSize, frameSize]);
+
+  // ── Crop blob (exact pixels visible in frame, exported as JPEG) ─────────
   const getCroppedBlob = useCallback(async (): Promise<Blob | null> => {
     const frame = frameRef.current;
     const img   = imgRef.current;
-    if (!frame || !img || !img.naturalWidth || !imgSize) return null;
+    if (!frame || !img || !img.naturalWidth || !img.naturalHeight || !imgSize) return null;
 
     const rect    = frame.getBoundingClientRect();
     const frameW  = rect.width;
@@ -55,17 +134,18 @@ export function PreviewEditStep({
     const natH    = img.naturalHeight;
     const cover   = Math.max(frameW / natW, frameH / natH);
 
+    // Map the visible-frame rectangle from display space back into source pixels.
     const sourceW = frameW / cover;
     const sourceH = frameH / cover;
     const sourceX = natW / 2 - sourceW / 2 - panX / cover;
     const sourceY = natH / 2 - sourceH / 2 - panY / cover;
-    const sx      = Math.max(0, Math.min(natW - sourceW, sourceX));
-    const sy      = Math.max(0, Math.min(natH - sourceH, sourceY));
+    const sx      = clamp(sourceX, 0, Math.max(0, natW - sourceW));
+    const sy      = clamp(sourceY, 0, Math.max(0, natH - sourceH));
     const sw      = Math.min(sourceW, natW - sx);
     const sh      = Math.min(sourceH, natH - sy);
 
-    // Cap longest edge at 4000 px to keep cart localStorage workable while staying sharp
-    // (covers a 4.8m wall at the 0.83 px/mm threshold).
+    // Cap longest edge at 4000 px so the cart's localStorage blob stays manageable
+    // (4000 px covers a 4.8 m wall at the 0.83 px/mm sharpness threshold).
     const OUT_MAX     = 4000;
     const scaleFactor = Math.min(OUT_MAX / sw, OUT_MAX / sh, 1);
     const outW        = Math.max(1, Math.round(sw * scaleFactor));
@@ -84,57 +164,66 @@ export function PreviewEditStep({
     if (onCropDataReady) onCropDataReady(getCroppedBlob);
   }, [onCropDataReady, getCroppedBlob]);
 
-  // Track on-screen frame size so the image always fully covers it (no dead space inside crop area).
-  useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const update = () => {
-      const rect = frame.getBoundingClientRect();
-      setFrameSize({ w: rect.width, h: rect.height });
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, [widthM, heightM]);
-
   const handleImgLoad = () => {
     const img = imgRef.current;
-    if (img) setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
+    if (!img) return;
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    if (w > 0 && h > 0) setImgSize({ w, h });
   };
 
+  // ── Drag handling ───────────────────────────────────────────────────────
+  // We compute pan into a ref each frame and commit via requestAnimationFrame
+  // so rapid pointer events don't trigger 60+ React renders per second.
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (!imgSize || !frameSize) return;
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     setIsDragging(true);
-    setDragStart({ panX, panY, clientX: e.clientX, clientY: e.clientY });
+    dragStartRef.current = { panX, panY, clientX: e.clientX, clientY: e.clientY };
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging || !dragStart || !imgSize || !frameSize) return;
-    const dx = e.clientX - dragStart.clientX;
-    const dy = e.clientY - dragStart.clientY;
+    if (!isDragging || !dragStartRef.current || !imgSize || !frameSize) return;
 
-    const cover       = Math.max(frameSize.w / imgSize.w, frameSize.h / imgSize.h);
-    const imgDisplayW = imgSize.w * cover;
-    const imgDisplayH = imgSize.h * cover;
+    const start = dragStartRef.current;
+    const dx = e.clientX - start.clientX;
+    const dy = e.clientY - start.clientY;
 
-    // Pan range that keeps image fully covering the frame on each axis.
-    const maxPanX = Math.max(0, (imgDisplayW - frameSize.w) / 2);
-    const maxPanY = Math.max(0, (imgDisplayH - frameSize.h) / 2);
+    const cover = computeCover(imgSize, frameSize);
+    const { maxPanX, maxPanY } = panBounds(imgSize, frameSize, cover);
 
-    const nextX = Math.min(maxPanX, Math.max(-maxPanX, dragStart.panX + dx));
-    const nextY = Math.min(maxPanY, Math.max(-maxPanY, dragStart.panY + dy));
+    const nextX = clamp(start.panX + dx, -maxPanX, maxPanX);
+    const nextY = clamp(start.panY + dy, -maxPanY, maxPanY);
 
-    onPanChange(nextX, nextY);
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      onPanChange(nextX, nextY);
+    });
   };
 
-  const handlePointerUp = () => setIsDragging(false);
+  const endDrag = () => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    dragStartRef.current = null;
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   if (!imageUrl || widthM <= 0 || heightM <= 0) return null;
 
-  const cover =
-    imgSize && frameSize
-      ? Math.max(frameSize.w / imgSize.w, frameSize.h / imgSize.h)
-      : 1;
+  // Both sizes must be known before we render the positioned image; until
+  // then we show a soft placeholder with the same aspect ratio as the wall.
+  const ready = imgSize !== null && frameSize !== null;
+
+  const cover = ready ? computeCover(imgSize, frameSize) : 1;
 
   const widthCm  = widthM  * 100;
   const heightCm = heightM * 100;
@@ -156,7 +245,7 @@ export function PreviewEditStep({
             }}
           >
             {/* Faint full-image backdrop so users see what's being cropped away */}
-            {imgSize && (
+            {ready && imgSize && (
               <div className="pointer-events-none absolute inset-0 opacity-25">
                 <img
                   src={imageUrl}
@@ -167,6 +256,7 @@ export function PreviewEditStep({
                     width:  imgSize.w * cover,
                     height: imgSize.h * cover,
                     transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
+                    willChange: isDragging ? "transform" : undefined,
                   }}
                 />
               </div>
@@ -182,28 +272,65 @@ export function PreviewEditStep({
                   ref={frameRef}
                   className="absolute inset-0 rounded-md border-[3px] border-pw-ink/80 shadow-[0_0_0_1px_rgba(0,0,0,0.18)] overflow-hidden bg-pw-surface/90"
                 >
+                  {/*
+                    Hidden loader image: drives onLoad without ever being visible
+                    at the wrong size. The visible image only renders once both
+                    image natural size AND frame size are known.
+                  */}
                   <img
                     ref={imgRef}
                     src={imageUrl}
                     alt="Your design"
                     onLoad={handleImgLoad}
                     draggable={false}
-                    className="absolute left-1/2 top-1/2 max-w-none select-none pointer-events-none object-cover"
-                    style={{
-                      width:  imgSize ? imgSize.w * cover : "100%",
-                      height: imgSize ? imgSize.h * cover : "100%",
-                      transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
-                    }}
+                    className="absolute inset-0 h-full w-full opacity-0 pointer-events-none"
+                    style={{ visibility: ready ? "hidden" : "hidden" }}
                   />
+
+                  {ready && imgSize ? (
+                    <div
+                      className="absolute left-1/2 top-1/2 max-w-none select-none pointer-events-none"
+                      style={{
+                        width:  imgSize.w * cover,
+                        height: imgSize.h * cover,
+                        transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
+                        backgroundImage: `url(${imageUrl})`,
+                        backgroundSize: "100% 100%",
+                        backgroundRepeat: "no-repeat",
+                        willChange: isDragging ? "transform" : undefined,
+                      }}
+                      aria-hidden
+                    />
+                  ) : (
+                    /* Loading skeleton shown until image + frame both measured */
+                    <div className="absolute inset-0 flex items-center justify-center bg-pw-stone/50">
+                      <div className="flex flex-col items-center gap-2 text-pw-muted">
+                        <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle cx="12" cy="12" r="9" strokeWidth="2" strokeOpacity="0.25" />
+                          <path d="M21 12a9 9 0 0 1-9 9" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        <span className="text-xs">Loading preview…</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
+                {/*
+                  Drag overlay — touch-action: none stops the OS from
+                  scrolling/zooming on touchstart so pointermove fires cleanly.
+                  Pointer events on this element capture the drag.
+                */}
                 <div
-                  className="absolute inset-0 cursor-grab active:cursor-grabbing rounded-md"
+                  className={[
+                    "absolute inset-0 rounded-md",
+                    ready ? "cursor-grab active:cursor-grabbing" : "cursor-progress",
+                  ].join(" ")}
                   style={{ touchAction: "none" }}
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onPointerLeave={handlePointerUp}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                  onPointerLeave={endDrag}
                 />
               </div>
 
