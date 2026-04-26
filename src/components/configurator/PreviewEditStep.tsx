@@ -4,35 +4,28 @@ import { useCallback, useRef, useState, useEffect } from "react";
 import { getQuality, formatMaxSizeCm } from "@/lib/quality";
 
 type PreviewEditStepProps = {
-  stepNumber:       number;
+  /** Step chip label. Not shown when `compact` is true. */
+  stepNumber?:      number;
+  /** Optional sub-heading suffix, e.g. " · Wall 1" */
+  wallLabel?:       string;
+  /** Skips the outer card + heading (useful when nested inside a multi-wall wrapper). */
+  compact?:         boolean;
   imageUrl:         string | null;
   widthM:           number;
   heightM:          number;
-  wallLabel?:       string;
   panX:             number;
   panY:             number;
   onPanChange:      (x: number, y: number) => void;
   onCropDataReady?: (getBlob: () => Promise<Blob | null>) => void;
 };
 
-/** Generate tick positions for a ruler (0 to max in m). Currently unused but kept for future ruler overlay. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function rulerTicks(maxM: number): number[] {
-  if (maxM <= 0) return [0];
-  const step = maxM <= 1 ? 0.25 : maxM <= 3 ? 0.5 : 1;
-  const ticks: number[] = [0];
-  let v = step;
-  while (v < maxM - 0.01) { ticks.push(v); v += step; }
-  ticks.push(maxM);
-  return ticks;
-}
-
 export function PreviewEditStep({
   stepNumber,
+  wallLabel,
+  compact = false,
   imageUrl,
   widthM,
   heightM,
-  wallLabel,
   panX,
   panY,
   onPanChange,
@@ -125,7 +118,6 @@ export function PreviewEditStep({
     const imgDisplayH = imgSize.h * cover;
 
     // Pan range that keeps image fully covering the frame on each axis.
-    // (If image fits exactly on an axis, pan range collapses to 0 — no jitter.)
     const maxPanX = Math.max(0, (imgDisplayW - frameSize.w) / 2);
     const maxPanY = Math.max(0, (imgDisplayH - frameSize.h) / 2);
 
@@ -151,31 +143,16 @@ export function PreviewEditStep({
     ? getQuality(imgSize.w, imgSize.h, widthM, heightM)
     : null;
 
-  return (
-    <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
-      {/* Step header */}
-      <div className="flex items-start gap-4 mb-6">
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
-          {stepNumber}
-        </span>
-        <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">
-            Position your image{wallLabel ?? ""}
-          </h2>
-          <p className="mt-1 text-sm text-pw-muted">
-            Drag to reframe. Only what's inside the bordered area will be printed.
-          </p>
-        </div>
-      </div>
-
-      {/* Wall preview and crop area — Photowall-style grey grid with centred wall */}
-      <div className="mt-6 flex flex-col">
+  const previewBody = (
+    <>
+      {/* Wall preview and crop area */}
+      <div className="flex flex-col">
         <div className="mx-auto w-full max-w-5xl">
           <div
             className="relative w-full rounded-xl border border-pw-stone bg-pw-bg/90 overflow-hidden"
             style={{
               backgroundImage:
-                "repeating-linear-gradient(135deg, rgba(148,148,148,0.18) 0, rgba(148,148,148,0.18) 1px, transparent 1px, transparent 16px)",
+                "repeating-linear-gradient(135deg, rgba(148,148,148,0.14) 0, rgba(148,148,148,0.14) 1px, transparent 1px, transparent 16px)",
             }}
           >
             {/* Faint full-image backdrop so users see what's being cropped away */}
@@ -203,7 +180,7 @@ export function PreviewEditStep({
               >
                 <div
                   ref={frameRef}
-                  className="absolute inset-0 rounded-md border-[3px] border-pw-ink/80 shadow-[0_0_0_1px_rgba(0,0,0,0.25)] overflow-hidden bg-pw-surface/90"
+                  className="absolute inset-0 rounded-md border-[3px] border-pw-ink/80 shadow-[0_0_0_1px_rgba(0,0,0,0.18)] overflow-hidden bg-pw-surface/90"
                 >
                   <img
                     ref={imgRef}
@@ -220,7 +197,6 @@ export function PreviewEditStep({
                   />
                 </div>
 
-                {/* Drag overlay — touch-action: none lets pointer events fire cleanly without page-scrolling. */}
                 <div
                   className="absolute inset-0 cursor-grab active:cursor-grabbing rounded-md"
                   style={{ touchAction: "none" }}
@@ -233,28 +209,27 @@ export function PreviewEditStep({
 
               {/* Bottom width label */}
               <div className="mt-3 flex items-center justify-center gap-2">
-                <div className="h-px flex-1 bg-pw-muted" />
-                <span className="text-xs font-medium text-pw-ink tracking-wide">
+                <div className="h-px flex-1 bg-pw-stone-dark" />
+                <span className="text-xs font-medium text-pw-muted tracking-wide">
                   {widthCm.toFixed(0)} cm
                 </span>
-                <div className="h-px flex-1 bg-pw-muted" />
+                <div className="h-px flex-1 bg-pw-stone-dark" />
               </div>
 
               {/* Right-hand height label */}
               <div className="absolute inset-y-0 -right-10 hidden md:flex flex-col items-center justify-center gap-2">
-                <div className="w-px flex-1 bg-pw-muted" />
-                <span className="text-xs font-medium text-pw-ink rotate-90 whitespace-nowrap tracking-wide">
+                <div className="w-px flex-1 bg-pw-stone-dark" />
+                <span className="text-xs font-medium text-pw-muted rotate-90 whitespace-nowrap tracking-wide">
                   {heightCm.toFixed(0)} cm
                 </span>
-                <div className="w-px flex-1 bg-pw-muted" />
+                <div className="w-px flex-1 bg-pw-stone-dark" />
               </div>
             </div>
           </div>
         </div>
 
-        <p className="mt-3 text-xs text-pw-muted text-center">
-          Only what is visible inside the bordered area is printed.
-          <span className="sm:hidden"> Drag inside the frame to reposition.</span>
+        <p className="mt-3 text-xs text-pw-muted-light text-center">
+          Drag to reposition. Only what's inside the frame will be printed.
         </p>
       </div>
 
@@ -263,12 +238,12 @@ export function PreviewEditStep({
           className={[
             "mt-5 flex gap-3 rounded-xl border p-4",
             quality.level === "too_low"
-              ? "border-red-200 bg-red-50"
-              : "border-amber-200 bg-amber-50",
+              ? "border-amber-300 bg-amber-50"
+              : "border-amber-200 bg-amber-50/60",
           ].join(" ")}
         >
           <svg
-            className={["mt-0.5 h-5 w-5 shrink-0", quality.level === "too_low" ? "text-red-500" : "text-amber-500"].join(" ")}
+            className="mt-0.5 h-5 w-5 shrink-0 text-amber-600"
             fill="none" viewBox="0 0 24 24" stroke="currentColor"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -276,18 +251,54 @@ export function PreviewEditStep({
             />
           </svg>
           <div>
-            <p className={["text-sm font-semibold", quality.level === "too_low" ? "text-red-800" : "text-amber-800"].join(" ")}>
-              {quality.level === "too_low" ? "Image too low-res for this wall size" : "Quality is close to the limit"}
-            </p>
-            <p className={["mt-0.5 text-sm", quality.level === "too_low" ? "text-red-700" : "text-amber-700"].join(" ")}>
+            <p className="text-sm font-semibold text-amber-900">
               {quality.level === "too_low"
-                ? "We won't print this — it'll come out pixelated. Use a higher-resolution image, or reduce the wall size below."
+                ? "Image is a bit small for this wall size"
+                : "Sharpness is on the edge"}
+            </p>
+            <p className="mt-0.5 text-sm text-amber-800">
+              {quality.level === "too_low"
+                ? "We can't print this sharply at this size. Use a higher-resolution image, or reduce the wall a little."
                 : "It'll look fine from a normal viewing distance. For sharper results, reduce the wall slightly or use a higher-res image."}{" "}
-              Max sharp size for your image: <strong>{formatMaxSizeCm(quality.maxWidthM, quality.maxHeightM)}</strong>.
+              Best up to: <strong>{formatMaxSizeCm(quality.maxWidthM, quality.maxHeightM)}</strong>.
             </p>
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (compact) {
+    // Sub-block inside a parent multi-wall wrapper — no card, no step chip.
+    return (
+      <div className="rounded-pw border border-pw-stone bg-pw-bg/40 p-4">
+        {wallLabel && (
+          <p className="text-sm font-semibold text-pw-ink mb-3">{wallLabel.replace(/^\s*·\s*/, "")}</p>
+        )}
+        {previewBody}
+      </div>
+    );
+  }
+
+  return (
+    <section className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
+      <div className="flex items-start gap-4 mb-6">
+        {stepNumber !== undefined && (
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pw-accent bg-pw-accent-soft text-sm font-semibold text-pw-accent">
+            {stepNumber}
+          </span>
+        )}
+        <div>
+          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">
+            Place it on your wall{wallLabel ?? ""}
+          </h2>
+          <p className="mt-1 text-sm text-pw-muted">
+            Drag the image to reframe. We'll print exactly what's inside the bordered area.
+          </p>
+        </div>
+      </div>
+
+      {previewBody}
     </section>
   );
 }

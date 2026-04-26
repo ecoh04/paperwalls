@@ -70,15 +70,15 @@ export function StyleStep({
   if (totalSqm <= 0) return null;
 
   return (
-    <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
+    <section className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pw-accent bg-pw-accent-soft text-sm font-semibold text-pw-accent">
           {stepNumber}
         </span>
         <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Wallpaper type &amp; material</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Material &amp; finish</h2>
           <p className="mt-1 text-sm text-pw-muted">
-            Choose how it&apos;s applied and what it feels like. Price updates live.
+            Pick how it sticks to the wall and how it feels. Price updates live.
           </p>
         </div>
       </div>

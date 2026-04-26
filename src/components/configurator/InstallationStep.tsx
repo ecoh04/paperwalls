@@ -30,15 +30,15 @@ export function InstallationStep({ stepNumber, totalSqm, application, onApplicat
     ].join(" ");
 
   return (
-    <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
+    <section className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pw-accent bg-pw-accent-soft text-sm font-semibold text-pw-accent">
           {stepNumber}
         </span>
         <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Installation</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">How will you put it up?</h2>
           <p className="mt-1 text-sm text-pw-muted">
-            How do you want to apply the wallpaper?
+            Hang it yourself or have us send a pro installer.
           </p>
         </div>
       </div>
@@ -99,23 +99,16 @@ export function InstallationStep({ stepNumber, totalSqm, application, onApplicat
         )}
 
         {/* Pro installer */}
-        <button type="button" onClick={() => handlePrimary("pro_installer")} className={[primaryBtn(isProSelected), "flex-col"].join(" ")}>
-          <div className="flex w-full items-start justify-between">
-            <div>
-              <p className="text-base font-semibold text-pw-ink">Pro installer</p>
-              <p className="mt-0.5 text-sm text-pw-muted">
-                We send a certified installer to your address. All materials included.
-              </p>
-            </div>
-            <div className="ml-4 text-right shrink-0">
-              <p className="text-base font-bold text-pw-ink">{formatZar(proTotal)}</p>
-              <p className="text-xs text-pw-muted-light">for {totalSqm.toFixed(1)} m²</p>
-            </div>
+        <button type="button" onClick={() => handlePrimary("pro_installer")} className={primaryBtn(isProSelected)}>
+          <div>
+            <p className="text-base font-semibold text-pw-ink">Pro installer</p>
+            <p className="mt-0.5 text-sm text-pw-muted">
+              We send a certified installer to your address. All materials included.
+            </p>
           </div>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-pw-muted-light">
-            <span>R250/m² labour</span>
-            <span>R500 call-out fee</span>
-            <span>All materials included</span>
+          <div className="ml-4 text-right shrink-0">
+            <p className="text-base font-bold text-pw-ink">{formatZar(proTotal)}</p>
+            <p className="text-xs text-pw-muted-light">for {totalSqm.toFixed(1)} m²</p>
           </div>
         </button>
       </div>

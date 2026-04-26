@@ -167,19 +167,19 @@ export function ImageUploadStep({
   const isMultiDifferent = multiWallMode === "different" && walls.length > 0;
 
   return (
-    <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
+    <section className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pw-accent bg-pw-accent-soft text-sm font-semibold text-pw-accent">
           {stepNumber}
         </span>
         <div>
           <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">
-            Upload your image{walls.length > 1 ? "s" : ""}
+            Your design{walls.length > 1 ? "s" : ""}
           </h2>
           <p className="mt-1 text-sm text-pw-muted">
             {isMultiDifferent
-              ? "Upload one image per wall — printed and cut to each wall's exact size."
-              : "Any photo, artwork or pattern. We print it to your exact wall dimensions."}
+              ? "Upload one image for each wall — we'll print and cut each to its exact size."
+              : "Any photo, artwork or pattern. We'll print it to your wall dimensions."}
           </p>
         </div>
       </div>

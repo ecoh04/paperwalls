@@ -10,7 +10,7 @@ export function FocusedHeader() {
           paper<span className="text-pw-accent">walls</span>
         </Link>
         <Link href="/" className="text-sm text-pw-muted hover:text-pw-ink">
-          ← Save & exit
+          ← Exit
         </Link>
       </div>
     </header>

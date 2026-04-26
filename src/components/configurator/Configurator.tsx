@@ -359,7 +359,7 @@ export function Configurator() {
           resolutionHint={resolutionHint}
         />
 
-        {!isMultiDifferent && (
+        {!isMultiDifferent && state.imagePreviewUrl && previewWidth > 0 && previewHeight > 0 && (
           <PreviewEditStep
             stepNumber={STEP_PREVIEW}
             imageUrl={state.imagePreviewUrl}
@@ -369,24 +369,56 @@ export function Configurator() {
             panY={state.panY}
             onPanChange={setPan}
             onCropDataReady={setCropReady}
+            wallLabel={state.wallCount > 1 ? ` · repeated on ${state.wallCount} walls` : undefined}
           />
         )}
 
-        {isMultiDifferent &&
-          state.walls.map((wall, i) => (
-            <PreviewEditStep
-              key={i}
-              stepNumber={STEP_PREVIEW}
-              imageUrl={wall.imagePreviewUrl ?? null}
-              widthM={wall.widthM}
-              heightM={wall.heightM}
-              wallLabel={` · Wall ${i + 1}`}
-              panX={wall.panX ?? 0}
-              panY={wall.panY ?? 0}
-              onPanChange={(x, y) => setWallPan(i, x, y)}
-              onCropDataReady={(getBlob) => setCropReadyWall(i, getBlob)}
-            />
-          ))}
+        {isMultiDifferent && state.walls.some((w) => w.imagePreviewUrl && w.widthM > 0 && w.heightM > 0) && (
+          <section className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
+            <div className="flex items-start gap-4 mb-6">
+              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pw-accent bg-pw-accent-soft text-sm font-semibold text-pw-accent">
+                {STEP_PREVIEW}
+              </span>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Place each design on its wall</h2>
+                <p className="mt-1 text-sm text-pw-muted">
+                  Drag each image to reframe. We'll print exactly what's inside each frame.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {state.walls.map((wall, i) => {
+                const hasContent = !!wall.imagePreviewUrl && wall.widthM > 0 && wall.heightM > 0;
+                if (!hasContent) {
+                  return (
+                    <div key={i} className="rounded-pw border border-dashed border-pw-stone bg-pw-bg/40 p-4">
+                      <p className="text-sm font-semibold text-pw-ink mb-1">Wall {i + 1}</p>
+                      <p className="text-xs text-pw-muted">
+                        {wall.widthM > 0 && wall.heightM > 0
+                          ? "Upload an image above to position your design."
+                          : "Add dimensions and an image above to position your design."}
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <PreviewEditStep
+                    key={i}
+                    compact
+                    wallLabel={`Wall ${i + 1}`}
+                    imageUrl={wall.imagePreviewUrl ?? null}
+                    widthM={wall.widthM}
+                    heightM={wall.heightM}
+                    panX={wall.panX ?? 0}
+                    panY={wall.panY ?? 0}
+                    onPanChange={(x, y) => setWallPan(i, x, y)}
+                    onCropDataReady={(getBlob) => setCropReadyWall(i, getBlob)}
+                  />
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         <StyleStep
           stepNumber={STEP_MATERIAL}
