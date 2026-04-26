@@ -11,6 +11,8 @@ export interface WallSpec {
   imageHeightPx?:   number | null;
   panX?:            number;
   panY?:            number;
+  /** 1.0 = cover-fit (image fills the wall). Up to 3 = zoomed in (tighter crop). */
+  zoom?:            number;
 }
 
 export interface ConfiguratorState {
@@ -27,6 +29,8 @@ export interface ConfiguratorState {
   imageHeightPx?:  number | null;
   panX:            number;
   panY:            number;
+  /** 1.0 = cover-fit (image fills the wall). Up to 3 = zoomed in (tighter crop). */
+  zoom:            number;
   wallpaperType:   WallpaperType;
   material:        WallpaperMaterial;
   application:     ApplicationMethod;
@@ -44,6 +48,7 @@ export const DEFAULT_CONFIG: ConfiguratorState = {
   imageHeightPx:   null,
   panX:            0,
   panY:            0,
+  zoom:            1,
   wallpaperType:   "traditional",
   material:        "satin",
   application:     "diy",
