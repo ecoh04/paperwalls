@@ -111,7 +111,6 @@ export function Configurator() {
           imageHeightPx: null,
           panX: 0,
           panY: 0,
-          zoom: 1,
         }));
         return;
       }
@@ -126,7 +125,6 @@ export function Configurator() {
             imageHeightPx:   heightPx,
             panX:            0,
             panY:            0,
-            zoom:            1,
           }));
         })
         .catch(() => {
@@ -152,7 +150,6 @@ export function Configurator() {
         imageHeightPx:   null,
         panX: 0,
         panY: 0,
-        zoom: 1,
       };
       return { ...s, walls: next };
     });
@@ -179,13 +176,9 @@ export function Configurator() {
     }
   }, []);
 
-  // ── Pan + zoom handlers ──────────────────────────────────────────────────
+  // ── Pan handlers ─────────────────────────────────────────────────────────
   const setPan = useCallback((x: number, y: number) => {
     setState((s) => ({ ...s, panX: x, panY: y }));
-  }, []);
-
-  const setZoom = useCallback((z: number) => {
-    setState((s) => ({ ...s, zoom: z }));
   }, []);
 
   const setWallPan = useCallback((wallIndex: number, x: number, y: number) => {
@@ -197,18 +190,9 @@ export function Configurator() {
     });
   }, []);
 
-  const setWallZoom = useCallback((wallIndex: number, z: number) => {
-    setState((s) => {
-      const next = [...s.walls];
-      if (!next[wallIndex]) return s;
-      next[wallIndex] = { ...next[wallIndex], zoom: z };
-      return { ...s, walls: next };
-    });
-  }, []);
-
   // ── Swap width/height (single + same mode) ───────────────────────────────
   const handleSwapDimensions = useCallback(() => {
-    setState((s) => ({ ...s, widthM: s.heightM, heightM: s.widthM, panX: 0, panY: 0, zoom: 1 }));
+    setState((s) => ({ ...s, widthM: s.heightM, heightM: s.widthM, panX: 0, panY: 0 }));
   }, []);
 
   // ── Crop blob registration ──────────────────────────────────────────────
@@ -336,8 +320,8 @@ export function Configurator() {
           wallCount={state.wallCount}
           multiWallMode={state.multiWallMode}
           walls={state.walls}
-          onWidthChange={(v) => setState((s) => ({ ...s, widthM: v, panX: 0, panY: 0, zoom: 1 }))}
-          onHeightChange={(v) => setState((s) => ({ ...s, heightM: v, panX: 0, panY: 0, zoom: 1 }))}
+          onWidthChange={(v) => setState((s) => ({ ...s, widthM: v, panX: 0, panY: 0 }))}
+          onHeightChange={(v) => setState((s) => ({ ...s, heightM: v, panX: 0, panY: 0 }))}
           onWallCountChange={(v) =>
             setState((s) => ({
               ...s,
@@ -383,9 +367,7 @@ export function Configurator() {
             heightM={previewHeight}
             panX={state.panX}
             panY={state.panY}
-            zoom={state.zoom}
             onPanChange={setPan}
-            onZoomChange={setZoom}
             onCropDataReady={setCropReady}
             wallLabel={state.wallCount > 1 ? ` · repeated on ${state.wallCount} walls` : undefined}
           />
@@ -429,9 +411,7 @@ export function Configurator() {
                     heightM={wall.heightM}
                     panX={wall.panX ?? 0}
                     panY={wall.panY ?? 0}
-                    zoom={wall.zoom ?? 1}
                     onPanChange={(x, y) => setWallPan(i, x, y)}
-                    onZoomChange={(z) => setWallZoom(i, z)}
                     onCropDataReady={(getBlob) => setCropReadyWall(i, getBlob)}
                   />
                 );
