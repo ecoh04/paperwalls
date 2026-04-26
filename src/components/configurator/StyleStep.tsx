@@ -54,6 +54,7 @@ const MATERIALS: {
 ];
 
 type StyleStepProps = {
+  stepNumber: number;
   totalSqm: number;
   wallpaperType: WallpaperType;
   material: WallpaperMaterial;
@@ -62,7 +63,7 @@ type StyleStepProps = {
 };
 
 export function StyleStep({
-  totalSqm, wallpaperType, material,
+  stepNumber, totalSqm, wallpaperType, material,
   onWallpaperTypeChange, onMaterialChange,
 }: StyleStepProps) {
   const [showDifference, setShowDifference] = useState(false);
@@ -72,7 +73,7 @@ export function StyleStep({
     <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
-          4
+          {stepNumber}
         </span>
         <div>
           <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Wallpaper type &amp; material</h2>

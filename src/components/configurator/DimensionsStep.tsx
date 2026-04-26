@@ -3,104 +3,58 @@
 import type { MultiWallMode, WallSpec } from "@/types/configurator";
 
 type DimensionsStepProps = {
-  widthM: number;
-  heightM: number;
-  wallCount: number;
-  multiWallMode: MultiWallMode;
-  walls: WallSpec[];
-  imageWidthPx?: number;
-  imageHeightPx?: number;
-  onWidthChange: (v: number) => void;
-  onHeightChange: (v: number) => void;
-  onWallCountChange: (v: number) => void;
-  onMultiWallModeChange: (m: MultiWallMode) => void;
-  onWallsChange: (walls: WallSpec[]) => void;
+  stepNumber:           number;
+  widthM:               number;
+  heightM:              number;
+  wallCount:            number;
+  multiWallMode:        MultiWallMode;
+  walls:                WallSpec[];
+  onWidthChange:        (v: number) => void;
+  onHeightChange:       (v: number) => void;
+  onWallCountChange:    (v: number) => void;
+  onMultiWallModeChange:(m: MultiWallMode) => void;
+  onWallsChange:        (walls: WallSpec[]) => void;
+  onSwapDimensions:     () => void;
 };
-
-const MIN_PX_PER_MM = 0.83;
-type QualityLevel = "good" | "borderline" | "too_low";
-
-function getQuality(
-  imgW: number, imgH: number, widthM: number, heightM: number
-): { level: QualityLevel; maxWidthM: number; maxHeightM: number } {
-  const pxPerMmW = imgW  / (widthM  * 1000);
-  const pxPerMmH = imgH  / (heightM * 1000);
-  const pxPerMm  = Math.min(pxPerMmW, pxPerMmH);
-  const maxWidthM  = imgW  / (MIN_PX_PER_MM * 1000);
-  const maxHeightM = imgH  / (MIN_PX_PER_MM * 1000);
-  let level: QualityLevel;
-  if      (pxPerMm < MIN_PX_PER_MM * 0.7)  level = "too_low";
-  else if (pxPerMm < MIN_PX_PER_MM * 1.2)  level = "borderline";
-  else                                       level = "good";
-  return { level, maxWidthM, maxHeightM };
-}
-
-function QualityBadge({ level, maxWidthM, maxHeightM }: { level: QualityLevel; maxWidthM: number; maxHeightM: number }) {
-  if (level === "good") {
-    return (
-      <div className="flex gap-3 rounded-pw border border-green-200 bg-green-50 p-4">
-        <svg className="mt-0.5 h-5 w-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-        </svg>
-        <div>
-          <p className="text-sm font-semibold text-green-800">Great image quality</p>
-          <p className="mt-0.5 text-sm text-green-700">Your file has enough resolution for a sharp, professional print at this size.</p>
-        </div>
-      </div>
-    );
-  }
-  if (level === "borderline") {
-    return (
-      <div className="flex gap-3 rounded-pw border border-amber-200 bg-amber-50 p-4">
-        <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-        </svg>
-        <div>
-          <p className="text-sm font-semibold text-amber-800">Quality is on the limit</p>
-          <p className="mt-0.5 text-sm text-amber-700">
-            Looks fine from a normal viewing distance. For maximum crispness, reduce dimensions slightly or use a higher-res file.
-            Max recommended: <strong>{(maxWidthM * 100).toFixed(0)} × {(maxHeightM * 100).toFixed(0)} cm</strong>.
-          </p>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="flex gap-3 rounded-pw border border-red-200 bg-red-50 p-4">
-      <svg className="mt-0.5 h-5 w-5 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-      </svg>
-      <div>
-        <p className="text-sm font-semibold text-red-800">Image too low-res for this size</p>
-        <p className="mt-0.5 text-sm text-red-700">
-          The print will likely look pixelated. Use a higher-resolution image or reduce the wall dimensions.
-          Max recommended: <strong>{(maxWidthM * 100).toFixed(0)} × {(maxHeightM * 100).toFixed(0)} cm</strong>.
-        </p>
-      </div>
-    </div>
-  );
-}
 
 const inputCls =
   "block w-full rounded-pw border border-pw-stone bg-pw-bg px-4 py-3.5 text-lg text-pw-ink placeholder:text-pw-muted-light focus:border-pw-ink focus:bg-pw-surface focus:outline-none focus:ring-2 focus:ring-pw-ink/10 transition";
 
-export function DimensionsStep({
-  widthM, heightM, wallCount, multiWallMode, walls,
-  imageWidthPx, imageHeightPx,
-  onWidthChange, onHeightChange, onWallCountChange,
-  onMultiWallModeChange, onWallsChange,
-}: DimensionsStepProps) {
-  const isMulti            = wallCount > 1;
-  const totalSqmSame       = widthM * heightM * Math.max(1, wallCount);
-  const totalSqmDifferent  = walls.length > 0 ? walls.reduce((s, w) => s + w.widthM * w.heightM, 0) : 0;
-  const totalSqm           = isMulti && multiWallMode === "different" ? totalSqmDifferent : totalSqmSame;
-  const isValidSame        = widthM > 0 && heightM > 0;
-  const isValidDifferent   = walls.length === wallCount && walls.every((w) => w.widthM > 0 && w.heightM > 0);
+interface SizePreset {
+  label:    string;
+  caption:  string;
+  widthCm:  number;
+  heightCm: number;
+}
 
-  const quality =
-    imageWidthPx && imageHeightPx && widthM > 0 && heightM > 0
-      ? getQuality(imageWidthPx, imageHeightPx, widthM, heightM)
-      : null;
+// Common SA wall sizes — covers the usual customer scenarios so they don't have to measure.
+// Custom is always available as a fallback.
+const PRESETS: SizePreset[] = [
+  { label: "Above the bed",   caption: "180 × 140 cm", widthCm: 180, heightCm: 140 },
+  { label: "Bedroom feature", caption: "300 × 270 cm", widthCm: 300, heightCm: 270 },
+  { label: "Behind couch",    caption: "400 × 260 cm", widthCm: 400, heightCm: 260 },
+  { label: "Whole wall",      caption: "450 × 280 cm", widthCm: 450, heightCm: 280 },
+];
+
+export function DimensionsStep({
+  stepNumber,
+  widthM, heightM, wallCount, multiWallMode, walls,
+  onWidthChange, onHeightChange, onWallCountChange,
+  onMultiWallModeChange, onWallsChange, onSwapDimensions,
+}: DimensionsStepProps) {
+  const isMulti          = wallCount > 1;
+  const usingDifferent   = isMulti && multiWallMode === "different";
+  const widthCm          = widthM  > 0 ? Math.round(widthM  * 100) : 0;
+  const heightCm         = heightM > 0 ? Math.round(heightM * 100) : 0;
+  const totalSqmSame     = widthM * heightM * Math.max(1, wallCount);
+  const totalSqmDifferent= walls.length > 0 ? walls.reduce((s, w) => s + w.widthM * w.heightM, 0) : 0;
+  const totalSqm         = usingDifferent ? totalSqmDifferent : totalSqmSame;
+
+  const isValidSame      = widthM > 0 && heightM > 0;
+  const isValidDifferent = walls.length === wallCount && walls.every((w) => w.widthM > 0 && w.heightM > 0);
+  const showTotal        = (!isMulti && isValidSame) ||
+                           (isMulti && multiWallMode === "same" && isValidSame) ||
+                           (usingDifferent && isValidDifferent);
 
   const ensureWallsLength = (n: number) => {
     if (walls.length === n) return;
@@ -125,6 +79,14 @@ export function DimensionsStep({
     onWallsChange(next);
   };
 
+  // Detect which preset (if any) matches the current entry, so we can highlight it.
+  const matchedPreset = PRESETS.find((p) => p.widthCm === widthCm && p.heightCm === heightCm);
+
+  const applyPreset = (p: SizePreset) => {
+    onWidthChange(p.widthCm  / 100);
+    onHeightChange(p.heightCm / 100);
+  };
+
   const pillBtn = (active: boolean) =>
     [
       "rounded-pw border px-5 py-2.5 text-sm font-medium transition-colors touch-manipulation",
@@ -137,17 +99,17 @@ export function DimensionsStep({
     <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
-          2
+          {stepNumber}
         </span>
         <div>
           <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Wall dimensions</h2>
           <p className="mt-1 text-sm text-pw-muted">
-            Enter the width and height in centimetres. Add 5–10 cm each side for a trimmed edge.
+            Pick a common size or enter your own. Add 5–10 cm bleed each side for a clean trimmed edge.
           </p>
         </div>
       </div>
 
-      {/* Wall count */}
+      {/* ── Wall count ─────────────────────────────────────────────────────────── */}
       <div>
         <label className="block text-sm font-semibold text-pw-ink mb-3">How many walls?</label>
         <div className="flex flex-wrap gap-2">
@@ -159,79 +121,136 @@ export function DimensionsStep({
         </div>
       </div>
 
-      {/* Multi-wall mode */}
+      {/* ── Multi-wall mode ────────────────────────────────────────────────────── */}
       {isMulti && (
         <div className="mt-6">
           <label className="block text-sm font-semibold text-pw-ink mb-1">Same image and size for all?</label>
           <p className="text-sm text-pw-muted mb-3">
-            Same: one design printed at equal size for every wall. Different: configure each wall individually.
+            Same: one design, equal size on every wall. Different: each wall configured separately.
           </p>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => handleMultiWallMode("same")} className={pillBtn(multiWallMode === "same")}>
-              Yes, same for all
+              Same for all
             </button>
             <button type="button" onClick={() => handleMultiWallMode("different")} className={pillBtn(multiWallMode === "different")}>
-              No, different per wall
+              Different per wall
             </button>
           </div>
         </div>
       )}
 
-      {/* Single-size inputs */}
+      {/* ── Single-size inputs (1 wall, or "same" mode) ────────────────────────── */}
       {(!isMulti || multiWallMode === "same") && (
-        <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          <div>
-            <label htmlFor="dim-w" className="block text-sm font-semibold text-pw-ink mb-2">
-              Width <span className="font-normal text-pw-muted">(cm)</span>
-            </label>
-            <input
-              id="dim-w"
-              type="number"
-              min={10} max={2000} step={1}
-              value={widthM > 0 ? Math.round(widthM * 100) : ""}
-              onChange={(e) => {
-                const cm = parseFloat(e.target.value) || 0;
-                let m = cm / 100;
-                if (imageWidthPx) m = Math.min(m, imageWidthPx / (MIN_PX_PER_MM * 1000));
-                onWidthChange(Math.round(m * 100) / 100);
-              }}
-              placeholder="e.g. 400"
-              className={inputCls}
-            />
-            {widthM > 0 && (
-              <p className="mt-1.5 text-xs text-pw-muted-light">{(widthM * 100).toFixed(0)} cm = {widthM.toFixed(2)} m</p>
-            )}
+        <>
+          {/* Common-size presets */}
+          <div className="mt-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-pw-muted-light mb-3">
+              Common sizes
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {PRESETS.map((p) => {
+                const active = matchedPreset?.label === p.label;
+                return (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => applyPreset(p)}
+                    className={[
+                      "flex flex-col gap-0.5 rounded-pw border px-3 py-3 text-left transition-colors touch-manipulation",
+                      active
+                        ? "border-pw-ink bg-pw-surface shadow-pw-sm ring-1 ring-pw-ink/20"
+                        : "border-[rgba(26,23,20,0.1)] bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface",
+                    ].join(" ")}
+                  >
+                    <span className="text-sm font-semibold text-pw-ink">{p.label}</span>
+                    <span className="text-xs text-pw-muted">{p.caption}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-pw-muted-light">
+              {matchedPreset
+                ? `Using preset: ${matchedPreset.label}.`
+                : widthCm > 0 || heightCm > 0
+                  ? "Custom size — adjust the inputs below."
+                  : "Or enter your own measurements below."}
+            </p>
           </div>
-          <div>
-            <label htmlFor="dim-h" className="block text-sm font-semibold text-pw-ink mb-2">
-              Height <span className="font-normal text-pw-muted">(cm)</span>
-            </label>
-            <input
-              id="dim-h"
-              type="number"
-              min={10} max={2000} step={1}
-              value={heightM > 0 ? Math.round(heightM * 100) : ""}
-              onChange={(e) => {
-                const cm = parseFloat(e.target.value) || 0;
-                let m = cm / 100;
-                if (imageHeightPx) m = Math.min(m, imageHeightPx / (MIN_PX_PER_MM * 1000));
-                onHeightChange(Math.round(m * 100) / 100);
-              }}
-              placeholder="e.g. 240"
-              className={inputCls}
-            />
-            {heightM > 0 && (
-              <p className="mt-1.5 text-xs text-pw-muted-light">{(heightM * 100).toFixed(0)} cm = {heightM.toFixed(2)} m</p>
-            )}
+
+          {/* Custom inputs */}
+          <div className="mt-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-pw-muted-light">
+                Or enter your size
+              </p>
+              {widthCm > 0 && heightCm > 0 && (
+                <button
+                  type="button"
+                  onClick={onSwapDimensions}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-pw-muted hover:text-pw-ink transition-colors"
+                  title="Swap width and height"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                  </svg>
+                  Swap W ↔ H
+                </button>
+              )}
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label htmlFor="dim-w" className="block text-sm font-semibold text-pw-ink mb-2">
+                  Width <span className="font-normal text-pw-muted">(cm)</span>
+                </label>
+                <input
+                  id="dim-w"
+                  type="number"
+                  min={10} max={2000} step={1}
+                  value={widthCm > 0 ? widthCm : ""}
+                  onChange={(e) => {
+                    const cm = Math.max(0, Math.floor(parseFloat(e.target.value) || 0));
+                    onWidthChange(cm / 100);
+                  }}
+                  placeholder="e.g. 400"
+                  className={inputCls}
+                />
+                {widthCm > 0 && (
+                  <p className="mt-1.5 text-xs text-pw-muted-light">{widthCm} cm = {(widthCm / 100).toFixed(2)} m</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="dim-h" className="block text-sm font-semibold text-pw-ink mb-2">
+                  Height <span className="font-normal text-pw-muted">(cm)</span>
+                </label>
+                <input
+                  id="dim-h"
+                  type="number"
+                  min={10} max={2000} step={1}
+                  value={heightCm > 0 ? heightCm : ""}
+                  onChange={(e) => {
+                    const cm = Math.max(0, Math.floor(parseFloat(e.target.value) || 0));
+                    onHeightChange(cm / 100);
+                  }}
+                  placeholder="e.g. 240"
+                  className={inputCls}
+                />
+                {heightCm > 0 && (
+                  <p className="mt-1.5 text-xs text-pw-muted-light">{heightCm} cm = {(heightCm / 100).toFixed(2)} m</p>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Per-wall inputs */}
-      {isMulti && multiWallMode === "different" && (
+      {/* ── Per-wall inputs (different mode) ───────────────────────────────────── */}
+      {usingDifferent && (
         <div className="mt-6 space-y-4">
           {Array.from({ length: wallCount }, (_, i) => {
             const w = walls[i] ?? { widthM: 0, heightM: 0 };
+            const cmW = Math.round(w.widthM  * 100);
+            const cmH = Math.round(w.heightM * 100);
             return (
               <div key={i} className="rounded-pw border border-pw-stone bg-pw-bg p-4">
                 <p className="text-sm font-semibold text-pw-ink mb-3">Wall {i + 1}</p>
@@ -240,8 +259,8 @@ export function DimensionsStep({
                     <label className="block text-xs font-semibold text-pw-muted mb-1.5">Width (cm)</label>
                     <input
                       type="number" min={10} max={2000} step={1}
-                      value={w.widthM > 0 ? Math.round(w.widthM * 100) : ""}
-                      onChange={(e) => setWall(i, "widthM", parseFloat(e.target.value) || 0)}
+                      value={cmW > 0 ? cmW : ""}
+                      onChange={(e) => setWall(i, "widthM", Math.max(0, Math.floor(parseFloat(e.target.value) || 0)))}
                       placeholder="e.g. 400"
                       className="block w-full rounded-pw border border-pw-stone bg-pw-surface px-4 py-3 text-base text-pw-ink placeholder:text-pw-muted-light focus:border-pw-ink focus:outline-none focus:ring-2 focus:ring-pw-ink/10 transition"
                     />
@@ -250,8 +269,8 @@ export function DimensionsStep({
                     <label className="block text-xs font-semibold text-pw-muted mb-1.5">Height (cm)</label>
                     <input
                       type="number" min={10} max={2000} step={1}
-                      value={w.heightM > 0 ? Math.round(w.heightM * 100) : ""}
-                      onChange={(e) => setWall(i, "heightM", parseFloat(e.target.value) || 0)}
+                      value={cmH > 0 ? cmH : ""}
+                      onChange={(e) => setWall(i, "heightM", Math.max(0, Math.floor(parseFloat(e.target.value) || 0)))}
                       placeholder="e.g. 240"
                       className="block w-full rounded-pw border border-pw-stone bg-pw-surface px-4 py-3 text-base text-pw-ink placeholder:text-pw-muted-light focus:border-pw-ink focus:outline-none focus:ring-2 focus:ring-pw-ink/10 transition"
                     />
@@ -266,18 +285,23 @@ export function DimensionsStep({
         </div>
       )}
 
-      {/* Total area */}
-      {totalSqm > 0 && ((!isMulti && isValidSame) || (isMulti && multiWallMode === "same" && isValidSame) || (isMulti && multiWallMode === "different" && isValidDifferent)) && (
+      {/* ── Total area ─────────────────────────────────────────────────────────── */}
+      {showTotal && totalSqm > 0 && (
         <div className="mt-5 flex items-center justify-between rounded-pw bg-pw-bg border border-pw-stone px-4 py-3">
-          <span className="text-sm text-pw-muted">Total print area</span>
+          <div className="flex flex-col">
+            <span className="text-sm text-pw-muted">Total print area</span>
+            {isMulti && multiWallMode === "same" && (
+              <span className="text-xs text-pw-muted-light">
+                {widthCm} × {heightCm} cm × {wallCount} walls
+              </span>
+            )}
+            {usingDifferent && (
+              <span className="text-xs text-pw-muted-light">
+                {wallCount} walls, varying sizes
+              </span>
+            )}
+          </div>
           <span className="text-lg font-bold text-pw-ink">{totalSqm.toFixed(2)} m²</span>
-        </div>
-      )}
-
-      {/* Quality indicator */}
-      {!isMulti && quality && (
-        <div className="mt-4">
-          <QualityBadge level={quality.level} maxWidthM={quality.maxWidthM} maxHeightM={quality.maxHeightM} />
         </div>
       )}
     </section>

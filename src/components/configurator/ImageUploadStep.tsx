@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 
 const MAX_SIZE_MB = 50;
-const ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
+const ACCEPT = "image/jpeg,image/png,image/webp";
 
 function UploadIcon() {
   return (
@@ -15,7 +15,7 @@ function UploadIcon() {
   );
 }
 
-function ErrorBanner({ message }: { message: string }) {
+function ErrorBanner({ title, message }: { title: string; message: string }) {
   return (
     <div className="flex gap-3 rounded-pw border border-red-200 bg-red-50 p-4">
       <svg className="mt-0.5 h-5 w-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -24,7 +24,7 @@ function ErrorBanner({ message }: { message: string }) {
         />
       </svg>
       <div>
-        <p className="text-sm font-semibold text-red-800">Image resolution too low</p>
+        <p className="text-sm font-semibold text-red-800">{title}</p>
         <p className="mt-0.5 text-sm text-red-700">{message}</p>
       </div>
     </div>
@@ -33,13 +33,19 @@ function ErrorBanner({ message }: { message: string }) {
 
 type SingleUploadProps = {
   imagePreviewUrl: string | null;
-  onFileSelect: (file: File | null) => void;
-  uploadError?: string | null;
+  imageWidthPx?:   number | null;
+  imageHeightPx?:  number | null;
+  onFileSelect:    (file: File | null) => void;
+  uploadError?:    string | null;
+  /** Extra recommendation text shown under the dropzone (e.g. minimum px for the chosen wall size). */
+  hint?:           string;
 };
 
-function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUploadProps) {
+function SingleUpload({
+  imagePreviewUrl, imageWidthPx, imageHeightPx, onFileSelect, uploadError, hint,
+}: SingleUploadProps) {
   const [dragActive, setDragActive] = useState(false);
-  const [sizeError, setSizeError]   = useState<string | null>(null);
+  const [sizeError,  setSizeError]  = useState<string | null>(null);
 
   const validateAndSet = useCallback(
     (file: File | null) => {
@@ -53,8 +59,6 @@ function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUplo
     },
     [onFileSelect]
   );
-
-  const displayError = uploadError || sizeError;
 
   if (!imagePreviewUrl) {
     return (
@@ -83,16 +87,15 @@ function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUplo
             <p className="text-base font-medium text-pw-ink">
               {dragActive ? "Drop it here" : "Drag & drop, or tap to browse"}
             </p>
-            <p className="mt-1 text-sm text-pw-muted">
-              JPG, PNG, WebP or PDF — up to 50MB
-            </p>
+            <p className="mt-1 text-sm text-pw-muted">JPG, PNG or WebP — up to 50MB</p>
           </div>
-          <p className="text-xs text-pw-muted-light px-6 text-center">
-            Use the highest resolution file available for the sharpest print
-          </p>
+          {hint && (
+            <p className="text-xs text-pw-muted-light px-6 text-center max-w-md">{hint}</p>
+          )}
         </label>
 
-        {displayError && <ErrorBanner message={displayError} />}
+        {sizeError && <ErrorBanner title="File too large" message={sizeError} />}
+        {uploadError && <ErrorBanner title="Image issue" message={uploadError} />}
       </div>
     );
   }
@@ -111,9 +114,14 @@ function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUplo
               </svg>
             </div>
             <p className="text-sm font-semibold text-pw-ink">Image uploaded</p>
+            {imageWidthPx && imageHeightPx && (
+              <span className="text-xs text-pw-muted-light">
+                {imageWidthPx} × {imageHeightPx}px
+              </span>
+            )}
           </div>
           <p className="mt-1 text-sm text-pw-muted">
-            Position it on your wall in the preview step below.
+            Position it inside the wall preview below.
           </p>
           <button
             type="button"
@@ -125,27 +133,36 @@ function SingleUpload({ imagePreviewUrl, onFileSelect, uploadError }: SingleUplo
         </div>
       </div>
 
-      {displayError && <ErrorBanner message={displayError} />}
+      {uploadError && <ErrorBanner title="Image issue" message={uploadError} />}
     </div>
   );
 }
 
 type ImageUploadStepProps = {
-  imagePreviewUrl: string | null;
-  onFileSelect: (file: File | null) => void;
-  multiWallMode?: "same" | "different";
-  walls?: { imagePreviewUrl?: string | null }[];
+  stepNumber:       number;
+  imagePreviewUrl:  string | null;
+  imageWidthPx?:    number | null;
+  imageHeightPx?:   number | null;
+  onFileSelect:     (file: File | null) => void;
+  multiWallMode?:   "same" | "different";
+  walls?:           { imagePreviewUrl?: string | null }[];
   onWallFileSelect?: (wallIndex: number, file: File | null) => void;
-  uploadError?: string | null;
+  uploadError?:     string | null;
+  /** Recommendation hint based on entered dimensions (e.g. "For 300×270 cm, use a 2490×2241 px image or larger"). */
+  resolutionHint?:  string;
 };
 
 export function ImageUploadStep({
+  stepNumber,
   imagePreviewUrl,
+  imageWidthPx,
+  imageHeightPx,
   onFileSelect,
   multiWallMode = "same",
   walls = [],
   onWallFileSelect,
   uploadError,
+  resolutionHint,
 }: ImageUploadStepProps) {
   const isMultiDifferent = multiWallMode === "different" && walls.length > 0;
 
@@ -153,7 +170,7 @@ export function ImageUploadStep({
     <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
-          1
+          {stepNumber}
         </span>
         <div>
           <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">
@@ -170,8 +187,11 @@ export function ImageUploadStep({
       {!isMultiDifferent ? (
         <SingleUpload
           imagePreviewUrl={imagePreviewUrl}
+          imageWidthPx={imageWidthPx}
+          imageHeightPx={imageHeightPx}
           onFileSelect={onFileSelect}
           uploadError={uploadError}
+          hint={resolutionHint ?? "Use the highest resolution file you have for the sharpest print."}
         />
       ) : (
         <div className="space-y-4">

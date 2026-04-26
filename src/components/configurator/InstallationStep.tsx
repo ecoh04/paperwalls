@@ -4,12 +4,13 @@ import type { ApplicationMethod } from "@/types/order";
 import { formatZar, calculateInstallationCents } from "@/lib/pricing";
 
 type InstallationStepProps = {
+  stepNumber: number;
   totalSqm: number;
   application: ApplicationMethod;
   onApplicationChange: (a: ApplicationMethod) => void;
 };
 
-export function InstallationStep({ totalSqm, application, onApplicationChange }: InstallationStepProps) {
+export function InstallationStep({ stepNumber, totalSqm, application, onApplicationChange }: InstallationStepProps) {
   if (totalSqm <= 0) return null;
 
   const isDiy    = application === "diy" || application === "diy_kit";
@@ -32,7 +33,7 @@ export function InstallationStep({ totalSqm, application, onApplicationChange }:
     <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
       <div className="flex items-start gap-4 mb-6">
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
-          5
+          {stepNumber}
         </span>
         <div>
           <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Installation</h2>
@@ -57,7 +58,6 @@ export function InstallationStep({ totalSqm, application, onApplicationChange }:
         {/* Optional DIY kit add-on — visually nested under DIY */}
         {isDiy && (
           <div className="flex gap-2 pl-4">
-            {/* Connector line */}
             <div className="flex flex-col items-center shrink-0 pt-1">
               <div className="w-px flex-1 bg-pw-stone-dark" />
             </div>

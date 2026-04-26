@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DimensionsStep } from "./DimensionsStep";
 import { ImageUploadStep } from "./ImageUploadStep";
@@ -10,16 +10,36 @@ import { InstallationStep } from "./InstallationStep";
 import { OrderSummaryPanel } from "./OrderSummaryPanel";
 import { useCart } from "@/contexts/CartContext";
 import { calculateSubtotalCents } from "@/lib/pricing";
+import { getQuality, MIN_PX_PER_MM } from "@/lib/quality";
 import { DEFAULT_CONFIG, type ConfiguratorState, type WallSpec } from "@/types/configurator";
 
-const MIN_UPLOAD_PX = 400;
+// ── Step ordering ───────────────────────────────────────────────────────────
+// 1. Dimensions  → user knows what size they want
+// 2. Upload      → we can give a resolution hint based on dimensions
+// 3. Preview     → only shows once dims + image both set
+// 4. Material    → only shows once area > 0
+// 5. Installation
+const STEP_DIMENSIONS   = 1;
+const STEP_UPLOAD       = 2;
+const STEP_PREVIEW      = 3;
+const STEP_MATERIAL     = 4;
+const STEP_INSTALLATION = 5;
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
+    r.onload  = () => resolve(r.result as string);
     r.onerror = reject;
     r.readAsDataURL(blob);
+  });
+}
+
+function loadImageDimensions(url: string): Promise<{ widthPx: number; heightPx: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload  = () => resolve({ widthPx: img.naturalWidth || img.width, heightPx: img.naturalHeight || img.height });
+    img.onerror = () => reject(new Error("Could not read image"));
+    img.src = url;
   });
 }
 
@@ -29,9 +49,12 @@ export function Configurator() {
   const getCroppedBlobRef  = useRef<(() => Promise<Blob | null>) | null>(null);
   const getCroppedBlobRefs = useRef<((() => Promise<Blob | null>) | null)[]>([]);
 
-  const [state, setState]       = useState<ConfiguratorState>(DEFAULT_CONFIG);
+  const [state, setState]             = useState<ConfiguratorState>(DEFAULT_CONFIG);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting,  setSubmitting]  = useState(false);
 
+  // ── Derived ──────────────────────────────────────────────────────────────
   const totalSqm =
     state.wallCount > 1 && state.multiWallMode === "different" && state.walls.length === state.wallCount
       ? state.walls.reduce((sum, w) => sum + w.widthM * w.heightM, 0)
@@ -45,37 +68,36 @@ export function Configurator() {
   const previewWidth  = isMultiDifferent && state.walls[0] ? state.walls[0].widthM  : state.widthM;
   const previewHeight = isMultiDifferent && state.walls[0] ? state.walls[0].heightM : state.heightM;
 
-  const setPan = useCallback((x: number, y: number) => {
-    setState((s) => ({ ...s, panX: x, panY: y }));
-  }, []);
+  // Resolution hint shown at upload step when dimensions are set.
+  const resolutionHint = useMemo(() => {
+    if (state.widthM <= 0 || state.heightM <= 0) return undefined;
+    const minW = Math.ceil(state.widthM  * 1000 * MIN_PX_PER_MM);
+    const minH = Math.ceil(state.heightM * 1000 * MIN_PX_PER_MM);
+    return `For ${Math.round(state.widthM * 100)} × ${Math.round(state.heightM * 100)} cm, use at least ${minW} × ${minH} px for a sharp print.`;
+  }, [state.widthM, state.heightM]);
 
-  const setScale = useCallback((scale: number) => {
-    setState((s) => ({ ...s, scale }));
-  }, []);
+  // Worst quality across all walls (single + same mode = single check; different mode = max severity).
+  const worstQuality = useMemo<"good" | "borderline" | "too_low" | null>(() => {
+    if (totalSqm <= 0) return null;
 
-  const setWallPan = useCallback((wallIndex: number, x: number, y: number) => {
-    setState((s) => {
-      const next = [...s.walls];
-      if (!next[wallIndex]) return s;
-      next[wallIndex] = { ...next[wallIndex], panX: x, panY: y };
-      return { ...s, walls: next };
-    });
-  }, []);
+    const evals: ("good" | "borderline" | "too_low")[] = [];
+    if (isMultiDifferent) {
+      for (const w of state.walls) {
+        if (w.imageWidthPx && w.imageHeightPx && w.widthM > 0 && w.heightM > 0) {
+          evals.push(getQuality(w.imageWidthPx, w.imageHeightPx, w.widthM, w.heightM).level);
+        }
+      }
+    } else if (state.imageWidthPx && state.imageHeightPx) {
+      // Same-image-each-wall: each wall is the same dimensions, so the per-wall check applies once.
+      evals.push(getQuality(state.imageWidthPx, state.imageHeightPx, state.widthM, state.heightM).level);
+    }
+    if (evals.length === 0) return null;
+    if (evals.includes("too_low"))    return "too_low";
+    if (evals.includes("borderline")) return "borderline";
+    return "good";
+  }, [totalSqm, isMultiDifferent, state.walls, state.imageWidthPx, state.imageHeightPx, state.widthM, state.heightM]);
 
-  const setWallScale = useCallback((wallIndex: number, scale: number) => {
-    setState((s) => {
-      const next = [...s.walls];
-      if (!next[wallIndex]) return s;
-      next[wallIndex] = { ...next[wallIndex], scale };
-      return { ...s, walls: next };
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!state.imagePreviewUrl) return;
-    return () => URL.revokeObjectURL(state.imagePreviewUrl!);
-  }, [state.imagePreviewUrl]);
-
+  // ── Image upload (single image) ──────────────────────────────────────────
   const handleFileSelect = useCallback(
     (file: File | null) => {
       setUploadError(null);
@@ -89,45 +111,31 @@ export function Configurator() {
           imageHeightPx: null,
           panX: 0,
           panY: 0,
-          scale: 1,
         }));
         return;
       }
       const objectUrl = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        const widthPx  = img.naturalWidth  || img.width;
-        const heightPx = img.naturalHeight || img.height;
-
-        if (widthPx < MIN_UPLOAD_PX || heightPx < MIN_UPLOAD_PX) {
+      loadImageDimensions(objectUrl)
+        .then(({ widthPx, heightPx }) => {
+          setState((s) => ({
+            ...s,
+            imageFile:       file,
+            imagePreviewUrl: objectUrl,
+            imageWidthPx:    widthPx,
+            imageHeightPx:   heightPx,
+            panX:            0,
+            panY:            0,
+          }));
+        })
+        .catch(() => {
           URL.revokeObjectURL(objectUrl);
-          setUploadError(
-            `This image is only ${widthPx}×${heightPx}px — far too small for a quality print. ` +
-            `Please use a higher-resolution file (minimum ${MIN_UPLOAD_PX}×${MIN_UPLOAD_PX}px).`
-          );
-          return;
-        }
-
-        setState((s) => ({
-          ...s,
-          imageFile: file,
-          imagePreviewUrl: objectUrl,
-          imageWidthPx: widthPx,
-          imageHeightPx: heightPx,
-          panX: 0,
-          panY: 0,
-          scale: 1,
-        }));
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        setUploadError("Could not read this image file. Please try a different file.");
-      };
-      img.src = objectUrl;
+          setUploadError("Could not read this image. Try a different file (JPG, PNG, or WebP).");
+        });
     },
     [state.imagePreviewUrl]
   );
 
+  // ── Image upload (per-wall, "different" mode) ────────────────────────────
   const handleWallFileSelect = useCallback((wallIndex: number, file: File | null) => {
     setState((s) => {
       const next = [...s.walls];
@@ -136,69 +144,76 @@ export function Configurator() {
       if (!next[wallIndex]) next[wallIndex] = { widthM: 0, heightM: 0 };
       next[wallIndex] = {
         ...next[wallIndex],
-        imageFile: file ?? null,
+        imageFile:       file ?? null,
         imagePreviewUrl: file ? URL.createObjectURL(file) : null,
+        imageWidthPx:    null,
+        imageHeightPx:   null,
         panX: 0,
         panY: 0,
-        scale: 1,
       };
+      return { ...s, walls: next };
+    });
+
+    if (file) {
+      const objectUrl = URL.createObjectURL(file);
+      loadImageDimensions(objectUrl)
+        .then(({ widthPx, heightPx }) => {
+          setState((s) => {
+            const next = [...s.walls];
+            if (!next[wallIndex]) return s;
+            next[wallIndex] = {
+              ...next[wallIndex],
+              imageWidthPx:  widthPx,
+              imageHeightPx: heightPx,
+            };
+            return { ...s, walls: next };
+          });
+        })
+        .catch(() => {
+          // Leave preview but flag — too granular for a global error UI here.
+        })
+        .finally(() => URL.revokeObjectURL(objectUrl));
+    }
+  }, []);
+
+  // ── Pan handlers ─────────────────────────────────────────────────────────
+  const setPan = useCallback((x: number, y: number) => {
+    setState((s) => ({ ...s, panX: x, panY: y }));
+  }, []);
+
+  const setWallPan = useCallback((wallIndex: number, x: number, y: number) => {
+    setState((s) => {
+      const next = [...s.walls];
+      if (!next[wallIndex]) return s;
+      next[wallIndex] = { ...next[wallIndex], panX: x, panY: y };
       return { ...s, walls: next };
     });
   }, []);
 
-  const handleAddToCart = useCallback(async () => {
-    if (totalSqm <= 0) return;
+  // ── Swap width/height (single + same mode) ───────────────────────────────
+  const handleSwapDimensions = useCallback(() => {
+    setState((s) => ({ ...s, widthM: s.heightM, heightM: s.widthM, panX: 0, panY: 0 }));
+  }, []);
 
-    if (isMultiDifferent) {
-      const allHaveImage = state.walls.every((w) => w.imagePreviewUrl);
-      if (!allHaveImage) return;
-      getCroppedBlobRefs.current = getCroppedBlobRefs.current.slice(0, state.walls.length);
-      const blobs = await Promise.all(
-        getCroppedBlobRefs.current.map((getBlob) => (getBlob ? getBlob() : null))
-      );
-      const imageDataUrls = await Promise.all(
-        blobs.map((b) => (b ? blobToDataUrl(b) : ""))
-      );
-      if (imageDataUrls.some((u) => !u)) return;
-      const subtotalCents = calculateSubtotalCents(totalSqm, state.wallpaperType, state.material, state.application);
-      addItem({
-        type:          "wallpaper",
-        widthM:        state.walls[0].widthM,
-        heightM:       state.walls[0].heightM,
-        wallCount:     state.wallCount,
-        walls:         state.walls.map((w) => ({ widthM: w.widthM, heightM: w.heightM })),
-        totalSqm,
-        wallpaperType: state.wallpaperType,
-        material:      state.material,
-        application:   state.application,
-        subtotalCents,
-        imageDataUrls,
-      });
-    } else {
-      if (!state.imagePreviewUrl) return;
-      let imageDataUrl = state.imagePreviewUrl;
-      const getBlob = getCroppedBlobRef.current;
-      if (getBlob) {
-        const blob = await getBlob();
-        if (blob) imageDataUrl = await blobToDataUrl(blob);
-      }
-      const subtotalCents = calculateSubtotalCents(totalSqm, state.wallpaperType, state.material, state.application);
-      addItem({
-        type:          "wallpaper",
-        widthM:        state.widthM,
-        heightM:       state.heightM,
-        wallCount:     state.wallCount,
-        totalSqm,
-        wallpaperType: state.wallpaperType,
-        material:      state.material,
-        application:   state.application,
-        subtotalCents,
-        imageDataUrl,
-      });
-    }
-    router.push("/cart");
-  }, [state, totalSqm, isMultiDifferent, addItem, router]);
+  // ── Crop blob registration ──────────────────────────────────────────────
+  const setCropReady = useCallback((getBlob: () => Promise<Blob | null>) => {
+    getCroppedBlobRef.current = getBlob;
+  }, []);
 
+  const setCropReadyWall = useCallback((wallIndex: number, getBlob: () => Promise<Blob | null>) => {
+    getCroppedBlobRefs.current[wallIndex] = getBlob;
+  }, []);
+
+  // ── Cleanup object URLs on unmount ──────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (state.imagePreviewUrl) URL.revokeObjectURL(state.imagePreviewUrl);
+      state.walls.forEach((w) => { if (w.imagePreviewUrl) URL.revokeObjectURL(w.imagePreviewUrl); });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Validation ──────────────────────────────────────────────────────────
   const dimensionsValid =
     isMultiDifferent
       ? state.walls.every((w) => w.widthM > 0 && w.heightM > 0)
@@ -208,23 +223,88 @@ export function Configurator() {
     ? state.walls.every((w) => w.imagePreviewUrl)
     : !!state.imagePreviewUrl;
 
-  const canAddToCart = dimensionsValid && allWallImagesUploaded;
+  const qualityBlocks = worstQuality === "too_low";
 
-  const addToCartLabel = canAddToCart
-    ? "Add to cart"
-    : !allWallImagesUploaded
-    ? "Upload an image to continue"
-    : "Enter your wall dimensions to continue";
+  const canAddToCart = dimensionsValid && allWallImagesUploaded && !qualityBlocks;
 
-  const setCropReady = useCallback((getBlob: () => Promise<Blob | null>) => {
-    getCroppedBlobRef.current = getBlob;
-  }, []);
+  const blockedReason: string | null = useMemo(() => {
+    if (canAddToCart) return null;
+    if (!dimensionsValid)        return "Enter your wall dimensions to continue.";
+    if (!allWallImagesUploaded)  return "Upload your image to continue.";
+    if (qualityBlocks)           return "Image is too low-resolution for this wall size — use a sharper file or reduce the wall.";
+    return "Complete the steps to continue.";
+  }, [canAddToCart, dimensionsValid, allWallImagesUploaded, qualityBlocks]);
 
-  const setCropReadyWall = useCallback((wallIndex: number, getBlob: () => Promise<Blob | null>) => {
-    getCroppedBlobRefs.current[wallIndex] = getBlob;
-  }, []);
+  // ── Add to cart ──────────────────────────────────────────────────────────
+  const handleAddToCart = useCallback(async () => {
+    setSubmitError(null);
+    if (!canAddToCart || submitting) return;
+    setSubmitting(true);
 
-  // Use the first available image for the summary preview
+    try {
+      if (isMultiDifferent) {
+        getCroppedBlobRefs.current = getCroppedBlobRefs.current.slice(0, state.walls.length);
+        const blobs = await Promise.all(
+          getCroppedBlobRefs.current.map((getBlob) => (getBlob ? getBlob() : Promise.resolve(null)))
+        );
+        if (blobs.some((b) => !b)) {
+          setSubmitError("Couldn't generate one of the print files. Reposition the image and try again.");
+          return;
+        }
+        const imageDataUrls = await Promise.all(blobs.map((b) => blobToDataUrl(b!)));
+        const subtotalCents = calculateSubtotalCents(totalSqm, state.wallpaperType, state.material, state.application);
+        addItem({
+          type:          "wallpaper",
+          widthM:        state.walls[0].widthM,
+          heightM:       state.walls[0].heightM,
+          wallCount:     state.wallCount,
+          walls:         state.walls.map((w) => ({ widthM: w.widthM, heightM: w.heightM })),
+          totalSqm,
+          wallpaperType: state.wallpaperType,
+          material:      state.material,
+          application:   state.application,
+          subtotalCents,
+          imageDataUrls,
+        });
+      } else {
+        if (!state.imagePreviewUrl) return;
+        const getBlob = getCroppedBlobRef.current;
+        let imageDataUrl: string;
+        if (getBlob) {
+          const blob = await getBlob();
+          if (!blob) {
+            setSubmitError("Couldn't generate the print file. Reposition the image and try again.");
+            return;
+          }
+          imageDataUrl = await blobToDataUrl(blob);
+        } else {
+          // Should not happen if preview rendered correctly, but fall through to original preview just in case.
+          imageDataUrl = state.imagePreviewUrl;
+        }
+        const subtotalCents = calculateSubtotalCents(totalSqm, state.wallpaperType, state.material, state.application);
+        addItem({
+          type:          "wallpaper",
+          widthM:        state.widthM,
+          heightM:       state.heightM,
+          wallCount:     state.wallCount,
+          totalSqm,
+          wallpaperType: state.wallpaperType,
+          material:      state.material,
+          application:   state.application,
+          subtotalCents,
+          imageDataUrl,
+        });
+      }
+      router.push("/cart");
+    } catch (err) {
+      console.error("Add-to-cart failed:", err);
+      setSubmitError("Something went wrong while preparing your order. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [canAddToCart, submitting, state, totalSqm, isMultiDifferent, addItem, router]);
+
+  // Use the first available image for the summary thumbnail
   const summaryImageUrl = isMultiDifferent
     ? (state.walls[0]?.imagePreviewUrl ?? null)
     : state.imagePreviewUrl;
@@ -233,25 +313,15 @@ export function Configurator() {
     <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start">
       {/* ── Left column: step cards ─────────────────────────────────────── */}
       <div className="space-y-4 pb-8">
-        <ImageUploadStep
-          imagePreviewUrl={state.imagePreviewUrl}
-          onFileSelect={handleFileSelect}
-          multiWallMode={state.multiWallMode}
-          walls={isMultiDifferent ? state.walls : []}
-          onWallFileSelect={handleWallFileSelect}
-          uploadError={uploadError}
-        />
-
         <DimensionsStep
+          stepNumber={STEP_DIMENSIONS}
           widthM={state.widthM}
           heightM={state.heightM}
           wallCount={state.wallCount}
           multiWallMode={state.multiWallMode}
           walls={state.walls}
-          imageWidthPx={state.imageWidthPx ?? undefined}
-          imageHeightPx={state.imageHeightPx ?? undefined}
-          onWidthChange={(v) => setState((s) => ({ ...s, widthM: v }))}
-          onHeightChange={(v) => setState((s) => ({ ...s, heightM: v }))}
+          onWidthChange={(v) => setState((s) => ({ ...s, widthM: v, panX: 0, panY: 0 }))}
+          onHeightChange={(v) => setState((s) => ({ ...s, heightM: v, panX: 0, panY: 0 }))}
           onWallCountChange={(v) =>
             setState((s) => ({
               ...s,
@@ -273,19 +343,31 @@ export function Configurator() {
             }))
           }
           onWallsChange={(w) => setState((s) => ({ ...s, walls: w }))}
+          onSwapDimensions={handleSwapDimensions}
+        />
+
+        <ImageUploadStep
+          stepNumber={STEP_UPLOAD}
+          imagePreviewUrl={state.imagePreviewUrl}
+          imageWidthPx={state.imageWidthPx}
+          imageHeightPx={state.imageHeightPx}
+          onFileSelect={handleFileSelect}
+          multiWallMode={state.multiWallMode}
+          walls={isMultiDifferent ? state.walls : []}
+          onWallFileSelect={handleWallFileSelect}
+          uploadError={uploadError}
+          resolutionHint={resolutionHint}
         />
 
         {!isMultiDifferent && (
           <PreviewEditStep
+            stepNumber={STEP_PREVIEW}
             imageUrl={state.imagePreviewUrl}
             widthM={previewWidth}
             heightM={previewHeight}
-            wallCount={state.wallCount}
             panX={state.panX}
             panY={state.panY}
-            scale={state.scale}
             onPanChange={setPan}
-            onScaleChange={setScale}
             onCropDataReady={setCropReady}
           />
         )}
@@ -294,20 +376,20 @@ export function Configurator() {
           state.walls.map((wall, i) => (
             <PreviewEditStep
               key={i}
+              stepNumber={STEP_PREVIEW}
               imageUrl={wall.imagePreviewUrl ?? null}
               widthM={wall.widthM}
               heightM={wall.heightM}
               wallLabel={` · Wall ${i + 1}`}
               panX={wall.panX ?? 0}
               panY={wall.panY ?? 0}
-              scale={wall.scale ?? 1}
               onPanChange={(x, y) => setWallPan(i, x, y)}
-              onScaleChange={(s) => setWallScale(i, s)}
               onCropDataReady={(getBlob) => setCropReadyWall(i, getBlob)}
             />
           ))}
 
         <StyleStep
+          stepNumber={STEP_MATERIAL}
           totalSqm={totalSqm}
           wallpaperType={state.wallpaperType}
           material={state.material}
@@ -316,10 +398,17 @@ export function Configurator() {
         />
 
         <InstallationStep
+          stepNumber={STEP_INSTALLATION}
           totalSqm={totalSqm}
           application={state.application}
           onApplicationChange={(a) => setState((prev) => ({ ...prev, application: a }))}
         />
+
+        {submitError && (
+          <div className="rounded-pw border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {submitError}
+          </div>
+        )}
       </div>
 
       {/* ── Right column: sticky order summary ──────────────────────────── */}
@@ -332,8 +421,8 @@ export function Configurator() {
         wallpaperType={state.wallpaperType}
         material={state.material}
         application={state.application}
-        canAddToCart={canAddToCart}
-        addToCartLabel={addToCartLabel}
+        canAddToCart={canAddToCart && !submitting}
+        blockedReason={submitting ? "Preparing your print files…" : blockedReason}
         onAddToCart={handleAddToCart}
       />
     </div>

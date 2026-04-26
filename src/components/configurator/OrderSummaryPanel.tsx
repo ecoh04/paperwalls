@@ -5,6 +5,7 @@ import {
   formatZar,
   calculateWallpaperCents,
   calculateInstallationCents,
+  getPricePerSqmCents,
 } from "@/lib/pricing";
 
 const TYPE_LABELS: Record<WallpaperType, string> = {
@@ -26,16 +27,17 @@ const APPLICATION_LABELS: Record<ApplicationMethod, string> = {
 
 type Props = {
   imagePreviewUrl: string | null;
-  widthM: number;
-  heightM: number;
-  wallCount: number;
-  totalSqm: number;
-  wallpaperType: WallpaperType;
-  material: WallpaperMaterial;
-  application: ApplicationMethod;
-  canAddToCart: boolean;
-  addToCartLabel: string;
-  onAddToCart: () => void;
+  widthM:          number;
+  heightM:         number;
+  wallCount:       number;
+  totalSqm:        number;
+  wallpaperType:   WallpaperType;
+  material:        WallpaperMaterial;
+  application:     ApplicationMethod;
+  canAddToCart:    boolean;
+  /** Specific reason the cart action is blocked (for non-ready states). */
+  blockedReason:   string | null;
+  onAddToCart:     () => void;
 };
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
@@ -57,12 +59,13 @@ export function OrderSummaryPanel({
   material,
   application,
   canAddToCart,
-  addToCartLabel,
+  blockedReason,
   onAddToCart,
 }: Props) {
   const wallpaperCents    = calculateWallpaperCents(totalSqm, wallpaperType, material);
   const installationCents = calculateInstallationCents(application, totalSqm);
   const subtotalCents     = wallpaperCents + installationCents;
+  const pricePerSqmCents  = getPricePerSqmCents(wallpaperType, material);
   const hasDetails        = totalSqm > 0;
 
   const widthCm  = widthM  > 0 ? `${Math.round(widthM  * 100)} cm` : null;
@@ -71,86 +74,114 @@ export function OrderSummaryPanel({
     ? `${widthCm} × ${heightCm}${wallCount > 1 ? ` × ${wallCount} walls` : ""} · ${totalSqm.toFixed(1)} m²`
     : "Not set";
 
+  // Pro-installer breakdown for transparency in the summary.
+  const proLabour  = application === "pro_installer" ? Math.round(totalSqm * 25000) : 0;
+  const proCallout = application === "pro_installer" ? 50000 : 0;
+
   return (
-    <>
-      {/* ── Summary panel — inline on mobile, sticky on desktop ───────────────── */}
-      <div className="sticky top-6">
-        <div className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface shadow-pw-sm overflow-hidden">
-          {/* Image preview — only shown on desktop where space allows */}
-          <div className="hidden lg:block aspect-video bg-pw-bg relative">
-            {imagePreviewUrl ? (
-              <img
-                src={imagePreviewUrl}
-                alt="Your design"
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center flex-col gap-2 px-6">
-                <div className="w-10 h-10 rounded-full bg-pw-stone flex items-center justify-center">
-                  <svg className="w-5 h-5 text-pw-muted-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                      d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5M3.75 3h16.5"
-                    />
-                  </svg>
-                </div>
-                <p className="text-xs text-pw-muted-light text-center">Upload an image to preview</p>
+    <div className="sticky top-6">
+      <div className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface shadow-pw-sm overflow-hidden">
+        {/* Image preview — only shown on desktop where space allows */}
+        <div className="hidden lg:block aspect-video bg-pw-bg relative">
+          {imagePreviewUrl ? (
+            <img
+              src={imagePreviewUrl}
+              alt="Your design"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center flex-col gap-2 px-6">
+              <div className="w-10 h-10 rounded-full bg-pw-stone flex items-center justify-center">
+                <svg className="w-5 h-5 text-pw-muted-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5M3.75 3h16.5"
+                  />
+                </svg>
               </div>
-            )}
+              <p className="text-xs text-pw-muted-light text-center">Upload an image to preview</p>
+            </div>
+          )}
+        </div>
+
+        <div className="p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-pw-muted-light mb-3">
+            Order summary
+          </p>
+
+          <div>
+            <SummaryRow label="Dimensions"   value={dimText} />
+            <SummaryRow label="Type"         value={TYPE_LABELS[wallpaperType]} />
+            <SummaryRow label="Material"     value={`${MATERIAL_LABELS[material]} · ${formatZar(pricePerSqmCents)}/m²`} />
+            <SummaryRow label="Installation" value={APPLICATION_LABELS[application]} />
           </div>
 
-          <div className="p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-pw-muted-light mb-3">
-              Order summary
-            </p>
+          {/* Price breakdown */}
+          <div className="mt-4 pt-4 border-t border-[rgba(26,23,20,0.08)] space-y-1.5">
+            {hasDetails ? (
+              <>
+                <div className="flex justify-between text-sm text-pw-muted">
+                  <span>
+                    Wallpaper
+                    <span className="ml-1 text-pw-muted-light">
+                      ({totalSqm.toFixed(1)} m² × {formatZar(pricePerSqmCents)})
+                    </span>
+                  </span>
+                  <span>{formatZar(wallpaperCents)}</span>
+                </div>
 
-            <div>
-              <SummaryRow label="Dimensions" value={dimText} />
-              <SummaryRow label="Type"        value={TYPE_LABELS[wallpaperType]} />
-              <SummaryRow label="Material"    value={MATERIAL_LABELS[material]} />
-              <SummaryRow label="Installation" value={APPLICATION_LABELS[application]} />
-            </div>
-
-            {/* Price breakdown */}
-            <div className="mt-4 pt-4 border-t border-[rgba(26,23,20,0.08)] space-y-1.5">
-              {hasDetails ? (
-                <>
-                  <div className="flex justify-between text-sm text-pw-muted">
-                    <span>Wallpaper</span>
-                    <span>{formatZar(wallpaperCents)}</span>
-                  </div>
+                {application === "diy" && (
                   <div className="flex justify-between text-sm text-pw-muted">
                     <span>Installation</span>
-                    <span>{installationCents === 0 ? "Free" : formatZar(installationCents)}</span>
+                    <span>Free</span>
                   </div>
+                )}
+                {application === "diy_kit" && (
                   <div className="flex justify-between text-sm text-pw-muted">
-                    <span>Shipping</span>
-                    <span className="text-green-600 font-medium">Free</span>
+                    <span>DIY kit</span>
+                    <span>{formatZar(60000)}</span>
                   </div>
-                  <div className="flex items-baseline justify-between mt-3 pt-3 border-t border-[rgba(26,23,20,0.08)]">
-                    <span className="text-sm font-semibold text-pw-ink">Total</span>
-                    <span className="text-2xl font-bold text-pw-ink">{formatZar(subtotalCents)}</span>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-pw-muted">Enter wall dimensions to see your price.</p>
-              )}
-            </div>
+                )}
+                {application === "pro_installer" && (
+                  <>
+                    <div className="flex justify-between text-sm text-pw-muted">
+                      <span>Pro labour ({totalSqm.toFixed(1)} m² × R250)</span>
+                      <span>{formatZar(proLabour)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-pw-muted">
+                      <span>Call-out fee</span>
+                      <span>{formatZar(proCallout)}</span>
+                    </div>
+                  </>
+                )}
 
-            {/* CTA */}
-            <button
-              type="button"
-              onClick={onAddToCart}
-              disabled={!canAddToCart}
-              className="mt-5 w-full rounded-pw bg-pw-ink py-3.5 text-base font-medium text-white hover:bg-pw-ink-soft disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {canAddToCart ? "Add to cart →" : "Complete all steps to continue"}
-            </button>
-            {!canAddToCart && (
-              <p className="mt-2 text-center text-xs text-pw-muted">{addToCartLabel}</p>
+                <div className="flex justify-between text-sm text-pw-muted">
+                  <span>Shipping</span>
+                  <span className="text-green-600 font-medium">Free</span>
+                </div>
+                <div className="flex items-baseline justify-between mt-3 pt-3 border-t border-[rgba(26,23,20,0.08)]">
+                  <span className="text-sm font-semibold text-pw-ink">Total</span>
+                  <span className="text-2xl font-bold text-pw-ink">{formatZar(subtotalCents)}</span>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-pw-muted">Enter wall dimensions to see your price.</p>
             )}
           </div>
+
+          {/* CTA */}
+          <button
+            type="button"
+            onClick={onAddToCart}
+            disabled={!canAddToCart}
+            className="mt-5 w-full rounded-pw bg-pw-ink py-3.5 text-base font-medium text-white hover:bg-pw-ink-soft disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {canAddToCart ? "Add to cart →" : "Complete the steps to continue"}
+          </button>
+          {!canAddToCart && blockedReason && (
+            <p className="mt-2 text-center text-xs text-pw-muted">{blockedReason}</p>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
