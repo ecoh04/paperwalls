@@ -18,6 +18,8 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   }
 
   if (isFocused) {
+    // Configurator-only: focused header, slim trust strip beneath (it adds
+    // confidence right at the order moment).
     return (
       <CartProvider>
         <FocusedHeader />
@@ -38,10 +40,12 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Default marketing layout: NO TrustStrip below the header — every marketing
+  // page either has its own trust signals (homepage hero) or doesn't need them
+  // double-stacked. The footer carries the trust copy.
   return (
     <CartProvider>
       <Header />
-      <TrustStrip />
       <main className="flex-1">{children}</main>
       <Footer />
     </CartProvider>

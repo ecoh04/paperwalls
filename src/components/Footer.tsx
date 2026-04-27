@@ -4,11 +4,11 @@ const footerSections = [
   {
     title: "Shop",
     links: [
-      { href: "/shop/custom-wallpaper",     label: "Custom wallpaper"      },
-      { href: "/how-it-works",              label: "How it works"           },
-      { href: "/materials",                 label: "Materials"              },
-      { href: "/inspiration",               label: "Inspiration"            },
-      { href: "/samples",                   label: "Order a sample pack"    },
+      { href: "/shop/custom-wallpaper", label: "Custom wallpaper"      },
+      { href: "/how-it-works",          label: "How it works"          },
+      { href: "/materials",             label: "Materials"             },
+      { href: "/inspiration",           label: "Inspiration"           },
+      { href: "/samples",               label: "Sample pack"           },
     ],
   },
   {
@@ -21,16 +21,11 @@ const footerSections = [
     ],
   },
   {
-    title: "Legal",
+    title: "Company",
     links: [
-      { href: "/privacy", label: "Privacy policy"   },
-      { href: "/terms",   label: "Terms of service" },
-    ],
-  },
-  {
-    title: "Brand",
-    links: [
-      { href: "/about", label: "About us" },
+      { href: "/about",    label: "About us"          },
+      { href: "/privacy",  label: "Privacy policy"    },
+      { href: "/terms",    label: "Terms of service"  },
     ],
   },
 ];
@@ -38,35 +33,35 @@ const footerSections = [
 export function Footer() {
   return (
     <footer className="border-t border-pw-stone bg-pw-bg">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-12 rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="pw-overline text-pw-accent">Why customers choose PaperWalls</p>
-              <h3 className="pw-h3 mt-3 text-pw-ink">Commercial print quality with simple ordering</h3>
-              <p className="pw-body mt-2 text-pw-ink/70">Upload your image, preview your crop, and check out with free shipping nationwide.</p>
-            </div>
-            <Link
-              href="/config"
-              className="inline-flex h-11 shrink-0 items-center justify-center rounded-pw bg-pw-ink px-5 text-sm font-medium text-white hover:bg-pw-ink-soft transition-colors"
-            >
-              Start your design
-            </Link>
-          </div>
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {[
-              "72-hour production",
-              "Free shipping in South Africa",
-              "DIY or pro installer options",
-            ].map((item) => (
-              <p key={item} className="pw-small text-pw-ink/75">{item}</p>
-            ))}
-          </div>
+      <div className="mx-auto max-w-7xl px-5 pb-8 pt-14 sm:px-8 sm:pb-10 sm:pt-20 lg:px-12">
+
+        {/* Closing trust strip — slim, single line */}
+        <div className="mb-12 flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-pw-stone pb-10 sm:mb-14 sm:pb-12">
+          {[
+            "72-hour production",
+            "Free shipping nationwide",
+            "Made in Cape Town",
+            "Reprint guarantee",
+          ].map((claim) => (
+            <span key={claim} className="pw-small text-pw-ink/70">
+              {claim}
+            </span>
+          ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:gap-12">
+        {/* Brand + nav — single column on mobile, multi on desktop */}
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-12 sm:gap-8">
+          <div className="sm:col-span-12 lg:col-span-4">
+            <Link href="/" className="text-xl font-bold text-pw-ink">
+              paper<span className="text-pw-accent">walls</span>
+            </Link>
+            <p className="pw-body mt-4 max-w-sm text-pw-ink/70">
+              Custom wallpaper, made to order in Cape Town and shipped free
+              across South Africa.
+            </p>
+          </div>
           {footerSections.map((section) => (
-            <div key={section.title}>
+            <nav key={section.title} className="sm:col-span-4 lg:col-span-2 lg:col-start-auto">
               <p className="pw-overline text-pw-ink">{section.title}</p>
               <ul className="mt-4 space-y-3">
                 {section.links.map((link) => (
@@ -77,23 +72,28 @@ export function Footer() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </nav>
           ))}
+          {/* CTA column — desktop only */}
+          <div className="hidden lg:col-span-2 lg:block">
+            <p className="pw-overline text-pw-ink">Get started</p>
+            <Link
+              href="/config"
+              className="pw-small mt-4 inline-flex h-10 items-center rounded-pw bg-pw-ink px-4 font-semibold text-white hover:bg-pw-ink-soft transition-colors"
+            >
+              Design yours
+            </Link>
+          </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-pw-stone pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/" className="font-serif text-lg text-pw-ink">
-              paper<span className="text-pw-accent">walls</span>
-            </Link>
-            <span className="pw-small text-pw-muted-light">·</span>
-            <span className="pw-small text-pw-muted">Custom wallpaper, South Africa</span>
-          </div>
+        <div className="mt-14 flex flex-col gap-3 border-t border-pw-stone pt-6 sm:mt-16 sm:flex-row sm:items-center sm:justify-between">
           <p className="pw-small text-pw-muted-light">
-            © {new Date().getFullYear()} Paperwalls. All prices in ZAR.
+            © {new Date().getFullYear()} Paperwalls · All prices in ZAR
+          </p>
+          <p className="pw-small text-pw-muted-light">
+            Custom wallpaper · South Africa
           </p>
         </div>
-
       </div>
     </footer>
   );

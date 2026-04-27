@@ -1,130 +1,121 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const NAV_LINKS = [
+  { href: "/how-it-works", label: "How it works" },
+  { href: "/materials",    label: "Materials" },
+  { href: "/inspiration",  label: "Inspiration" },
+  { href: "/samples",      label: "Samples" },
+  { href: "/faq",          label: "FAQ" },
+];
 
 export function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  // Lock body scroll when the mobile menu is open.
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [open]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-pw-border bg-pw-bg/90 backdrop-blur supports-[backdrop-filter]:bg-pw-bg/85">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 border-b border-pw-stone bg-pw-bg/95 backdrop-blur supports-[backdrop-filter]:bg-pw-bg/85">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-5 sm:h-16 sm:px-8 lg:px-12">
 
-        {/* Logo */}
-        <Link href="/" className="font-serif text-xl tracking-tight text-pw-ink">
+        {/* Mobile hamburger (left side on mobile) */}
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-label={open ? "Close menu" : "Open menu"}
+          className="md:hidden -ml-2 flex h-10 w-10 items-center justify-center rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors"
+        >
+          {open ? (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          )}
+        </button>
+
+        {/* Logo — centred on mobile (between hamburger and cart), left on desktop */}
+        <Link
+          href="/"
+          className="font-bold text-[19px] tracking-tight text-pw-ink md:text-xl"
+          onClick={() => setOpen(false)}
+        >
           paper<span className="text-pw-accent">walls</span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-1 md:flex">
-          <Link
-            href="/how-it-works"
-            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-ink/75 hover:bg-pw-accent-soft hover:text-pw-ink"
-          >
-            How it works
-          </Link>
-          <Link
-            href="/materials"
-            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-ink/75 hover:bg-pw-accent-soft hover:text-pw-ink"
-          >
-            Materials
-          </Link>
-          <Link
-            href="/inspiration"
-            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-ink/75 hover:bg-pw-accent-soft hover:text-pw-ink"
-          >
-            Inspiration
-          </Link>
-          <Link
-            href="/faq"
-            className="rounded-pw px-3 py-2 text-sm font-medium text-pw-ink/75 hover:bg-pw-accent-soft hover:text-pw-ink"
-          >
-            FAQ
-          </Link>
+        {/* Desktop nav — middle */}
+        <nav className="hidden flex-1 items-center justify-center gap-1 md:flex">
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="pw-small rounded-pw px-3 py-2 font-medium text-pw-ink/70 hover:bg-pw-stone/50 hover:text-pw-ink transition-colors"
+            >
+              {l.label}
+            </Link>
+          ))}
         </nav>
 
-        {/* Right: CTA + Cart */}
-        <div className="flex items-center gap-2">
+        {/* Right cluster: desktop CTA + cart */}
+        <div className="flex items-center gap-1 sm:gap-2">
           <Link
             href="/config"
-            className="hidden items-center gap-2 rounded-pw bg-pw-ink px-4 py-2 text-sm font-medium text-white hover:bg-pw-ink-soft sm:inline-flex"
+            className="pw-small hidden h-10 items-center rounded-pw bg-pw-ink px-4 font-semibold text-white hover:bg-pw-ink-soft md:inline-flex transition-colors"
           >
-            Upload your design
-            <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-white/15 text-xs">↗</span>
+            Design yours
           </Link>
           <Link
             href="/cart"
-            className="flex items-center gap-1.5 rounded-pw p-2 text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
             aria-label="Cart"
+            className="-mr-2 flex h-10 w-10 items-center justify-center rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors sm:mr-0"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
-            <span className="text-sm font-medium">Cart</span>
           </Link>
-
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            className="rounded-pw p-2 text-pw-muted hover:bg-pw-accent-soft md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-expanded={mobileMenuOpen}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? (
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
-          </button>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="border-t border-pw-stone bg-pw-surface md:hidden">
-          <div className="space-y-1 px-4 py-4">
-            <Link
-              href="/how-it-works"
-              className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              How it works
-            </Link>
-            <Link
-              href="/materials"
-              className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Materials
-            </Link>
-            <Link
-              href="/inspiration"
-              className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Inspiration
-            </Link>
-            <Link
-              href="/faq"
-              className="block rounded-pw px-3 py-2 text-base font-medium text-pw-muted hover:bg-pw-accent-soft hover:text-pw-ink"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              FAQ
-            </Link>
+      {/* Mobile menu overlay */}
+      {open && (
+        <div className="fixed inset-x-0 top-14 bottom-0 z-40 overflow-y-auto bg-pw-bg md:hidden">
+          <nav className="flex flex-col px-5 py-6">
+            {NAV_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="pw-h3 border-b border-pw-stone py-5 text-pw-ink"
+              >
+                {l.label}
+              </Link>
+            ))}
             <Link
               href="/config"
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-pw bg-pw-ink px-4 py-3 text-base font-medium text-white hover:bg-pw-ink-soft"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={() => setOpen(false)}
+              className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-pw bg-pw-ink text-base font-semibold text-white hover:bg-pw-ink-soft transition-colors"
             >
-              Upload your design
-              <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-white/15 text-xs">↗</span>
+              Design your wallpaper
             </Link>
-          </div>
+            <Link
+              href="/samples"
+              onClick={() => setOpen(false)}
+              className="pw-small mt-4 text-center font-medium text-pw-muted underline underline-offset-[6px] decoration-pw-ink/20 hover:text-pw-ink"
+            >
+              Order a sample pack first
+            </Link>
+          </nav>
         </div>
       )}
     </header>
