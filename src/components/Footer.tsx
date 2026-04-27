@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmailCaptureFooter } from "@/components/EmailCaptureFooter";
 
 const footerSections = [
   {
@@ -30,19 +31,24 @@ const footerSections = [
   },
 ];
 
+const TRUST_CLAIMS = [
+  "Yours in 5 days",
+  "Free SA delivery",
+  "Made in Cape Town",
+  "Free reprints, no questions",
+];
+
 export function Footer() {
   return (
     <footer className="border-t border-pw-stone bg-pw-bg">
-      <div className="mx-auto max-w-7xl px-5 pb-8 pt-14 sm:px-8 sm:pb-10 sm:pt-20 lg:px-12">
+      <div className="mx-auto max-w-7xl px-5 pb-8 pt-12 sm:px-8 sm:pb-10 sm:pt-16 lg:px-12">
+
+        {/* Email capture — top of footer, the lead-magnet for not-yet-ready buyers */}
+        <EmailCaptureFooter />
 
         {/* Closing trust strip — slim, single line */}
-        <div className="mb-12 flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-pw-stone pb-10 sm:mb-14 sm:pb-12">
-          {[
-            "72-hour production",
-            "Free shipping nationwide",
-            "Made in Cape Town",
-            "Reprint guarantee",
-          ].map((claim) => (
+        <div className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-pw-stone pb-10 sm:mt-16 sm:pb-12">
+          {TRUST_CLAIMS.map((claim) => (
             <span key={claim} className="pw-small text-pw-ink/70">
               {claim}
             </span>
@@ -50,7 +56,7 @@ export function Footer() {
         </div>
 
         {/* Brand + nav — single column on mobile, multi on desktop */}
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-12 sm:gap-8">
+        <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-12 sm:gap-8 sm:mt-14">
           <div className="sm:col-span-12 lg:col-span-4">
             <Link href="/" className="text-xl font-bold text-pw-ink">
               paper<span className="text-pw-accent">walls</span>
