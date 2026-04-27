@@ -1,145 +1,189 @@
-import Link from "next/link";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { PageContainer } from "@/components/PageContainer";
-import { ConversionPageIntro } from "@/components/ConversionPageIntro";
+import { Section } from "@/components/ui/Section";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { Eyebrow } from "@/components/ui/Eyebrow";
+import { Button } from "@/components/ui/Button";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 
 export const metadata = {
   title: "Materials | PaperWalls",
-  description: "Compare PaperWalls materials and choose the right finish for your wall.",
+  description: "Compare Satin, Matte, and Linen finishes. Same press, three surfaces.",
 };
 
-const MATERIALS = [
+const FINISHES = [
   {
-    name: "Satin",
-    use: "Balanced sheen and durability",
-    body: "Subtle sheen with strong color depth. A practical all-rounder for most living spaces.",
-    bestFor: "Living rooms, feature walls, family homes",
+    name:   "Satin",
+    sub:    "Subtle sheen, easy clean",
+    body:   "Soft sheen with deep colour. Wipes clean. The all-rounder for living rooms and family spaces.",
+    image:  "/images/product/pdp-07-satin.jpg",
+    bestFor:"Living rooms, hallways, family homes",
+    price:  "From R410/m²",
+    tag:    "Most ordered",
   },
   {
-    name: "Matte",
-    use: "Low-reflection, modern look",
-    body: "A flat, non-reflective finish that minimizes glare and keeps visuals clean in bright rooms.",
-    bestFor: "Bedrooms, offices, bright spaces",
+    name:   "Matte",
+    sub:    "Flat, non-reflective",
+    body:   "Completely flat surface. Renders fine detail without glare. Best in rooms with strong daylight.",
+    image:  "/images/product/pdp-08-matte.jpg",
+    bestFor:"Bedrooms, offices, bright rooms",
+    price:  "From R470/m²",
   },
   {
-    name: "Linen",
-    use: "Textured premium finish",
-    body: "Fabric-like texture that adds depth and warmth. Premium tactile feel for upscale interiors.",
-    bestFor: "Boutique spaces, hospitality, statement rooms",
+    name:   "Linen",
+    sub:    "Textured, premium feel",
+    body:   "Fabric-like weave. Catches light, adds depth. Designed to feel like a chosen material, not generic wallpaper.",
+    image:  "/images/product/pdp-09-linen.jpg",
+    bestFor:"Feature walls, hospitality, statement rooms",
+    price:  "From R590/m²",
+    tag:    "Most premium",
   },
+];
+
+const COMPARISON_ROWS = [
+  { label: "Look",  satin: "Slight sheen",       matte: "Flat",            linen: "Textured weave" },
+  { label: "Glare", satin: "Medium",             matte: "Low",             linen: "Low" },
+  { label: "Care",  satin: "Wipes clean easily", matte: "Easy care",       linen: "Gentle clean" },
+  { label: "Best",  satin: "Family rooms",       matte: "Bright rooms",    linen: "Statement walls" },
 ];
 
 const FAQ = [
   {
-    q: "Does material affect print quality?",
-    a: "All materials are printed on the same commercial press. The difference is finish, texture, and light reflection.",
+    q: "Does the finish change print quality?",
+    a: "No. All finishes are printed on the same commercial press. The difference is texture and how light hits the surface.",
   },
   {
-    q: "Which material is easiest to maintain?",
-    a: "Satin is typically the easiest to wipe clean. Matte and Linen are better when you want less shine.",
+    q: "Which finish is easiest to maintain?",
+    a: "Satin wipes clean most easily. Matte and Linen need a gentler touch but hide minor wall imperfections better.",
   },
   {
-    q: "Can I preview pricing by material?",
-    a: "Yes. In the configurator, switch type/material and the total updates immediately.",
+    q: "Can I see the finishes before I buy?",
+    a: "Yes. The sample pack is R150 with all three finishes, credited to your wallpaper order.",
   },
 ];
 
 export default function MaterialsPage() {
   return (
-    <PageContainer>
-      <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Materials" }]} />
+    <main className="bg-pw-bg pb-16 sm:pb-20">
+      <header className="mx-auto max-w-7xl px-5 pt-6 pb-5 sm:px-8 sm:pt-10 sm:pb-8 lg:px-12 lg:pt-14 lg:pb-12">
+        <div className="max-w-2xl">
+          <p className="pw-overline text-pw-muted">Materials</p>
+          <h1 className="pw-h1 mt-2 text-pw-ink sm:mt-3">
+            Same press, three surfaces.
+          </h1>
+          <p className="pw-body mt-3 text-pw-ink/70 sm:pw-body-lg sm:mt-4">
+            Pick a finish based on look, lighting, and how the wall is used. Not on guesswork.
+          </p>
+        </div>
+      </header>
 
-      <ConversionPageIntro
-        eyebrow="Substrates"
-        title="Materials"
-        description="Pick a finish based on look, lighting, and room use - not guesswork."
-      />
+      {/* Three finish cards */}
+      <Section tone="bg" id="finishes">
+        <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-3">
+          {FINISHES.map((f) => (
+            <article key={f.name} className="flex flex-col overflow-hidden rounded-pw-card border border-pw-stone bg-pw-surface">
+              <div className="relative">
+                <ImagePlaceholder
+                  src={f.image}
+                  aspectRatio="4/3"
+                  prompt={`${f.name} finish texture macro`}
+                />
+                {f.tag && (
+                  <span className="pw-overline absolute left-4 top-4 rounded-full bg-pw-ink px-3 py-1 text-white">
+                    {f.tag}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-1 flex-col p-6">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 className="pw-h3 text-pw-ink">{f.name}</h2>
+                  <span className="pw-small whitespace-nowrap text-pw-muted">{f.sub}</span>
+                </div>
+                <p className="pw-body mt-3 text-pw-ink/70">{f.body}</p>
+                <div className="mt-5 border-t border-pw-stone pt-4">
+                  <p className="pw-overline text-pw-muted-light">Best for</p>
+                  <p className="pw-small mt-1 text-pw-ink">{f.bestFor}</p>
+                </div>
+                <p className="pw-small mt-3 font-medium text-pw-ink">{f.price}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </Section>
 
-      <div className="mt-10 grid gap-4 md:grid-cols-3">
-        {MATERIALS.map((m) => (
-          <article
-            key={m.name}
-            className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5"
-          >
-            <h2 className="font-sans text-xl font-semibold text-pw-ink">{m.name}</h2>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-pw-accent">{m.use}</p>
-            <p className="mt-3 text-[15px] text-pw-ink/75 leading-relaxed">{m.body}</p>
-            <p className="mt-4 border-t border-[rgba(26,23,20,0.08)] pt-3 text-sm text-pw-ink">
-              <span className="font-semibold">Best for:</span> {m.bestFor}
+      {/* Comparison table */}
+      <Section tone="surface" id="compare">
+        <SectionHeader
+          eyebrow="Side by side"
+          title="Quick comparison."
+        />
+        <div className="mt-8 overflow-hidden rounded-pw-card border border-pw-stone sm:mt-10">
+          <div className="grid grid-cols-[1fr_1fr_1fr_1fr] bg-pw-stone/40">
+            <div className="px-4 py-4 sm:px-6 sm:py-5"></div>
+            <div className="px-3 py-4 text-center sm:px-6 sm:py-5"><span className="pw-overline text-pw-ink">Satin</span></div>
+            <div className="px-3 py-4 text-center sm:px-6 sm:py-5"><span className="pw-overline text-pw-ink">Matte</span></div>
+            <div className="px-3 py-4 text-center sm:px-6 sm:py-5"><span className="pw-overline text-pw-accent">Linen</span></div>
+          </div>
+          <ul>
+            {COMPARISON_ROWS.map((row, i) => (
+              <li
+                key={row.label}
+                className={[
+                  "grid grid-cols-[1fr_1fr_1fr_1fr]",
+                  i % 2 === 0 ? "bg-pw-bg" : "bg-pw-surface",
+                ].join(" ")}
+              >
+                <div className="px-4 py-4 sm:px-6 sm:py-5">
+                  <span className="pw-small font-medium text-pw-ink">{row.label}</span>
+                </div>
+                <div className="px-3 py-4 text-center sm:px-6 sm:py-5">
+                  <span className="pw-small text-pw-ink/70">{row.satin}</span>
+                </div>
+                <div className="px-3 py-4 text-center sm:px-6 sm:py-5">
+                  <span className="pw-small text-pw-ink/70">{row.matte}</span>
+                </div>
+                <div className="px-3 py-4 text-center sm:px-6 sm:py-5">
+                  <span className="pw-small text-pw-ink/70">{row.linen}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Section>
+
+      {/* FAQ */}
+      <Section tone="bg" id="faq">
+        <SectionHeader eyebrow="Common questions" title="Quick answers." />
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 md:grid-cols-3">
+          {FAQ.map((f) => (
+            <article key={f.q} className="rounded-pw-card border border-pw-stone bg-pw-surface p-6">
+              <h3 className="pw-h3 text-pw-ink">{f.q}</h3>
+              <p className="pw-body mt-3 text-pw-ink/70">{f.a}</p>
+            </article>
+          ))}
+        </div>
+      </Section>
+
+      {/* Closing CTA */}
+      <Section tone="ink" id="closing">
+        <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-end lg:gap-16">
+          <div className="lg:col-span-7">
+            <Eyebrow className="text-pw-accent-mid">Still deciding?</Eyebrow>
+            <h2 className="pw-display mt-3 text-white sm:mt-4">
+              Hold them in your hand.
+            </h2>
+            <p className="pw-body-lg mt-4 max-w-xl text-white/65 sm:mt-5">
+              R150 sample pack with all three finishes, credited to your wallpaper order.
             </p>
-          </article>
-        ))}
-      </div>
-
-      <div className="mt-8 overflow-hidden rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface">
-        <div className="border-b border-[rgba(26,23,20,0.08)] px-5 py-4">
-          <h2 className="font-sans text-lg font-semibold text-pw-ink">Quick comparison</h2>
+          </div>
+          <div className="flex flex-col gap-3 lg:col-span-5 lg:items-end">
+            <Button href="/samples" variant="light-on-ink" size="lg" className="w-full sm:w-auto">
+              Order sample pack
+            </Button>
+            <Button href="/config" variant="ghost" size="md" className="text-white/85 hover:text-white">
+              Or skip to designing →
+            </Button>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-pw-bg">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-pw-ink">Material</th>
-                <th className="px-4 py-3 text-left font-semibold text-pw-ink">Look</th>
-                <th className="px-4 py-3 text-left font-semibold text-pw-ink">Glare</th>
-                <th className="px-4 py-3 text-left font-semibold text-pw-ink">Care</th>
-                <th className="px-4 py-3 text-left font-semibold text-pw-ink">Best use</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-t border-[rgba(26,23,20,0.08)]">
-                <td className="px-4 py-3 font-medium text-pw-ink">Satin</td>
-                <td className="px-4 py-3 text-pw-ink/80">Slight sheen</td>
-                <td className="px-4 py-3 text-pw-ink/80">Medium</td>
-                <td className="px-4 py-3 text-pw-ink/80">Easiest to wipe</td>
-                <td className="px-4 py-3 text-pw-ink/80">General home use</td>
-              </tr>
-              <tr className="border-t border-[rgba(26,23,20,0.08)]">
-                <td className="px-4 py-3 font-medium text-pw-ink">Matte</td>
-                <td className="px-4 py-3 text-pw-ink/80">Flat finish</td>
-                <td className="px-4 py-3 text-pw-ink/80">Low</td>
-                <td className="px-4 py-3 text-pw-ink/80">Easy care</td>
-                <td className="px-4 py-3 text-pw-ink/80">Bright rooms</td>
-              </tr>
-              <tr className="border-t border-[rgba(26,23,20,0.08)]">
-                <td className="px-4 py-3 font-medium text-pw-ink">Linen</td>
-                <td className="px-4 py-3 text-pw-ink/80">Textured premium</td>
-                <td className="px-4 py-3 text-pw-ink/80">Low to medium</td>
-                <td className="px-4 py-3 text-pw-ink/80">Gentle clean</td>
-                <td className="px-4 py-3 text-pw-ink/80">Statement walls</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        {FAQ.map((f) => (
-          <article key={f.q} className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-5">
-            <h3 className="font-sans text-base font-semibold text-pw-ink">{f.q}</h3>
-            <p className="mt-2 text-sm text-pw-ink/75 leading-relaxed">{f.a}</p>
-          </article>
-        ))}
-      </div>
-
-      <div className="mt-8 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-6">
-        <p className="text-sm text-pw-ink/80">
-          Final price depends on wallpaper type (Traditional or Peel & Stick), material (Satin/Matte/Linen),
-          total area, and installation choice.
-        </p>
-        <Link
-          href="/config"
-          className="mt-4 inline-flex rounded-pw bg-pw-ink px-5 py-3 text-sm font-semibold text-white hover:bg-pw-ink-soft"
-        >
-          Compare live in configurator
-        </Link>
-        <Link
-          href="/samples"
-          className="mt-4 ml-3 inline-flex rounded-pw border border-[rgba(26,23,20,0.2)] px-5 py-3 text-sm font-semibold text-pw-ink hover:bg-pw-surface"
-        >
-          Order a sample pack
-        </Link>
-      </div>
-    </PageContainer>
+      </Section>
+    </main>
   );
 }

@@ -1,96 +1,124 @@
-import Link from "next/link";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { PageContainer } from "@/components/PageContainer";
-import { ConversionPageIntro } from "@/components/ConversionPageIntro";
+import { Section } from "@/components/ui/Section";
+import { Eyebrow } from "@/components/ui/Eyebrow";
+import { Button } from "@/components/ui/Button";
 
 export const metadata = {
-  title: "Returns & refunds | Paperwalls South Africa",
-  description: "Our returns and refund policy for custom-printed wallpaper orders.",
+  title: "Returns & refunds | PaperWalls",
+  description: "Custom-print returns policy, defects, reprint promise, and cancellations.",
 };
+
+const SECTIONS: {
+  title: string;
+  body: string;
+  bulletTitle?: string;
+  bullets?: string[];
+}[] = [
+  {
+    title: "Custom print policy",
+    body:
+      "All wallpaper is printed to order and cut to your exact dimensions. We don&rsquo;t hold stock. So we can&rsquo;t accept returns for: change of mind after production starts, incorrect dimensions you entered yourself, low-resolution images you uploaded (we flag this in the configurator), or colour differences caused by your monitor calibration.",
+    bulletTitle: "Before you order",
+    bullets: [
+      "Double-check your wall measurements",
+      "Use the highest-resolution version of your image you have",
+      "Order a sample pack first if you&rsquo;re unsure about a finish",
+    ],
+  },
+  {
+    title: "Production defects",
+    body:
+      "If your order arrives with a genuine production defect (misaligned cuts, significant colour banding, missing sections, or damage caused by our packaging), we reprint and reship at no cost or issue a full refund. Your call. Free reprints, no questions, no return shipping.",
+    bulletTitle: "To lodge a defect claim",
+    bullets: [
+      "Contact us within 7 days of receiving your order",
+      "Include your order number",
+      "Attach clear, well-lit photos showing the full panel",
+      "Tell us what&rsquo;s wrong in a sentence or two",
+    ],
+  },
+  {
+    title: "Cancellations",
+    body:
+      "If you need to cancel, contact us as soon as possible. We start reviewing files within hours of payment. If production hasn&rsquo;t started, we issue a full refund. If it has, we can&rsquo;t cancel because your wallpaper is already on the press.",
+  },
+];
 
 export default function ReturnsPage() {
   return (
-    <PageContainer>
-      <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Returns & refunds" }]} />
-
-      <div className="max-w-2xl">
-        <ConversionPageIntro
-          eyebrow="Policy"
-          title="Returns & refunds"
-          description="Because every order is custom-printed to your exact dimensions and design, returns are limited once production has started."
-        />
-        <div className="mt-5 rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-surface px-4 py-3 text-sm text-pw-ink/80">
-          <strong className="text-pw-ink">Plain English:</strong> custom orders are non-returnable, but if there is
-          a print or production defect we will reprint or refund quickly.
-        </div>
-
-        {/* No returns */}
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold text-pw-ink">Custom print policy</h2>
-          <p className="mt-2 text-pw-ink/80">
-            All wallpaper is printed to order and cut to your specified dimensions. We do not hold
-            stock of pre-printed items. As such, we cannot offer returns or refunds for:
-          </p>
-          <ul className="mt-3 list-inside list-disc space-y-1 text-pw-ink/80">
-            <li>Change of mind after production has started</li>
-            <li>Incorrect dimensions entered by the customer</li>
-            <li>Low-resolution images supplied by the customer (we flag DPI warnings in the configurator)</li>
-            <li>Colour differences due to monitor calibration vs. print output</li>
-          </ul>
-          <p className="mt-3 text-pw-ink/80">
-            Before placing your order, please double-check your wall measurements and review the image
-            quality indicator in the configurator.
+    <main className="bg-pw-bg pb-16 sm:pb-20">
+      <header className="mx-auto max-w-7xl px-5 pt-6 pb-5 sm:px-8 sm:pt-10 sm:pb-8 lg:px-12 lg:pt-14 lg:pb-12">
+        <div className="max-w-2xl">
+          <p className="pw-overline text-pw-muted">Policy</p>
+          <h1 className="pw-h1 mt-2 text-pw-ink sm:mt-3">
+            Returns &amp; refunds.
+          </h1>
+          <p className="pw-body mt-3 text-pw-ink/70 sm:pw-body-lg sm:mt-4">
+            Custom orders are non-returnable, but we reprint or refund any genuine production defect.
           </p>
         </div>
+      </header>
 
-        {/* Defects */}
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold text-pw-ink">Production defects & printing errors</h2>
-          <p className="mt-2 text-pw-ink/80">
-            If your order arrives with a genuine production defect (including misaligned cuts,
-            significant colour banding, missing sections, or damage caused by our packaging),
-            we will reprint and reship your order at no cost to you, or issue a full refund, at
-            your discretion.
-          </p>
-          <p className="mt-3 text-pw-ink/80">
-            To lodge a defect claim, please contact us within <strong className="text-pw-ink">7 days</strong> of
-            receiving your order and include:
-          </p>
-          <ul className="mt-3 list-inside list-disc space-y-1 text-pw-ink/80">
-            <li>Your order number</li>
-            <li>Photographs of the defect (clear, well-lit, showing the full panel)</li>
-            <li>A brief description of the issue</li>
-          </ul>
-          <p className="mt-3 text-pw-ink/80">
-            Claims submitted after 7 days of delivery may not be eligible for a reprint or refund.
+      <Section tone="bg" id="summary">
+        <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8">
+          <Eyebrow>Plain English</Eyebrow>
+          <p className="pw-body-lg mt-3 text-pw-ink">
+            Custom orders are non-returnable. But if anything ships imperfect we reprint
+            or refund quickly, no quibble.
           </p>
         </div>
+      </Section>
 
-        {/* Cancellations */}
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold text-pw-ink">Cancellations</h2>
-          <p className="mt-2 text-pw-ink/80">
-            If you need to cancel your order, please contact us <strong className="text-pw-ink">as soon as possible</strong>.
-            We begin reviewing and preparing files within hours of payment confirmation. If production
-            has not yet started, we will issue a full refund. If production has already started,
-            we are unable to cancel or refund the order.
-          </p>
+      <Section tone="surface" id="policy">
+        <div className="space-y-5 sm:space-y-6">
+          {SECTIONS.map((s) => (
+            <article
+              key={s.title}
+              className="rounded-pw-card border border-pw-stone bg-pw-bg p-6 sm:p-8"
+            >
+              <h2 className="pw-h3 text-pw-ink">{s.title}</h2>
+              <p
+                className="pw-body mt-4 text-pw-ink/70"
+                dangerouslySetInnerHTML={{ __html: s.body }}
+              />
+              {s.bullets && s.bulletTitle && (
+                <div className="mt-5 border-t border-pw-stone pt-5">
+                  <p className="pw-overline text-pw-ink">{s.bulletTitle}</p>
+                  <ul className="mt-3 space-y-2.5">
+                    {s.bullets.map((b, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <span aria-hidden className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-pw-accent" />
+                        <span
+                          className="pw-body text-pw-ink/80"
+                          dangerouslySetInnerHTML={{ __html: b }}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </article>
+          ))}
         </div>
+      </Section>
 
-        {/* Contact */}
-        <div className="mt-10 rounded-pw-card border border-pw-stone bg-pw-bg p-6">
-          <h2 className="text-base font-semibold text-pw-ink">Need to report an issue?</h2>
-          <p className="mt-1 text-sm text-pw-ink/75">
-            Contact us with your order number and photos and we&apos;ll resolve it within one business day.
-          </p>
-          <Link
-            href="/contact"
-            className="mt-4 inline-flex rounded-pw bg-pw-ink px-4 py-2 text-sm font-medium text-white hover:bg-pw-ink-soft"
-          >
-            Contact us
-          </Link>
+      <Section tone="ink" id="closing">
+        <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-end lg:gap-16">
+          <div className="lg:col-span-7">
+            <Eyebrow className="text-pw-accent-mid">Need to report an issue?</Eyebrow>
+            <h2 className="pw-display mt-3 text-white sm:mt-4">
+              We&rsquo;ll resolve it within a business day.
+            </h2>
+            <p className="pw-body-lg mt-4 max-w-xl text-white/65 sm:mt-5">
+              Send your order number and a photo. Reprint on the press within 48 hours.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 lg:col-span-5 lg:items-end">
+            <Button href="/contact" variant="light-on-ink" size="lg" className="w-full sm:w-auto">
+              Contact us
+            </Button>
+          </div>
         </div>
-      </div>
-    </PageContainer>
+      </Section>
+    </main>
   );
 }
