@@ -106,7 +106,7 @@ export function OrderSummaryPanel({
     : "—";
 
   return (
-    <div className="lg:sticky lg:top-6">
+    <div className="lg:sticky lg:top-[7rem]">
       <div className="overflow-hidden rounded-pw-card border border-pw-stone bg-pw-surface">
         {/* Image preview — desktop only, less vertical real estate on mobile */}
         <div className="relative hidden aspect-video bg-pw-bg lg:block">
@@ -188,7 +188,7 @@ export function OrderSummaryPanel({
           )}
           {canAddToCart && (
             <p className="mt-2 pw-small text-center text-pw-muted-light">
-              No payment yet — you&rsquo;ll review everything before paying.
+              No payment yet. You&rsquo;ll review everything before paying.
             </p>
           )}
         </div>

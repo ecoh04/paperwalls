@@ -29,7 +29,7 @@ export function AnnouncementBar() {
   }, []);
 
   return (
-    <div className="bg-pw-accent text-white">
+    <div className="sticky top-0 z-50 bg-pw-accent text-white">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="relative flex h-9 items-center justify-center overflow-hidden">
           {MESSAGES.map((m, idx) => (

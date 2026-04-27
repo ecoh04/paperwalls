@@ -122,7 +122,7 @@ function BuyBox({
 
           {/* PRODUCT INFO — right column on desktop (sticky), below gallery on mobile */}
           <div className="lg:col-span-5">
-            <div className="lg:sticky lg:top-24">
+            <div className="lg:sticky lg:top-[7rem]">
 
               <ProductHeader price={price} />
 

@@ -21,7 +21,7 @@ const TYPES: {
     id: "peel_and_stick",
     label: "Peel & Stick",
     tagline: "Self-adhesive",
-    description: "Self-adhesive backing — no paste needed. Repositionable and removable. Perfect for renters or temporary installs.",
+    description: "Self-adhesive backing. No paste needed. Repositionable and removable. Perfect for renters or temporary installs.",
   },
 ];
 
@@ -125,10 +125,10 @@ export function StyleStep({
         {showDifference && (
           <div className="mt-3 space-y-2 rounded-pw border border-pw-stone bg-pw-bg p-4 pw-small text-pw-muted leading-relaxed">
             <p>
-              <strong className="text-pw-ink">Traditional</strong> uses adhesive paste applied to the wall before hanging. Industry standard — more permanent, cleaner seam lines.
+              <strong className="text-pw-ink">Traditional</strong> uses adhesive paste applied to the wall before hanging. Industry standard. More permanent, cleaner seam lines.
             </p>
             <p>
-              <strong className="text-pw-ink">Peel &amp; Stick</strong> has a self-adhesive backing. Peel, press, reposition — no paste. Ideal for renters or anyone who may want to update later.
+              <strong className="text-pw-ink">Peel &amp; Stick</strong> has a self-adhesive backing. Peel, press, reposition. No paste. Ideal for renters or anyone who may want to update later.
             </p>
           </div>
         )}

@@ -23,7 +23,7 @@ export function Header() {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-pw-stone bg-pw-bg/95 backdrop-blur supports-[backdrop-filter]:bg-pw-bg/85">
+    <header className="sticky top-9 z-40 border-b border-pw-stone bg-pw-bg/95 backdrop-blur supports-[backdrop-filter]:bg-pw-bg/85">
       {/*
         Mobile (md-): 3-column grid — hamburger left, logo CENTRED, cart right.
         Desktop (md+): flex layout — logo left, nav centre, cart cluster right.
@@ -106,7 +106,7 @@ export function Header() {
 
       {/* Mobile menu overlay */}
       {open && (
-        <div className="fixed inset-x-0 top-14 bottom-0 z-40 overflow-y-auto bg-pw-bg md:hidden">
+        <div className="fixed inset-x-0 top-[5.75rem] bottom-0 z-40 overflow-y-auto bg-pw-bg md:hidden">
           <nav className="flex flex-col px-5 py-6">
             {NAV_LINKS.map((l) => (
               <Link

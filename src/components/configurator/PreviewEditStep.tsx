@@ -412,7 +412,7 @@ export function PreviewEditStep({
       stepNumber={stepNumber ?? 3}
       eyebrow="Position"
       title={`Place it on your wall${wallLabel ?? ""}.`}
-      subtitle="Your whole image is shown — the bright rectangle is your wall. Drag to choose what's printed; zoom for a tighter crop."
+      subtitle="Your whole image is shown. The bright rectangle is your wall. Drag to choose what gets printed, or zoom for a tighter crop."
     >
       {previewBody}
     </ConfigStep>

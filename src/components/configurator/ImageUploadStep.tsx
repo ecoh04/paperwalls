@@ -72,7 +72,7 @@ function SingleUpload({
             <p className="pw-body font-medium text-pw-ink">
               {dragActive ? "Drop it here" : "Drag & drop, or tap to browse"}
             </p>
-            <p className="pw-small mt-1 text-pw-muted">JPG, PNG or WebP — up to 50 MB</p>
+            <p className="pw-small mt-1 text-pw-muted">JPG, PNG or WebP, up to 50 MB.</p>
           </div>
           {hint && (
             <p className="pw-small max-w-md px-6 text-center text-pw-muted-light">{hint}</p>

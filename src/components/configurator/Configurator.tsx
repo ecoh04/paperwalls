@@ -8,6 +8,7 @@ import { PreviewEditStep } from "./PreviewEditStep";
 import { StyleStep } from "./StyleStep";
 import { InstallationStep } from "./InstallationStep";
 import { OrderSummaryPanel } from "./OrderSummaryPanel";
+import { MobileSummaryBar } from "./MobileSummaryBar";
 import { ConfigStep } from "./ConfigStep";
 import { ConfigAlert } from "./ConfigAlert";
 import { useCart } from "@/contexts/CartContext";
@@ -249,7 +250,7 @@ export function Configurator() {
     if (canAddToCart) return null;
     if (!dimensionsValid)        return "Enter your wall dimensions to continue.";
     if (!allWallImagesUploaded)  return "Upload your image to continue.";
-    if (qualityBlocks)           return "Image is too low-resolution for this wall size — use a sharper file or reduce the wall.";
+    if (qualityBlocks)           return "Image is too low-resolution for this wall size. Use a sharper file or reduce the wall.";
     return "Complete the steps to continue.";
   }, [canAddToCart, dimensionsValid, allWallImagesUploaded, qualityBlocks]);
 
@@ -327,10 +328,17 @@ export function Configurator() {
     ? (state.walls[0]?.imagePreviewUrl ?? null)
     : state.imagePreviewUrl;
 
+  // Single source of truth for the running price the summary panels display.
+  const subtotalCents = useMemo(
+    () => calculateSubtotalCents(totalSqm, state.wallpaperType, state.material, state.application),
+    [totalSqm, state.wallpaperType, state.material, state.application]
+  );
+
   return (
     <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start">
       {/* ── Left column: step cards ─────────────────────────────────────── */}
-      <div className="space-y-5 pb-10 sm:space-y-6">
+      {/* pb-28 on mobile reserves space for the fixed MobileSummaryBar. */}
+      <div className="space-y-5 pb-28 sm:space-y-6 lg:pb-10">
         <DimensionsStep
           stepNumber={STEP_DIMENSIONS}
           widthM={state.widthM}
@@ -477,6 +485,15 @@ export function Configurator() {
           onAddToCart={handleAddToCart}
         />
       </div>
+
+      {/* ── Mobile-only fixed bottom bar: always-visible total + CTA ── */}
+      <MobileSummaryBar
+        totalSqm={totalSqm}
+        subtotalCents={subtotalCents}
+        canAddToCart={canAddToCart && !submitting}
+        blockedReason={submitting ? "Preparing your print files…" : blockedReason}
+        onAddToCart={handleAddToCart}
+      />
     </div>
   );
 }

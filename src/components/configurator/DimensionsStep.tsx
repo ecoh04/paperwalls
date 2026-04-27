@@ -1,6 +1,7 @@
 "use client";
 
 import type { MultiWallMode, WallSpec } from "@/types/configurator";
+import { calculateSubtotalCents, formatZar } from "@/lib/pricing";
 import { ConfigStep } from "./ConfigStep";
 
 type DimensionsStepProps = {
@@ -238,11 +239,12 @@ export function DimensionsStep({
         </div>
       )}
 
-      {/* ── Total area ── */}
+      {/* ── Total area + inline starting price (kills the "what does this cost" stall before the Material step) ── */}
       {showTotal && totalSqm > 0 && (
-        <div className="mt-7 flex items-center justify-between rounded-pw border border-pw-stone bg-pw-bg px-4 py-3.5">
-          <div>
+        <div className="mt-7 flex items-center justify-between gap-4 rounded-pw border border-pw-stone bg-pw-bg px-4 py-3.5">
+          <div className="min-w-0">
             <p className="pw-small text-pw-muted">Total print area</p>
+            <span className="pw-h3 text-pw-ink">{totalSqm.toFixed(2)} m²</span>
             {isMulti && multiWallMode === "same" && (
               <p className="pw-overline text-pw-muted-light">
                 {widthCm} × {heightCm} cm × {wallCount} walls
@@ -254,7 +256,15 @@ export function DimensionsStep({
               </p>
             )}
           </div>
-          <span className="pw-h3 text-pw-ink">{totalSqm.toFixed(2)} m²</span>
+          <div className="text-right">
+            <p className="pw-overline text-pw-muted">Yours from</p>
+            <p className="pw-h3 text-pw-ink">
+              {formatZar(calculateSubtotalCents(totalSqm, "traditional", "satin", "diy"))}
+            </p>
+            <p className="pw-overline text-pw-muted-light">
+              Satin, paste-the-wall, DIY
+            </p>
+          </div>
         </div>
       )}
     </ConfigStep>
