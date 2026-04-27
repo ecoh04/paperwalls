@@ -22,11 +22,11 @@ export function Section({ children, className = "", tone = "bg", density = "defa
     stone:   "bg-pw-stone",
   }[tone];
 
-  // Mobile-first padding: tight on phones, generous on tablets, expansive on desktop.
-  // 80px+ vertical padding feels excessive on a 375px-wide screen.
+  // Mobile-first padding. Premium DTC mobile pages use 48-72px section padding;
+  // 80+ feels cavernous on 375-390px screens.
   const padding = density === "tight"
-    ? "py-10 sm:py-14 lg:py-20"
-    : "py-14 sm:py-20 lg:py-28";
+    ? "py-8 sm:py-12 lg:py-16"
+    : "py-12 sm:py-16 lg:py-24";
 
   return (
     <section id={id} className={[bg, padding, className].join(" ").trim()}>

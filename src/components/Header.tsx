@@ -24,66 +24,83 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-pw-stone bg-pw-bg/95 backdrop-blur supports-[backdrop-filter]:bg-pw-bg/85">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-5 sm:h-16 sm:px-8 lg:px-12">
-
-        {/* Mobile hamburger (left side on mobile) */}
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-label={open ? "Close menu" : "Open menu"}
-          className="md:hidden -ml-2 flex h-10 w-10 items-center justify-center rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors"
-        >
-          {open ? (
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
-          )}
-        </button>
-
-        {/* Logo — centred on mobile (between hamburger and cart), left on desktop */}
-        <Link
-          href="/"
-          className="font-bold text-[19px] tracking-tight text-pw-ink md:text-xl"
-          onClick={() => setOpen(false)}
-        >
-          paper<span className="text-pw-accent">walls</span>
-        </Link>
-
-        {/* Desktop nav — middle */}
-        <nav className="hidden flex-1 items-center justify-center gap-1 md:flex">
-          {NAV_LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="pw-small rounded-pw px-3 py-2 font-medium text-pw-ink/70 hover:bg-pw-stone/50 hover:text-pw-ink transition-colors"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Right cluster: desktop CTA + cart */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          <Link
-            href="/config"
-            className="pw-small hidden h-10 items-center rounded-pw bg-pw-ink px-4 font-semibold text-white hover:bg-pw-ink-soft md:inline-flex transition-colors"
+      {/*
+        Mobile (md-): 3-column grid — hamburger left, logo CENTRED, cart right.
+        Desktop (md+): flex layout — logo left, nav centre, cart cluster right.
+      */}
+      <div className="mx-auto h-14 max-w-7xl px-5 sm:h-16 sm:px-8 lg:px-12">
+        {/* Mobile bar */}
+        <div className="grid h-full grid-cols-3 items-center md:hidden">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-label={open ? "Close menu" : "Open menu"}
+            className="-ml-2 flex h-10 w-10 items-center justify-center justify-self-start rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors"
           >
-            Design yours
+            {open ? (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            )}
+          </button>
+
+          <Link
+            href="/"
+            className="justify-self-center text-[19px] font-bold tracking-tight text-pw-ink"
+            onClick={() => setOpen(false)}
+          >
+            paper<span className="text-pw-accent">walls</span>
           </Link>
+
           <Link
             href="/cart"
             aria-label="Cart"
-            className="-mr-2 flex h-10 w-10 items-center justify-center rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors sm:mr-0"
+            className="-mr-2 flex h-10 w-10 items-center justify-center justify-self-end rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
           </Link>
+        </div>
+
+        {/* Desktop bar */}
+        <div className="hidden h-full items-center justify-between gap-6 md:flex">
+          <Link href="/" className="text-xl font-bold tracking-tight text-pw-ink">
+            paper<span className="text-pw-accent">walls</span>
+          </Link>
+          <nav className="flex items-center gap-1">
+            {NAV_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="pw-small rounded-pw px-3 py-2 font-medium text-pw-ink/70 hover:bg-pw-stone/50 hover:text-pw-ink transition-colors"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/config"
+              className="pw-small inline-flex h-10 items-center rounded-pw bg-pw-ink px-4 font-semibold text-white hover:bg-pw-ink-soft transition-colors"
+            >
+              Design yours
+            </Link>
+            <Link
+              href="/cart"
+              aria-label="Cart"
+              className="flex h-10 w-10 items-center justify-center rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </Link>
+          </div>
         </div>
       </div>
 
