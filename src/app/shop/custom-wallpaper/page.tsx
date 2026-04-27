@@ -111,17 +111,20 @@ function BuyBox({
     <section id="buy-box" className="bg-pw-bg">
       <div className="mx-auto max-w-7xl px-5 pt-3 pb-10 sm:px-8 sm:pt-4 sm:pb-14 lg:px-12 lg:pt-6 lg:pb-20">
 
-        {/* Trust strip — single line, surfaces conversion signals before the gallery */}
+        {/* Trust strip — wraps naturally on small screens, rating leads */}
         <div className="-mx-5 mb-3 border-b border-pw-stone bg-pw-bg/60 sm:-mx-8 sm:mb-4 lg:-mx-12">
-          <div className="mx-auto max-w-7xl overflow-x-auto px-5 py-2.5 sm:px-8 lg:px-12 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-            <ul className="flex items-center gap-x-5 whitespace-nowrap sm:justify-center sm:gap-x-8">
+          <div className="mx-auto max-w-7xl px-5 py-2.5 sm:px-8 lg:px-12">
+            <ul className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pw-small text-pw-ink/65">
               {[
-                "Yours in 5 days",
-                "Free SA delivery",
-                "Free reprints, no questions",
                 "★★★★★ 4.9 from 847 reviews",
-              ].map((item) => (
-                <li key={item} className="pw-small text-pw-ink/65">
+                "5-day production",
+                "Free SA delivery",
+                "Free reprints",
+              ].map((item, i) => (
+                <li key={item} className="flex items-center gap-2">
+                  {i > 0 && (
+                    <span aria-hidden className="text-pw-muted-light">·</span>
+                  )}
                   {item}
                 </li>
               ))}
@@ -138,9 +141,15 @@ function BuyBox({
           <span className="text-pw-ink">Custom wallpaper</span>
         </nav>
 
+        {/* MOBILE-ONLY product header — sits above the gallery so cold traffic
+            sees title + rating + price before the image fills the fold. */}
+        <div className="mb-5 lg:hidden">
+          <ProductHeader price={price} />
+        </div>
+
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
 
-          {/* GALLERY — left column on desktop, top on mobile */}
+          {/* GALLERY — left column on desktop, top on mobile (after the header) */}
           <Gallery
             images={BUY_BOX_IMAGES}
             activeImage={activeImage}
@@ -151,31 +160,10 @@ function BuyBox({
           <div className="lg:col-span-5">
             <div className="lg:sticky lg:top-24">
 
-              {/* Title + rating + price */}
-              <Eyebrow>Custom wallpaper</Eyebrow>
-              <h1 className="pw-h1 mt-3 text-pw-ink">
-                Wallpaper printed to your wall.
-              </h1>
-
-              {/* Rating — sits where eyes land first, near the price */}
-              <div className="mt-3 flex items-center gap-2">
-                <span aria-hidden className="text-pw-accent text-base tracking-wide">
-                  ★★★★★
-                </span>
-                <span className="pw-small text-pw-ink/70">
-                  4.9 from 847 reviews
-                </span>
+              {/* DESKTOP-ONLY header — same component as the mobile one above */}
+              <div className="hidden lg:block">
+                <ProductHeader price={price} />
               </div>
-
-              {/* Price + concrete example so cold traffic can translate /m² into "what my wall costs" */}
-              <div className="mt-5 flex items-baseline gap-3">
-                <span className="pw-h2 text-pw-ink">R{price}</span>
-                <span className="pw-body text-pw-muted">per m²</span>
-              </div>
-              <p className="pw-small mt-1 text-pw-muted">
-                ≈ R{(price * 9).toLocaleString("en-US")} for a 3 × 3 m wall.
-                Free SA delivery, no payment until you approve the price.
-              </p>
 
               {/* Description */}
               <p className="pw-body mt-5 text-pw-ink/70">
@@ -289,6 +277,39 @@ function BuyBox({
         </div>
       </div>
     </section>
+  );
+}
+
+// ── Product header (eyebrow + H1 + rating + price)
+// Rendered twice in the buy box: once above the gallery on mobile (so cold
+// traffic sees title + rating + price above the fold), once inside the
+// sticky right column on desktop. Single source of truth, two render points.
+function ProductHeader({ price }: { price: number }) {
+  return (
+    <>
+      <Eyebrow>Custom wallpaper</Eyebrow>
+      <h1 className="pw-h1 mt-3 text-pw-ink">
+        Wallpaper printed to your wall.
+      </h1>
+
+      <div className="mt-3 flex items-center gap-2">
+        <span aria-hidden className="text-pw-accent text-base tracking-wide">
+          ★★★★★
+        </span>
+        <span className="pw-small text-pw-ink/70">
+          4.9 from 847 reviews
+        </span>
+      </div>
+
+      <div className="mt-5 flex items-baseline gap-3">
+        <span className="pw-h2 text-pw-ink">R{price}</span>
+        <span className="pw-body text-pw-muted">per m²</span>
+      </div>
+      <p className="pw-small mt-1 text-pw-muted">
+        ≈ R{(price * 9).toLocaleString("en-US")} for a 3 × 3 m wall.
+        Free SA delivery, no payment until you approve the price.
+      </p>
+    </>
   );
 }
 
