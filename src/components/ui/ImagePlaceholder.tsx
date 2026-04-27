@@ -36,10 +36,10 @@ export function ImagePlaceholder({
         style={{ aspectRatio, background: gradient }}
       >
         <div className="absolute inset-0 flex flex-col justify-end gap-2 p-5 text-white/85">
-          <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/55">
+          <span className="pw-overline text-white/55">
             Pending photography{dimensions ? ` · ${dimensions}` : ""}
           </span>
-          <p className="max-w-md text-[12px] leading-snug text-white/80">
+          <p className="pw-small max-w-md text-white/80">
             {prompt}
           </p>
         </div>

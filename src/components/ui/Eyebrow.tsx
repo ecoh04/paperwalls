@@ -8,19 +8,13 @@ type EyebrowProps = {
 };
 
 /**
- * Small-caps label used above section headings.
- * Pure typography token — no padding, no background.
+ * Small-caps label used above section headings. Uses the `.pw-overline`
+ * design-system token — never override the size or letter-spacing here.
  */
 export function Eyebrow({ children, className = "", variant = "accent" }: EyebrowProps) {
   const color = variant === "muted" ? "text-pw-muted" : "text-pw-accent";
   return (
-    <p
-      className={[
-        "inline-block text-[11px] font-medium uppercase tracking-[0.16em]",
-        color,
-        className,
-      ].join(" ").trim()}
-    >
+    <p className={["pw-overline inline-block", color, className].join(" ").trim()}>
       {children}
     </p>
   );

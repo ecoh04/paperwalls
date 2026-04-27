@@ -22,9 +22,9 @@ const config: Config = {
         'pw-stone-dark':  '#D4C9BE',
       },
       fontFamily: {
-        // v2: single family for the entire site.
+        // v2: Fraunces editorial serif for headings; Inter for body / UI.
         sans:  ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['Fraunces', '"Times New Roman"', 'Georgia', 'serif'],
       },
       borderRadius: {
         'pw':      '8px',

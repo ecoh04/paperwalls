@@ -268,7 +268,7 @@ function FinishesSection() {
             <p className="pw-body mt-3 text-pw-ink/70 flex-1">{f.desc}</p>
             <div className="mt-6 flex items-baseline justify-between border-t border-pw-stone pt-5">
               <span className="pw-small text-pw-muted">Price per m²</span>
-              <span className="font-serif text-xl text-pw-ink">{f.rangeFromTo}</span>
+              <span className="pw-h3 text-pw-ink">{f.rangeFromTo}</span>
             </div>
           </article>
         ))}

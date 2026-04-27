@@ -121,9 +121,9 @@ export function CartContent() {
       <div className="sticky bottom-0 left-0 right-0 z-20 border-t border-pw-stone bg-pw-surface/95 pb-4 pt-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] sm:static sm:rounded-pw-card sm:border sm:bg-pw-bg sm:py-6 sm:shadow-none">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-1 sm:px-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-pw-muted">Subtotal</p>
-            <p className="text-lg font-semibold text-pw-ink">{formatZar(totalCents)}</p>
-            <p className="mt-0.5 text-xs text-pw-ink/75">Free shipping nationwide • Secure checkout via PayFast.</p>
+            <p className="pw-overline text-pw-muted">Subtotal</p>
+            <p className="pw-h3 mt-1 text-pw-ink">{formatZar(totalCents)}</p>
+            <p className="pw-small mt-1 text-pw-ink/70">Free shipping nationwide · Secure checkout via PayFast.</p>
           </div>
           <Link
             href="/checkout"
