@@ -1,15 +1,18 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display:ital@0;1&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  h1,
-  h2,
-  h3 {
-    font-family: "DM Serif Display", Georgia, "Times New Roman", serif;
-    letter-spacing: -0.03em;
+  html, body {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: -0.02em;
+    font-weight: 600;
   }
 
   ::selection {
@@ -19,77 +22,87 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   v2 design-system typography utilities
+   v2 design-system typography
 
-   Single source of truth for type scale across the redesigned site. Use these
-   alongside Tailwind utilities. All headings use DM Serif Display; bodies use
-   DM Sans. Italic emphasis (<em>) on serif headings is intentional — it's
-   the brand voice.
+   Single family (Inter), six fixed sizes total. Use these everywhere — every
+   body, every heading, every label is one of these classes. No bespoke
+   font-size styles per page; if you find yourself wanting one, the answer
+   is to reuse one of these instead.
+
+   Hierarchy is achieved through SIZE + WEIGHT, not by switching fonts.
    ──────────────────────────────────────────────────────────────────────── */
 
 @layer components {
+
+  /* — Display: hero H1 only. One per page. ——————————————————————— */
   .pw-display {
-    font-family: "DM Serif Display", Georgia, serif;
-    font-size:   clamp(44px, 5.6vw, 80px);
-    line-height: 1.02;
+    font-family:    "Inter", system-ui, sans-serif;
+    font-size:      clamp(40px, 5.5vw, 64px);
+    line-height:    1.05;
     letter-spacing: -0.035em;
+    font-weight:    600;
   }
 
-  .pw-h1 {
-    font-family: "DM Serif Display", Georgia, serif;
-    font-size:   clamp(36px, 4vw, 56px);
-    line-height: 1.06;
-    letter-spacing: -0.03em;
-  }
-
+  /* — H2 / page title: one size for every page-level heading. ———— */
+  .pw-h1,
   .pw-h2 {
-    font-family: "DM Serif Display", Georgia, serif;
-    font-size:   clamp(28px, 3.2vw, 44px);
-    line-height: 1.1;
+    font-family:    "Inter", system-ui, sans-serif;
+    font-size:      clamp(26px, 2.8vw, 36px);
+    line-height:    1.15;
     letter-spacing: -0.025em;
+    font-weight:    600;
   }
 
+  /* — H3: card titles, sub-section heads. Same size as body-lg, weight 600. ——————————— */
   .pw-h3 {
-    font-family: "DM Serif Display", Georgia, serif;
-    font-size:   clamp(20px, 1.7vw, 26px);
-    line-height: 1.25;
-    letter-spacing: -0.018em;
+    font-family:    "Inter", system-ui, sans-serif;
+    font-size:      18px;
+    line-height:    1.35;
+    letter-spacing: -0.012em;
+    font-weight:    600;
   }
 
+  /* — Body large: hero subtext, section leads. ————————————————— */
   .pw-body-lg {
-    font-family: "DM Sans", system-ui, sans-serif;
-    font-size:   clamp(16px, 1.3vw, 18px);
-    line-height: 1.65;
-    font-weight: 300;
-  }
-
-  .pw-body {
-    font-family: "DM Sans", system-ui, sans-serif;
-    font-size:   15px;
-    line-height: 1.65;
-  }
-
-  .pw-small {
-    font-family: "DM Sans", system-ui, sans-serif;
-    font-size:   13px;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size:   18px;
     line-height: 1.55;
+    font-weight: 400;
   }
 
+  /* — Body: default for paragraphs and most card body. ———————— */
+  .pw-body {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size:   16px;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  /* — Small: captions, helpers, list items, table cells. ————— */
+  .pw-small {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size:   14px;
+    line-height: 1.55;
+    font-weight: 400;
+  }
+
+  /* — Overline: eyebrows + micro labels. Use sparingly. ———— */
   .pw-overline {
-    font-family: "DM Sans", system-ui, sans-serif;
-    font-size:   11px;
-    line-height: 1.4;
+    font-family:    "Inter", system-ui, sans-serif;
+    font-size:      12px;
+    line-height:    1.4;
     text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-weight: 500;
+    letter-spacing: 0.12em;
+    font-weight:    500;
   }
 
-  /* Italic emphasis inside DM Serif Display headings — brand voice. */
+  /* Italic emphasis still works inside headings — kept light, just italic
+     of the same Inter family. No font swap. */
   .pw-display em,
   .pw-h1 em,
   .pw-h2 em,
   .pw-h3 em {
-    font-style: italic;
+    font-style:  italic;
     font-weight: 400;
   }
 }
@@ -110,8 +123,10 @@
   --stone-dark: #D4C9BE;
   --border: rgba(26, 23, 20, 0.1);
   --border-mid: rgba(26, 23, 20, 0.18);
-  --serif: "DM Serif Display", Georgia, serif;
-  --sans: "DM Sans", system-ui, sans-serif;
+  /* v2: single family for the entire site — Inter at multiple weights handles
+     all hierarchy. Fewer fonts = more consistent, easier to read at every size. */
+  --serif: "Inter", system-ui, sans-serif;
+  --sans:  "Inter", system-ui, sans-serif;
   --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --shadow-sm: 0 1px 3px rgba(26, 23, 20, 0.08),
     0 1px 2px rgba(26, 23, 20, 0.06);

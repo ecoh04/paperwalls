@@ -22,8 +22,9 @@ const config: Config = {
         'pw-stone-dark':  '#D4C9BE',
       },
       fontFamily: {
-        serif: ['DM Serif Display', 'Georgia', 'serif'],
-        sans:  ['DM Sans', 'system-ui', 'sans-serif'],
+        // v2: single family for the entire site.
+        sans:  ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         'pw':      '8px',

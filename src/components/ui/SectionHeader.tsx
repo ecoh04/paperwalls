@@ -6,15 +6,17 @@ type SectionHeaderProps = {
   title:       ReactNode;
   body?:       ReactNode;
   align?:      "left" | "centre";
-  /** Visually treat as the page H1 (only one per page). Default false renders an h2. */
+  /** Render as the page H1. Same visual size as H2 — hierarchy is semantic only. */
   asH1?:       boolean;
   className?:  string;
   invert?:     boolean;
 };
 
 /**
- * Editorial section header: eyebrow + heading + optional body.
- * The heading is the only place we use display-serif type at large sizes.
+ * Section header: eyebrow + heading + optional body. One typographic voice for
+ * every page section. Use `asH1` only on the page's primary heading; the size
+ * is the same as H2 so visual hierarchy stays calm — only the hero uses
+ * `.pw-display`.
  */
 export function SectionHeader({
   eyebrow,
@@ -25,7 +27,7 @@ export function SectionHeader({
   className = "",
   invert   = false,
 }: SectionHeaderProps) {
-  const alignment = align === "centre" ? "text-center mx-auto" : "text-left";
+  const alignment  = align === "centre" ? "text-center mx-auto" : "text-left";
   const titleColor = invert ? "text-white" : "text-pw-ink";
   const bodyColor  = invert ? "text-white/65" : "text-pw-ink/70";
 
@@ -33,11 +35,14 @@ export function SectionHeader({
 
   return (
     <div className={["max-w-3xl", alignment, className].join(" ").trim()}>
-      {eyebrow && <Eyebrow variant={invert ? "muted" : "accent"} className={invert ? "text-pw-accent-mid" : ""}>{eyebrow}</Eyebrow>}
+      {eyebrow && (
+        <Eyebrow variant={invert ? "muted" : "accent"} className={invert ? "text-pw-accent-mid" : ""}>
+          {eyebrow}
+        </Eyebrow>
+      )}
       <HeadingTag
         className={[
-          "font-serif tracking-tight",
-          asH1 ? "pw-display" : "pw-h2",
+          "pw-h2",
           titleColor,
           eyebrow ? "mt-4" : "",
         ].join(" ").trim()}
@@ -45,7 +50,7 @@ export function SectionHeader({
         {title}
       </HeadingTag>
       {body && (
-        <p className={["mt-5 pw-body-lg font-light leading-relaxed", bodyColor].join(" ").trim()}>
+        <p className={["pw-body-lg mt-4", bodyColor].join(" ").trim()}>
           {body}
         </p>
       )}
