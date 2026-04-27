@@ -54,7 +54,7 @@ function HeroSection() {
         {/* Image first on mobile (visual hook); right on desktop */}
         <div className="order-1 lg:order-2 lg:col-span-7">
           <ImagePlaceholder
-            src="/images/home/hero.png"
+            src="/images/home/hero.jpg"
             aspectRatio="4/3"
             aspectClassName="lg:!aspect-[4/5]"
             dimensions="1600×2000"
@@ -105,27 +105,27 @@ function HeroSection() {
 function GallerySection() {
   const images = [
     {
-      src:     "/images/home/gallery-1.png",
+      src:     "/images/home/gallery-1.jpg",
       caption: "Botanical · Satin · Living room",
       prompt:  "Living room with custom botanical wallpaper",
     },
     {
-      src:     "/images/home/gallery-2.png",
+      src:     "/images/home/gallery-2.jpg",
       caption: "Watercolour · Matte · Bedroom",
       prompt:  "Bedroom with custom watercolour wallpaper",
     },
     {
-      src:     "/images/home/gallery-3.png",
+      src:     "/images/home/gallery-3.jpg",
       caption: "Modern art · Linen · Home office",
       prompt:  "Home office with custom modern art wallpaper",
     },
     {
-      src:     "/images/home/gallery-4.png",
+      src:     "/images/home/gallery-4.jpg",
       caption: "Geometric · Satin · Hallway",
       prompt:  "Hallway with custom geometric wallpaper",
     },
     {
-      src:     "/images/home/gallery-5.png",
+      src:     "/images/home/gallery-5.jpg",
       caption: "Landscape · Matte · Stairwell",
       prompt:  "Stairwell with custom landscape wallpaper",
     },
@@ -140,16 +140,20 @@ function GallerySection() {
       />
 
       <div className="mt-8 sm:mt-10 lg:mt-12">
-        {/* Mobile: horizontal scroll snap */}
-        <div className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 lg:hidden [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        {/*
+          Mobile/tablet: 2-col grid with the hero image spanning both columns.
+          The horizontal-scroll-snap pattern looked cramped (image hugging
+          the right edge). A clean grid is more legible and predictable.
+        */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:hidden">
           {images.map((img, i) => (
-            <figure key={i} className="flex-none snap-start w-[78%]">
+            <figure key={i} className={i === 0 ? "col-span-2" : ""}>
               <ImagePlaceholder
                 src={img.src}
-                aspectRatio="3/4"
+                aspectRatio={i === 0 ? "4/5" : "3/4"}
                 prompt={img.prompt}
               />
-              <figcaption className="pw-small mt-3 text-pw-muted">{img.caption}</figcaption>
+              <figcaption className="pw-small mt-2 text-pw-muted">{img.caption}</figcaption>
             </figure>
           ))}
         </div>
@@ -198,21 +202,21 @@ function ProcessSection() {
       num:    "01",
       title:  "Upload your image",
       body:   "Any high-res JPG, PNG, or WebP. We check resolution against your wall before you check out.",
-      src:    "/images/home/process-1.png",
+      src:    "/images/home/process-1.jpg",
       prompt: "Hand uploading an image on a phone",
     },
     {
       num:    "02",
       title:  "Pick your finish & size",
       body:   "Three finishes, two ways to apply. Width and height in centimetres. Live price as you choose.",
-      src:    "/images/home/process-2.png",
+      src:    "/images/home/process-2.jpg",
       prompt: "Wallpaper swatches arranged on a surface",
     },
     {
       num:    "03",
       title:  "We print, you hang",
       body:   "Through our press in 72 hours. Panels arrive rolled, labelled in hanging order, with an install guide.",
-      src:    "/images/home/process-3.png",
+      src:    "/images/home/process-3.jpg",
       prompt: "Hands smoothing wallpaper onto a wall",
     },
   ];
@@ -260,7 +264,7 @@ function FinishesSection() {
       desc:        "Subtle sheen. Wipes clean. Sits comfortably in living rooms and family spaces.",
       rangeFromTo: "R410–490",
       tag:         "Most ordered",
-      src:         "/images/home/finish-satin.png",
+      src:         "/images/home/finish-satin.jpg",
       prompt:      "Macro of satin-finish wallpaper",
     },
     {
@@ -268,7 +272,7 @@ function FinishesSection() {
       desc:        "Completely flat, non-reflective. Reads like fine art on the wall. Best for bright rooms.",
       rangeFromTo: "R470–540",
       tag:         null,
-      src:         "/images/home/finish-matte.png",
+      src:         "/images/home/finish-matte.jpg",
       prompt:      "Macro of matte-finish wallpaper",
     },
     {
@@ -276,7 +280,7 @@ function FinishesSection() {
       desc:        "Textured, fabric-like. Catches light, adds depth. Designed to feel chosen, not generic.",
       rangeFromTo: "R590–680",
       tag:         "Most premium",
-      src:         "/images/home/finish-linen.png",
+      src:         "/images/home/finish-linen.jpg",
       prompt:      "Macro of linen-textured wallpaper",
     },
   ];
@@ -354,7 +358,7 @@ function SamplePackBanner() {
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-5 py-10 sm:gap-10 sm:px-8 sm:py-14 lg:grid-cols-12 lg:items-center lg:gap-16 lg:px-12 lg:py-20">
         <div className="lg:col-span-5">
           <ImagePlaceholder
-            src="/images/home/sample-pack.png"
+            src="/images/home/sample-pack.jpg"
             aspectRatio="4/3"
             prompt="Sample pack with wallpaper swatches"
           />
