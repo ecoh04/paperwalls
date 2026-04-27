@@ -48,6 +48,7 @@ export default function CustomWallpaperPage() {
         price={price}
       />
       <ProductDescription />
+      <PricingExamples />
       <MaterialsSection />
       <WhatsInBox />
       <RealHomesGallery />
@@ -162,17 +163,30 @@ function BuyBox({
           <div className="lg:col-span-5">
             <div className="lg:sticky lg:top-24">
 
-              {/* Title + price */}
+              {/* Title + rating + price */}
               <Eyebrow>Custom wallpaper</Eyebrow>
               <h1 className="pw-h1 mt-3 text-pw-ink">
                 Wallpaper printed to your wall.
               </h1>
+
+              {/* Rating — sits where eyes land first, near the price */}
+              <div className="mt-3 flex items-center gap-2">
+                <span aria-hidden className="text-pw-accent text-base tracking-wide">
+                  ★★★★★
+                </span>
+                <span className="pw-small text-pw-ink/70">
+                  4.9 from 847 reviews
+                </span>
+              </div>
+
+              {/* Price + concrete example so cold traffic can translate /m² into "what my wall costs" */}
               <div className="mt-5 flex items-baseline gap-3">
                 <span className="pw-h2 text-pw-ink">R{price}</span>
                 <span className="pw-body text-pw-muted">per m²</span>
               </div>
               <p className="pw-small mt-1 text-pw-muted">
-                Final price is calculated from your wall size in the configurator.
+                ≈ R{(price * 9).toLocaleString("en-US")} for a 3 × 3 m wall.
+                Free SA delivery, no payment until you approve the price.
               </p>
 
               {/* Description */}
@@ -253,23 +267,26 @@ function BuyBox({
                 </div>
               </div>
 
-              {/* CTAs */}
+              {/* CTAs — primary + two softer paths for cold traffic not ready to upload yet */}
               <div className="mt-7 flex flex-col items-stretch gap-3">
                 <Button href="/config" variant="primary" size="lg" className="w-full">
                   Design your wallpaper
                 </Button>
+                <TextLink href="#pricing" className="text-center">
+                  See prices for common wall sizes
+                </TextLink>
                 <TextLink href="/samples" className="text-center">
                   Order samples first
                 </TextLink>
               </div>
 
-              {/* Trust badges */}
+              {/* Trust strip — outcome-led, not spec-led (cold-traffic memory rule) */}
               <ul className="mt-7 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-pw-stone pt-6">
                 {[
-                  "72-hour production",
-                  "Free SA shipping",
-                  "Reprint guarantee",
-                  "Made in Cape Town",
+                  "Yours in 5 days",
+                  "Free SA delivery",
+                  "Free reprints, no questions",
+                  "Printed in Cape Town",
                 ].map((b) => (
                   <li key={b} className="flex items-center gap-2 pw-small text-pw-ink/70">
                     <svg className="h-4 w-4 shrink-0 text-pw-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -328,6 +345,90 @@ function ProductDescription() {
               </div>
             ))}
           </dl>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+// ── Pricing examples — common wall sizes, kills "what does my wall cost" stall
+function PricingExamples() {
+  const walls = [
+    { use: "Behind a sofa",        size: "2.4 × 3 m",   m2: 7.2 },
+    { use: "Bedroom feature wall", size: "2.7 × 3.6 m", m2: 9.72 },
+    { use: "Dining room",          size: "3 × 4 m",     m2: 12 },
+    { use: "Hallway accent",       size: "2.4 × 1.2 m", m2: 2.88 },
+  ];
+
+  const fmt = (n: number) => `R${Math.round(n).toLocaleString("en-US")}`;
+
+  return (
+    <Section tone="bg" id="pricing">
+      <SectionHeader
+        eyebrow="Pricing"
+        title="What your wall will cost."
+        body="Free delivery, 5-day production. Below are the most common rooms, in traditional paste-the-wall finish. Peel & stick adds about R80/m²."
+      />
+
+      <div className="mt-8 sm:mt-12">
+        <div className="overflow-hidden rounded-pw-card border border-pw-stone bg-pw-surface">
+          {/* Header row */}
+          <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] bg-pw-stone/40 sm:grid-cols-[1.6fr_1fr_1fr_1fr]">
+            <div className="px-4 py-4 sm:px-6 sm:py-5">
+              <span className="pw-overline text-pw-ink">Wall</span>
+            </div>
+            <div className="px-3 py-4 text-right sm:px-6 sm:py-5">
+              <span className="pw-overline text-pw-ink">Satin</span>
+            </div>
+            <div className="px-3 py-4 text-right sm:px-6 sm:py-5">
+              <span className="pw-overline text-pw-ink">Matte</span>
+            </div>
+            <div className="px-3 py-4 text-right sm:px-6 sm:py-5">
+              <span className="pw-overline text-pw-accent">Linen</span>
+            </div>
+          </div>
+
+          <ul>
+            {walls.map((w, i) => (
+              <li
+                key={w.use}
+                className={[
+                  "grid grid-cols-[1.4fr_1fr_1fr_1fr] sm:grid-cols-[1.6fr_1fr_1fr_1fr]",
+                  i % 2 === 0 ? "bg-pw-bg" : "bg-pw-surface",
+                ].join(" ")}
+              >
+                <div className="px-4 py-4 sm:px-6 sm:py-5">
+                  <span className="pw-body block font-medium text-pw-ink">{w.use}</span>
+                  <span className="pw-small block text-pw-muted">{w.size}</span>
+                </div>
+                <div className="flex items-center justify-end px-3 py-4 sm:px-6 sm:py-5">
+                  <span className="pw-body text-pw-ink">
+                    {fmt(w.m2 * FINISH_PRICING.satin.traditional)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-end px-3 py-4 sm:px-6 sm:py-5">
+                  <span className="pw-body text-pw-ink">
+                    {fmt(w.m2 * FINISH_PRICING.matte.traditional)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-end px-3 py-4 sm:px-6 sm:py-5">
+                  <span className="pw-body font-medium text-pw-ink">
+                    {fmt(w.m2 * FINISH_PRICING.linen.traditional)}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Closing CTA on this section — reduces the friction to /config */}
+        <div className="mt-8 flex flex-col items-center gap-3 sm:mt-10 sm:flex-row sm:justify-center sm:gap-6">
+          <Button href="/config" variant="primary" size="md">
+            Get the exact price for your wall
+          </Button>
+          <span className="pw-small text-pw-muted">
+            Takes about 60 seconds. No payment yet.
+          </span>
         </div>
       </div>
     </Section>
@@ -636,9 +737,15 @@ function FAQSection() {
 
 // ── Closing CTA ─────────────────────────────────────────────────────────
 function ClosingCTA() {
+  const safety = [
+    "Free reprints if anything ships imperfect",
+    "Samples first? R150 in. Off your first order.",
+    "No payment until you approve the price",
+  ];
+
   return (
     <Section tone="ink" id="closing-cta" density="default">
-      <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-end lg:gap-16">
+      <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-start lg:gap-16">
         <div className="lg:col-span-7">
           <Eyebrow className="text-pw-accent-mid">Ready when you are</Eyebrow>
           <h2 className="pw-display mt-3 text-white sm:mt-4">
@@ -648,13 +755,28 @@ function ClosingCTA() {
             Upload your photo, choose your finish, get a live price in under sixty seconds.
           </p>
         </div>
-        <div className="flex flex-col items-center gap-3 lg:col-span-5 lg:items-end">
+        <div className="flex flex-col gap-5 lg:col-span-5 lg:items-end">
           <Button href="/config" variant="light-on-ink" size="lg" className="w-full sm:w-auto">
             Design your wallpaper
           </Button>
-          <span className="pw-small text-center text-white/45 lg:text-right">
-            No payment yet · Free shipping
-          </span>
+
+          {/* Safety-net reminders, restated at the close */}
+          <ul className="space-y-2.5 lg:text-right">
+            {safety.map((line) => (
+              <li key={line} className="flex items-start gap-2.5 lg:flex-row-reverse lg:gap-2.5">
+                <svg
+                  aria-hidden
+                  className="mt-[3px] h-4 w-4 shrink-0 text-pw-accent-mid"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="pw-small text-white/70">{line}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </Section>
