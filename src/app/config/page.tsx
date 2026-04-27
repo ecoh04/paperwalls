@@ -2,7 +2,7 @@ import { Configurator } from "@/components/configurator/Configurator";
 
 export const metadata = {
   title: "Design your wallpaper | PaperWalls",
-  description: "Configure your custom wallpaper. Upload your image, set your wall size, choose your finish.",
+  description: "Custom wallpaper. Drop in any image, set your wall size, choose your finish.",
 };
 
 export default function ConfigPage() {
@@ -12,10 +12,10 @@ export default function ConfigPage() {
         <div className="max-w-2xl">
           <p className="pw-overline text-pw-muted">Custom wallpaper</p>
           <h1 className="pw-h1 mt-2 text-pw-ink sm:mt-3">
-            Design your wallpaper.
+            Your image. Your wall.
           </h1>
           <p className="pw-body mt-3 text-pw-ink/70 sm:pw-body-lg sm:mt-4">
-            Wall size, image, finish. We&rsquo;ll print it to fit and ship free across South Africa.
+            Made-to-order. Yours in five days. Free delivery across South Africa.
           </p>
         </div>
       </header>

@@ -3,22 +3,17 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import { getQuality, formatMaxSizeCm } from "@/lib/quality";
 import { exportCroppedJpeg } from "@/lib/imageCrop";
-import { ConfigStep } from "./ConfigStep";
 import { ConfigAlert } from "./ConfigAlert";
 
 type PreviewEditStepProps = {
-  /** Step chip label. Not shown when `compact` is true. */
-  stepNumber?:      number;
-  /** Optional sub-heading suffix, e.g. " · Wall 1" */
+  /** Optional label, e.g. "Wall 1" */
   wallLabel?:       string;
-  /** Skips the outer card + heading (useful when nested inside a multi-wall wrapper). */
-  compact?:         boolean;
   imageUrl:         string | null;
   widthM:           number;
   heightM:          number;
   panX:             number;
   panY:             number;
-  /** 1 = whole image visible inside the preview surface (frame fits inside image). >1 zooms image larger; frame covers a smaller portion = tighter crop. */
+  /** 1 = whole image visible. >1 = zoomed in (tighter crop). */
   zoom:             number;
   onPanChange:      (x: number, y: number) => void;
   onZoomChange:     (zoom: number) => void;
@@ -36,9 +31,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function PreviewEditStep({
-  stepNumber,
   wallLabel,
-  compact = false,
   imageUrl,
   widthM,
   heightM,
@@ -394,27 +387,14 @@ export function PreviewEditStep({
     </>
   );
 
-  if (compact) {
-    return (
-      <div className="rounded-pw border border-pw-stone bg-pw-bg p-4 sm:p-5">
-        {wallLabel && (
-          <p className="pw-small font-semibold text-pw-ink mb-3">
-            {wallLabel.replace(/^\s*·\s*/, "")}
-          </p>
-        )}
-        {previewBody}
-      </div>
-    );
-  }
-
   return (
-    <ConfigStep
-      stepNumber={stepNumber ?? 3}
-      eyebrow="Position"
-      title={`Place it on your wall${wallLabel ?? ""}.`}
-      subtitle="Your whole image is shown. The bright rectangle is your wall. Drag to choose what gets printed, or zoom for a tighter crop."
-    >
+    <div className="rounded-pw border border-pw-stone bg-pw-bg p-4 sm:p-5">
+      {wallLabel && (
+        <p className="pw-small font-semibold text-pw-ink mb-3">
+          {wallLabel.replace(/^\s*·\s*/, "")}
+        </p>
+      )}
       {previewBody}
-    </ConfigStep>
+    </div>
   );
 }
