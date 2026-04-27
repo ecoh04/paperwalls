@@ -29,7 +29,7 @@ type ButtonProps = LinkButtonProps | ActionButtonProps;
 
 const BASE_CLASSES = [
   "inline-flex items-center justify-center gap-2",
-  "font-medium tracking-tight",
+  "font-semibold tracking-tight",
   "rounded-pw transition-colors transition-shadow",
   "focus:outline-none focus-visible:ring-2 focus-visible:ring-pw-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-pw-bg",
   "disabled:opacity-40 disabled:cursor-not-allowed",
@@ -44,8 +44,11 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
+  // 44 px tap target — iOS minimum
   md: "text-sm h-11 px-5",
-  lg: "text-[15px] h-13 px-7 sm:h-14",
+  // 56 px primary CTA. h-13 was a typo (Tailwind doesn't ship h-13) which is
+  // why mobile buttons had been collapsing to text-height — actual bug.
+  lg: "text-base h-14 px-8",
 };
 
 export function Button(props: ButtonProps) {

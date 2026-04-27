@@ -178,7 +178,7 @@ function GallerySection() {
           <div className="lg:col-span-4 flex flex-col justify-end rounded-pw-card border border-pw-stone bg-pw-bg p-7">
             <Eyebrow variant="muted">Bring your own image</Eyebrow>
             <p className="pw-h3 mt-3 text-pw-ink">
-              Anything you can save as a file — we&rsquo;ll print it at any scale.
+              Anything you can save as a file. We&rsquo;ll print it at any scale.
             </p>
           </div>
         </div>
@@ -262,7 +262,7 @@ function FinishesSection() {
     {
       name:        "Satin",
       desc:        "Subtle sheen. Wipes clean. Sits comfortably in living rooms and family spaces.",
-      rangeFromTo: "R410–490",
+      rangeFromTo: "R410 to R490",
       tag:         "Most ordered",
       src:         "/images/home/finish-satin.jpg",
       prompt:      "Macro of satin-finish wallpaper",
@@ -270,7 +270,7 @@ function FinishesSection() {
     {
       name:        "Matte",
       desc:        "Completely flat, non-reflective. Reads like fine art on the wall. Best for bright rooms.",
-      rangeFromTo: "R470–540",
+      rangeFromTo: "R470 to R540",
       tag:         null,
       src:         "/images/home/finish-matte.jpg",
       prompt:      "Macro of matte-finish wallpaper",
@@ -278,7 +278,7 @@ function FinishesSection() {
     {
       name:        "Linen",
       desc:        "Textured, fabric-like. Catches light, adds depth. Designed to feel chosen, not generic.",
-      rangeFromTo: "R590–680",
+      rangeFromTo: "R590 to R680",
       tag:         "Most premium",
       src:         "/images/home/finish-linen.jpg",
       prompt:      "Macro of linen-textured wallpaper",
@@ -290,7 +290,7 @@ function FinishesSection() {
       <SectionHeader
         eyebrow="Choose your finish"
         title="Three finishes. One commercial press."
-        body="Every order goes through the same machine. The choice is finish — how the surface catches light — and how it sticks to the wall."
+        body="Every order goes through the same machine. The choice is finish, how the surface catches light, and how it sticks to the wall."
       />
 
       <div className="mt-8 grid grid-cols-1 gap-5 sm:mt-12 sm:gap-6 md:grid-cols-3">
@@ -370,11 +370,11 @@ function SamplePackBanner() {
           </h2>
           <p className="pw-body-lg mt-4 max-w-xl text-pw-ink/70">
             A5 swatches of every finish, printed on the same press as your final
-            order. R300, ships free, arrives in 3–5 days.
+            order. R300, ships free, arrives in 3 to 5 days.
           </p>
           <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:flex-wrap sm:gap-x-6">
             <Button href="/samples" variant="primary" size="lg" className="w-full sm:w-auto">
-              Order sample pack — R300
+              Order sample pack · R300
             </Button>
           </div>
         </div>
@@ -396,7 +396,7 @@ function WhyPaperWalls() {
     },
     {
       title: "Reprint guarantee",
-      body:  "Anything imperfect — banding, colour shift, transit damage — we reprint at no cost.",
+      body:  "If anything ships imperfect, we reprint at no cost. Send a photo within 7 days, sorted in 48 hours.",
     },
   ];
 
@@ -430,7 +430,7 @@ function WhyPaperWalls() {
 const FAQ = [
   {
     q: "Do I need design software or special files?",
-    a: "No. If you have a photo on your phone, you have everything you need. Upload any JPG, PNG, or WebP — we handle the print setup from there.",
+    a: "No. If you have a photo on your phone, you have everything you need. Upload any JPG, PNG, or WebP. We handle the print setup from there.",
   },
   {
     q: "What if my image isn't high-resolution enough?",
@@ -438,15 +438,15 @@ const FAQ = [
   },
   {
     q: "How do I measure my wall correctly?",
-    a: "Width × height in centimetres, edge to edge at the widest and tallest points. We cut every order to the millimetre — measure twice.",
+    a: "Width × height in centimetres, edge to edge at the widest and tallest points. We cut every order to the millimetre, so measure twice.",
   },
   {
-    q: "I rent — will peel-and-stick damage my walls?",
+    q: "I rent. Will peel-and-stick damage my walls?",
     a: "No. Our peel-and-stick removes cleanly from painted plaster without leaving residue, and can be repositioned during install.",
   },
   {
     q: "How long does delivery take?",
-    a: "72 hours through our press from payment, then 2–4 business days for nationwide delivery. You get a tracking number when it ships.",
+    a: "72 hours through our press from payment, then 2 to 4 business days for nationwide delivery. You get a tracking number when it ships.",
   },
 ];
 
