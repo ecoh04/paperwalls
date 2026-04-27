@@ -5,13 +5,17 @@ import type { CheckoutAddress } from "@/types/checkout";
 import type { CartItem } from "@/types/cart";
 import type { ShippingProvince } from "@/types/order";
 import { PROVINCES } from "@/lib/shipping";
-import { getShippingCents } from "@/lib/shipping";
-import { formatZar } from "@/lib/pricing";
 import { useCart } from "@/contexts/CartContext";
+import { Eyebrow } from "@/components/ui/Eyebrow";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_NAME = 2;
-const MIN_PHONE = 10;
+const MIN_NAME    = 2;
+const MIN_PHONE   = 10;
+
+const INPUT_CLASSES =
+  "block w-full rounded-pw border border-pw-stone bg-pw-bg px-4 py-3.5 pw-body text-pw-ink placeholder:text-pw-muted-light transition-colors focus:border-pw-ink focus:bg-pw-surface focus:outline-none focus:ring-2 focus:ring-pw-ink/10";
+
+const LABEL_CLASSES = "pw-overline mb-2 block text-pw-muted";
 
 type CheckoutFormProps = {
   items:      CartItem[];
@@ -21,14 +25,14 @@ type CheckoutFormProps = {
 };
 
 const emptyAddress: CheckoutAddress = {
-  customer_name: "",
+  customer_name:  "",
   customer_email: "",
   customer_phone: "",
-  address_line1: "",
-  address_line2: "",
-  city: "",
-  province: "gauteng",
-  postal_code: "",
+  address_line1:  "",
+  address_line2:  "",
+  city:           "",
+  province:       "gauteng",
+  postal_code:    "",
 };
 
 function validateAddress(a: CheckoutAddress): string | null {
@@ -50,15 +54,9 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
   const { identifyCustomer } = useCart();
   const [address, setAddress] = useState<CheckoutAddress>(emptyAddress);
   const [submitting, setSubmitting] = useState(false);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-
-  const shippingCents = getShippingCents(address.province as ShippingProvince);
-  const subtotalCents = items.reduce((s, i) => s + i.subtotalCents, 0);
-  const totalCents = subtotalCents + shippingCents;
 
   const set = useCallback((field: keyof CheckoutAddress, value: string | ShippingProvince) => {
     setAddress((prev) => ({ ...prev, [field]: value }));
-    setTouched((prev) => ({ ...prev, [field]: true }));
   }, []);
 
   const handleSubmit = useCallback(
@@ -103,14 +101,18 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-5 shadow-pw-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-pw-ink">Contact & delivery</h2>
-        <p className="mt-1 text-sm text-pw-ink/75">We&apos;ll use this to confirm your order and ship your wallpaper.</p>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8">
+        <Eyebrow>Where to ship it</Eyebrow>
+        <h2 className="pw-h3 mt-3 text-pw-ink">Contact and delivery.</h2>
+        <p className="pw-small mt-1.5 text-pw-muted">
+          We use this to confirm your order, ship your wallpaper, and reach you if anything needs clarifying.
+        </p>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-7 grid gap-5 sm:grid-cols-2">
+          {/* Full name (full width) */}
           <div className="sm:col-span-2">
-            <label htmlFor="customer_name" className="block text-sm font-medium text-pw-ink">
+            <label htmlFor="customer_name" className={LABEL_CLASSES}>
               Full name <span className="text-red-500">*</span>
             </label>
             <input
@@ -119,13 +121,14 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="name"
               value={address.customer_name}
               onChange={(e) => set("customer_name", e.target.value)}
-              onBlur={() => setTouched((t) => ({ ...t, customer_name: true }))}
-              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
-              placeholder="e.g. Thabo Mbeki"
+              className={INPUT_CLASSES}
+              placeholder="Thabo Mbeki"
             />
           </div>
+
+          {/* Email */}
           <div>
-            <label htmlFor="customer_email" className="block text-sm font-medium text-pw-ink">
+            <label htmlFor="customer_email" className={LABEL_CLASSES}>
               Email <span className="text-red-500">*</span>
             </label>
             <input
@@ -135,18 +138,19 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               value={address.customer_email}
               onChange={(e) => set("customer_email", e.target.value)}
               onBlur={(e) => {
-                setTouched((t) => ({ ...t, customer_email: true }));
                 const email = e.target.value.trim();
-                if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                if (EMAIL_REGEX.test(email)) {
                   identifyCustomer(email, address.customer_name || undefined, address.customer_phone || undefined);
                 }
               }}
-              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
+              className={INPUT_CLASSES}
               placeholder="you@example.com"
             />
           </div>
+
+          {/* Phone */}
           <div>
-            <label htmlFor="customer_phone" className="block text-sm font-medium text-pw-ink">
+            <label htmlFor="customer_phone" className={LABEL_CLASSES}>
               Phone <span className="text-red-500">*</span>
             </label>
             <input
@@ -155,12 +159,14 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="tel"
               value={address.customer_phone}
               onChange={(e) => set("customer_phone", e.target.value)}
-              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
-              placeholder="e.g. 082 123 4567"
+              className={INPUT_CLASSES}
+              placeholder="082 123 4567"
             />
           </div>
+
+          {/* Street address (full width) */}
           <div className="sm:col-span-2">
-            <label htmlFor="address_line1" className="block text-sm font-medium text-pw-ink">
+            <label htmlFor="address_line1" className={LABEL_CLASSES}>
               Street address <span className="text-red-500">*</span>
             </label>
             <input
@@ -169,13 +175,15 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="street-address"
               value={address.address_line1}
               onChange={(e) => set("address_line1", e.target.value)}
-              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
+              className={INPUT_CLASSES}
               placeholder="House number, street, complex"
             />
           </div>
+
+          {/* Address line 2 (full width, optional) */}
           <div className="sm:col-span-2">
-            <label htmlFor="address_line2" className="block text-sm font-medium text-pw-ink">
-              Address line 2 <span className="text-pw-muted">(optional)</span>
+            <label htmlFor="address_line2" className={LABEL_CLASSES}>
+              Suburb / unit <span className="text-pw-muted-light">(optional)</span>
             </label>
             <input
               id="address_line2"
@@ -183,12 +191,14 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="address-line2"
               value={address.address_line2}
               onChange={(e) => set("address_line2", e.target.value)}
-              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
+              className={INPUT_CLASSES}
               placeholder="Unit, building, suburb"
             />
           </div>
+
+          {/* City */}
           <div>
-            <label htmlFor="city" className="block text-sm font-medium text-pw-ink">
+            <label htmlFor="city" className={LABEL_CLASSES}>
               City <span className="text-red-500">*</span>
             </label>
             <input
@@ -197,19 +207,21 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="address-level2"
               value={address.city}
               onChange={(e) => set("city", e.target.value)}
-              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
-              placeholder="e.g. Johannesburg"
+              className={INPUT_CLASSES}
+              placeholder="Johannesburg"
             />
           </div>
+
+          {/* Province */}
           <div>
-            <label htmlFor="province" className="block text-sm font-medium text-pw-ink">
+            <label htmlFor="province" className={LABEL_CLASSES}>
               Province <span className="text-red-500">*</span>
             </label>
             <select
               id="province"
               value={address.province}
               onChange={(e) => set("province", e.target.value as ShippingProvince)}
-              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
+              className={INPUT_CLASSES}
             >
               {PROVINCES.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -217,10 +229,11 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-pw-ink/65">Used for delivery routing. Shipping remains free.</p>
           </div>
-          <div>
-            <label htmlFor="postal_code" className="block text-sm font-medium text-pw-ink">
+
+          {/* Postal code (full width on mobile, half width with city on desktop already handled by grid) */}
+          <div className="sm:col-span-2">
+            <label htmlFor="postal_code" className={LABEL_CLASSES}>
               Postal code <span className="text-red-500">*</span>
             </label>
             <input
@@ -229,41 +242,29 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="postal-code"
               value={address.postal_code}
               onChange={(e) => set("postal_code", e.target.value)}
-              className="mt-1 block w-full rounded-pw border border-pw-stone px-3 py-2 text-pw-ink shadow-pw-sm focus:border-pw-ink focus:outline-none focus:ring-1 focus:ring-pw-ink"
-              placeholder="e.g. 2000"
+              className={INPUT_CLASSES}
+              placeholder="2000"
             />
           </div>
         </div>
+
+        <p className="pw-small mt-6 text-pw-muted-light">
+          Free delivery anywhere in South Africa. Province is used for delivery routing only.
+        </p>
       </div>
 
-      <div className="rounded-pw-card border border-pw-ink bg-pw-bg p-5 shadow-pw-sm sm:p-6">
-        <h2 className="text-lg font-semibold text-pw-ink">Order summary</h2>
-        <dl className="mt-4 space-y-2 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-pw-muted">Subtotal</dt>
-            <dd className="font-medium text-pw-ink">{formatZar(subtotalCents)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-pw-muted">Shipping</dt>
-            <dd className="font-medium text-green-700">Free</dd>
-          </div>
-          <div className="flex justify-between border-t border-pw-stone pt-3 text-base">
-            <dt className="font-semibold text-pw-ink">Total</dt>
-            <dd className="font-semibold text-pw-ink">{formatZar(totalCents)}</dd>
-          </div>
-        </dl>
-        <div className="mt-3 space-y-1 text-xs text-pw-ink/75">
-          <p>You&apos;ll complete payment securely on the next screen (PayFast).</p>
-          <p>We never store card details on PaperWalls.</p>
-        </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="mt-6 w-full rounded-pw bg-pw-ink py-4 font-medium text-white hover:bg-pw-ink-soft disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {submitting ? "Preparing…" : "Proceed to payment"}
-        </button>
-      </div>
+      {/* Submit */}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-pw bg-pw-ink pw-body font-semibold text-white transition-colors hover:bg-pw-ink-soft disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {submitting ? "Preparing your order…" : "Continue to payment"}
+      </button>
+
+      <p className="pw-small text-center text-pw-muted">
+        You&rsquo;ll complete payment securely with PayFast on the next screen. We never store card details.
+      </p>
     </form>
   );
 }
