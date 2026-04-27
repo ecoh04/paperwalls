@@ -73,11 +73,20 @@ function TextLink({ href, children, className = "" }: { href: string; children: 
 }
 
 // ── BUY BOX (above the fold) ──────────────────────────────────────────────
+// Each gallery slot has ONE conversion job, in this order:
+// 1. Hero lifestyle           — emotional hook, no overlay
+// 2. Feature pills overlay    — answers "why us" (specs, ink, origin, shipping)
+// 3. Material macro + label   — answers "is it premium" (gsm, wipe-clean)
+// 4. Finish comparison strip  — lets buyer eyeball Satin/Matte/Linen difference
+// 5. Scale + dimensions       — kills "will it fit my wall" objection
+// 6. Real-home + 5★ overlay   — social proof / risk reversal
 const BUY_BOX_IMAGES = [
-  { src: "/images/product/pdp-hero.jpg",     alt: "Custom wallpaper in a modern living room" },
-  { src: "/images/product/pdp-detail.jpg",   alt: "Macro detail of printed wallpaper texture and pattern" },
-  { src: "/images/product/pdp-corner.jpg",   alt: "Corner detail showing seamless install" },
-  { src: "/images/product/pdp-alt-room.jpg", alt: "Custom wallpaper in a bedroom setting" },
+  { src: "/images/product/pdp-01-hero.jpg",      alt: "Custom wallpaper in a sunlit living room" },
+  { src: "/images/product/pdp-02-features.jpg",  alt: "Wall corner with feature callouts: 1440dpi print, non-toxic ink, made in SA, free delivery" },
+  { src: "/images/product/pdp-03-material.jpg",  alt: "Macro of linen-finish wallpaper labelled 220gsm and wipe-clean" },
+  { src: "/images/product/pdp-04-finishes.jpg",  alt: "Side-by-side comparison strip of Satin, Matte and Linen finishes" },
+  { src: "/images/product/pdp-05-scale.jpg",     alt: "Wall in a room with dimensions overlaid and a person silhouette for scale" },
+  { src: "/images/product/pdp-06-real-home.jpg", alt: "Real customer home with five-star testimonial overlay" },
 ];
 
 type BuyBoxProps = {
@@ -119,8 +128,8 @@ function BuyBox({
               aspectRatio="1/1"
               prompt={BUY_BOX_IMAGES[activeImage].alt}
             />
-            {/* Thumbnail row */}
-            <div className="mt-3 grid grid-cols-4 gap-2 sm:mt-4 sm:gap-3">
+            {/* Thumbnail row — 3 cols mobile (2 rows of 3), 6 cols desktop (1 row) */}
+            <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4 sm:gap-3 sm:grid-cols-6">
               {BUY_BOX_IMAGES.map((img, i) => {
                 const active = i === activeImage;
                 return (
@@ -327,15 +336,15 @@ function MaterialsSection() {
   const finishes = [
     {
       name: "Satin", desc: "Subtle sheen with deep colour. Wipes clean. Sits comfortably in living rooms and family spaces.",
-      range: "From R410/m²", src: "/images/product/pdp-satin.jpg", alt: "Macro of satin wallpaper",
+      range: "From R410/m²", src: "/images/product/pdp-07-satin.jpg", alt: "Macro of satin wallpaper with sheen and gsm label",
     },
     {
       name: "Matte", desc: "Completely flat, non-reflective. Renders fine detail without glare. Best for bright rooms.",
-      range: "From R470/m²", src: "/images/product/pdp-matte.jpg", alt: "Macro of matte wallpaper",
+      range: "From R470/m²", src: "/images/product/pdp-08-matte.jpg", alt: "Macro of matte wallpaper with flat-finish label",
     },
     {
       name: "Linen", desc: "Textured, fabric-like surface. Catches light, adds depth. Designed to feel like a chosen material.",
-      range: "From R590/m²", src: "/images/product/pdp-linen.jpg", alt: "Macro of linen-textured wallpaper",
+      range: "From R590/m²", src: "/images/product/pdp-09-linen.jpg", alt: "Macro of linen-textured wallpaper with weave and gsm label",
     },
   ];
 
@@ -376,9 +385,9 @@ function WhatsInBox() {
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center lg:gap-16">
         <div className="lg:col-span-6">
           <ImagePlaceholder
-            src="/images/product/pdp-unboxing.jpg"
+            src="/images/product/pdp-10-unboxing.jpg"
             aspectRatio="4/3"
-            prompt="Unboxing flat-lay of PaperWalls package contents"
+            prompt="Flat-lay of unboxed PaperWalls contents with each item labelled"
           />
         </div>
         <div className="lg:col-span-6">
@@ -411,9 +420,9 @@ function WhatsInBox() {
 // ── Real homes gallery ────────────────────────────────────────────────────
 function RealHomesGallery() {
   const images = [
-    { src: "/images/product/pdp-home-1.jpg", caption: "Watercolour · Matte · Dining room",  alt: "Dining room with custom watercolour wallpaper" },
-    { src: "/images/product/pdp-home-2.jpg", caption: "Geometric · Satin · Reading nook",   alt: "Reading nook with custom geometric wallpaper" },
-    { src: "/images/product/pdp-home-3.jpg", caption: "Landscape · Linen · Home office",    alt: "Home office with custom landscape wallpaper" },
+    { src: "/images/product/pdp-11-home-1.jpg", caption: "Watercolour · Matte · Dining room",  alt: "Dining room with custom watercolour wallpaper, five-star caption" },
+    { src: "/images/product/pdp-12-home-2.jpg", caption: "Geometric · Satin · Reading nook",   alt: "Reading nook with custom geometric wallpaper, five-star caption" },
+    { src: "/images/product/pdp-13-home-3.jpg", caption: "Landscape · Linen · Home office",    alt: "Home office with custom landscape wallpaper, five-star caption" },
   ];
 
   return (
@@ -511,9 +520,9 @@ function SamplePackBanner() {
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-5 py-10 sm:gap-10 sm:px-8 sm:py-14 lg:grid-cols-12 lg:items-center lg:gap-16 lg:px-12 lg:py-20">
         <div className="lg:col-span-5">
           <ImagePlaceholder
-            src="/images/product/pdp-sample.jpg"
+            src="/images/product/pdp-14-sample.jpg"
             aspectRatio="4/3"
-            prompt="Sample pack with wallpaper swatches"
+            prompt="Sample pack with R150 credit-back overlay"
           />
         </div>
         <div className="lg:col-span-7">
