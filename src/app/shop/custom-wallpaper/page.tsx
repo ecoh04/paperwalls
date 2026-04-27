@@ -73,20 +73,21 @@ function TextLink({ href, children, className = "" }: { href: string; children: 
 }
 
 // ── BUY BOX (above the fold) ──────────────────────────────────────────────
-// Each gallery slot has ONE conversion job, in this order:
-// 1. Hero lifestyle           — emotional hook, no overlay
-// 2. Feature pills overlay    — answers "why us" (specs, ink, origin, shipping)
-// 3. Material macro + label   — answers "is it premium" (gsm, wipe-clean)
-// 4. Finish comparison strip  — lets buyer eyeball Satin/Matte/Linen difference
-// 5. Scale + dimensions       — kills "will it fit my wall" objection
-// 6. Real-home + 5★ overlay   — social proof / risk reversal
+// Cold-traffic gallery: each slot kills one decision-blocking objection,
+// in priority order. NO spec language on the images — outcome only.
+// 1. Dream            — pure aspiration, no overlay
+// 2. Transformation   — same wall before/after ("will it look good?")
+// 3. Price anchor     — vs decorator alternative ("can I afford it?")
+// 4. Time / ease      — solo install in 2 hours ("is it a hassle?")
+// 5. Renter-safe      — peels off clean ("will I lose my deposit?")
+// 6. Social proof     — grid of real ZA homes + ★★★★★ ("is anyone else doing this?")
 const BUY_BOX_IMAGES = [
-  { src: "/images/product/pdp-01-hero.jpg",      alt: "Custom wallpaper in a sunlit living room" },
-  { src: "/images/product/pdp-02-features.jpg",  alt: "Wall corner with feature callouts: 1440dpi print, non-toxic ink, made in SA, free delivery" },
-  { src: "/images/product/pdp-03-material.jpg",  alt: "Macro of linen-finish wallpaper labelled 220gsm and wipe-clean" },
-  { src: "/images/product/pdp-04-finishes.jpg",  alt: "Side-by-side comparison strip of Satin, Matte and Linen finishes" },
-  { src: "/images/product/pdp-05-scale.jpg",     alt: "Wall in a room with dimensions overlaid and a person silhouette for scale" },
-  { src: "/images/product/pdp-06-real-home.jpg", alt: "Real customer home with five-star testimonial overlay" },
+  { src: "/images/product/pdp-01-hero.jpg",        alt: "Custom wallpaper in a sunlit living room" },
+  { src: "/images/product/pdp-02-transform.jpg",   alt: "Same wall before and after, plain rental wall transformed by custom wallpaper" },
+  { src: "/images/product/pdp-03-price.jpg",       alt: "Finished feature wall with overlay anchoring price against a decorator's quote" },
+  { src: "/images/product/pdp-04-ease.jpg",        alt: "One person installing wallpaper solo in two hours with overlay copy" },
+  { src: "/images/product/pdp-05-renter.jpg",      alt: "Hand peeling wallpaper cleanly off a wall with renter-safe overlay" },
+  { src: "/images/product/pdp-06-proof.jpg",       alt: "Grid of four real South African customer homes with five-star overlay" },
 ];
 
 type BuyBoxProps = {
