@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
@@ -109,7 +109,25 @@ function BuyBox({
 }: BuyBoxProps) {
   return (
     <section id="buy-box" className="bg-pw-bg">
-      <div className="mx-auto max-w-7xl px-5 pt-4 pb-10 sm:px-8 sm:pt-6 sm:pb-14 lg:px-12 lg:pt-10 lg:pb-20">
+      <div className="mx-auto max-w-7xl px-5 pt-3 pb-10 sm:px-8 sm:pt-4 sm:pb-14 lg:px-12 lg:pt-6 lg:pb-20">
+
+        {/* Trust strip — single line, surfaces conversion signals before the gallery */}
+        <div className="-mx-5 mb-3 border-b border-pw-stone bg-pw-bg/60 sm:-mx-8 sm:mb-4 lg:-mx-12">
+          <div className="mx-auto max-w-7xl overflow-x-auto px-5 py-2.5 sm:px-8 lg:px-12 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+            <ul className="flex items-center gap-x-5 whitespace-nowrap sm:justify-center sm:gap-x-8">
+              {[
+                "Yours in 5 days",
+                "Free SA delivery",
+                "Free reprints, no questions",
+                "★★★★★ 4.9 from 847 reviews",
+              ].map((item) => (
+                <li key={item} className="pw-small text-pw-ink/65">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
 
         {/* Breadcrumbs */}
         <nav className="pw-small mb-4 flex flex-wrap items-center gap-x-2 text-pw-muted sm:mb-6">
@@ -123,41 +141,11 @@ function BuyBox({
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
 
           {/* GALLERY — left column on desktop, top on mobile */}
-          <div className="lg:col-span-7">
-            {/* Main image */}
-            <ImagePlaceholder
-              src={BUY_BOX_IMAGES[activeImage].src}
-              aspectRatio="1/1"
-              priority
-              sizes="(min-width: 1024px) 58vw, 100vw"
-              prompt={BUY_BOX_IMAGES[activeImage].alt}
-            />
-            {/* Thumbnail row — 3 cols mobile (2 rows of 3), 6 cols desktop (1 row) */}
-            <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4 sm:gap-3 sm:grid-cols-6">
-              {BUY_BOX_IMAGES.map((img, i) => {
-                const active = i === activeImage;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setActiveImage(i)}
-                    aria-label={`Show image ${i + 1}`}
-                    aria-pressed={active}
-                    className={[
-                      "relative overflow-hidden rounded-pw-card transition-all",
-                      active ? "ring-2 ring-pw-ink ring-offset-2 ring-offset-pw-bg" : "ring-1 ring-pw-stone hover:ring-pw-ink/40",
-                    ].join(" ")}
-                  >
-                    <ImagePlaceholder
-                      src={img.src}
-                      aspectRatio="1/1"
-                      prompt={img.alt}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <Gallery
+            images={BUY_BOX_IMAGES}
+            activeImage={activeImage}
+            setActiveImage={setActiveImage}
+          />
 
           {/* PRODUCT INFO — right column on desktop (sticky), below gallery on mobile */}
           <div className="lg:col-span-5">
@@ -301,6 +289,141 @@ function BuyBox({
         </div>
       </div>
     </section>
+  );
+}
+
+// ── Gallery (snap-scroll carousel + thumbnail nav) ────────────────────────
+// Carousel is the source of truth for activeImage; thumbnails and arrows
+// scroll the carousel programmatically; scroll position is the only signal
+// that updates activeImage (no bidirectional loop).
+type GalleryImage = { src: string; alt: string };
+
+function Gallery({
+  images, activeImage, setActiveImage,
+}: {
+  images: readonly GalleryImage[];
+  activeImage: number;
+  setActiveImage: (i: number) => void;
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  const goTo = (i: number) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+  };
+
+  // Derive activeImage from scroll position (rAF-throttled).
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const idx = Math.round(el.scrollLeft / el.clientWidth);
+        if (idx !== activeImage) setActiveImage(idx);
+      });
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [activeImage, setActiveImage]);
+
+  return (
+    <div className="lg:col-span-7">
+      {/* Carousel */}
+      <div className="relative overflow-hidden rounded-pw-card">
+        <div
+          ref={scrollerRef}
+          className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+        >
+          {images.map((img, i) => (
+            <div key={i} className="snap-start shrink-0 w-full">
+              <ImagePlaceholder
+                src={img.src}
+                aspectRatio="1/1"
+                priority={i === 0}
+                sizes="(min-width: 1024px) 58vw, 100vw"
+                prompt={img.alt}
+                className="rounded-none"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop arrows — quiet circular buttons, fade out at edges */}
+        <button
+          type="button"
+          onClick={() => goTo(Math.max(0, activeImage - 1))}
+          aria-label="Previous image"
+          className={[
+            "hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-full bg-white/90 backdrop-blur shadow-sm hover:bg-white transition-opacity",
+            activeImage === 0 ? "pointer-events-none opacity-0" : "opacity-100",
+          ].join(" ")}
+        >
+          <svg className="h-4 w-4 text-pw-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={() => goTo(Math.min(images.length - 1, activeImage + 1))}
+          aria-label="Next image"
+          className={[
+            "hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-full bg-white/90 backdrop-blur shadow-sm hover:bg-white transition-opacity",
+            activeImage === images.length - 1 ? "pointer-events-none opacity-0" : "opacity-100",
+          ].join(" ")}
+        >
+          <svg className="h-4 w-4 text-pw-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Mobile dot indicators — active dot wider, others narrow */}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:hidden">
+          {images.map((_, i) => (
+            <span
+              key={i}
+              aria-hidden
+              className={[
+                "h-1.5 rounded-full transition-all",
+                i === activeImage ? "w-5 bg-white" : "w-1.5 bg-white/55",
+              ].join(" ")}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Thumbnail nav — 3 cols mobile (2 rows of 3), 6 cols desktop (1 row) */}
+      <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4 sm:gap-3 sm:grid-cols-6">
+        {images.map((img, i) => {
+          const active = i === activeImage;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => goTo(i)}
+              aria-label={`Show image ${i + 1}`}
+              aria-pressed={active}
+              className={[
+                "relative overflow-hidden rounded-pw-card transition-all",
+                active ? "ring-2 ring-pw-ink ring-offset-2 ring-offset-pw-bg" : "ring-1 ring-pw-stone hover:ring-pw-ink/40",
+              ].join(" ")}
+            >
+              <ImagePlaceholder
+                src={img.src}
+                aspectRatio="1/1"
+                sizes="(min-width: 640px) 12vw, 33vw"
+                prompt={img.alt}
+              />
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
