@@ -1,63 +1,28 @@
-import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { PageContainer } from "@/components/PageContainer";
 import { Configurator } from "@/components/configurator/Configurator";
-import { SocialProofStrip } from "@/components/SocialProofStrip";
-import { ConversionCtaCard } from "@/components/ConversionCtaCard";
-import { getVariant } from "@/lib/experiments";
-import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Design your wallpaper | PaperWalls",
-  description: "Configure your custom wallpaper. Upload your image, set dimensions, choose your material and finish.",
+  description: "Custom wallpaper. Drop in any image, set your wall size, choose your finish.",
 };
 
-export default function ConfigPage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
-  const variant = getVariant(searchParams);
-  const heroTitle =
-    variant === "speed" ? "Get your wallpaper price in under a minute" : "Design your wallpaper";
-  const heroBody =
-    variant === "speed"
-      ? "Upload your image, enter dimensions, and compare materials with live pricing and quality checks."
-      : "Upload any image, set your wall dimensions, choose your material — and get an instant price. Cut to your exact size, printed in Cape Town.";
-
+export default function ConfigPage() {
   return (
-    <PageContainer>
-      <Breadcrumbs
-        items={[
-          { href: "/", label: "Home" },
-          { href: "/shop/custom-wallpaper", label: "Custom wallpaper" },
-          { label: "Design" },
-        ]}
-      />
+    <main className="bg-pw-bg pb-16 sm:pb-20">
+      <header className="mx-auto max-w-7xl px-5 pt-6 pb-5 sm:px-8 sm:pt-10 sm:pb-8 lg:px-12 lg:pt-14 lg:pb-12">
+        <div className="max-w-2xl">
+          <p className="pw-overline text-pw-muted">Custom wallpaper</p>
+          <h1 className="pw-h1 mt-2 text-pw-ink sm:mt-3">
+            Your image. Your wall.
+          </h1>
+          <p className="pw-body mt-3 text-pw-ink/70 sm:pw-body-lg sm:mt-4">
+            Made-to-order. Yours in five days. Free delivery across South Africa.
+          </p>
+        </div>
+      </header>
 
-      <div className="mb-8">
-        <ConversionPageIntro eyebrow="Configurator" title={heroTitle} description={heroBody} />
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+        <Configurator />
       </div>
-
-      <SocialProofStrip className="mb-6" />
-
-      <Configurator />
-
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-6">
-          <h2 className="font-sans text-lg font-semibold text-pw-ink">Before checkout, make sure you have:</h2>
-          <ul className="mt-3 space-y-2 text-sm text-pw-ink/80">
-            <li>• Exact wall width and height</li>
-            <li>• Highest resolution version of your image</li>
-            <li>• Preferred material and installation choice</li>
-          </ul>
-        </section>
-        <ConversionCtaCard
-          title="Need help choosing materials?"
-          body="Compare Satin, Matte, and Linen with practical guidance before placing your order."
-          ctaLabel="View materials guide"
-          ctaHref="/materials"
-        />
-      </div>
-    </PageContainer>
+    </main>
   );
 }

@@ -1,358 +1,400 @@
 "use client";
 
 import { useCallback, useRef, useState, useEffect } from "react";
+import { getQuality, formatMaxSizeCm } from "@/lib/quality";
+import { exportCroppedJpeg } from "@/lib/imageCrop";
+import { ConfigAlert } from "./ConfigAlert";
 
 type PreviewEditStepProps = {
-  imageUrl: string | null;
-  widthM: number;
-  heightM: number;
-  wallCount?: number;
-  wallLabel?: string;
-  panX: number;
-  panY: number;
-  scale: number;
-  onPanChange: (x: number, y: number) => void;
-  onScaleChange: (s: number) => void;
+  /** Optional label, e.g. "Wall 1" */
+  wallLabel?:       string;
+  imageUrl:         string | null;
+  widthM:           number;
+  heightM:          number;
+  panX:             number;
+  panY:             number;
+  /** 1 = whole image visible. >1 = zoomed in (tighter crop). */
+  zoom:             number;
+  onPanChange:      (x: number, y: number) => void;
+  onZoomChange:     (zoom: number) => void;
   onCropDataReady?: (getBlob: () => Promise<Blob | null>) => void;
 };
 
-// Photowall-style rule: minimum quality threshold is ~21 dpi.
-// 21 dpi ≈ 0.83 px/mm. We use this as our minimum safe threshold.
-const MIN_PX_PER_MM = 0.83;
+type Size = { w: number; h: number };
 
-/** Generate tick positions for a ruler (0 to max in m). */
-function rulerTicks(maxM: number): number[] {
-  if (maxM <= 0) return [0];
-  const step = maxM <= 1 ? 0.25 : maxM <= 3 ? 0.5 : 1;
-  const ticks: number[] = [0];
-  let v = step;
-  while (v < maxM - 0.01) {
-    ticks.push(v);
-    v += step;
-  }
-  ticks.push(maxM);
-  return ticks;
-}
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
+const ZOOM_STEP = 0.1;
 
-function describeQuality(
-  imgW: number,
-  imgH: number,
-  widthM: number,
-  heightM: number
-): {
-  pxPerMm: number;
-  maxWidthM: number;
-  maxHeightM: number;
-  level: "too_low" | "borderline" | "good";
-} {
-  const widthMm = widthM * 1000;
-  const heightMm = heightM * 1000;
-  const pxPerMmW = imgW / widthMm;
-  const pxPerMmH = imgH / heightMm;
-  const pxPerMm = Math.min(pxPerMmW, pxPerMmH);
-  const maxWidthM = imgW / MIN_PX_PER_MM / 1000;
-  const maxHeightM = imgH / MIN_PX_PER_MM / 1000;
-
-  let level: "too_low" | "borderline" | "good";
-  if (pxPerMm < MIN_PX_PER_MM * 0.7) level = "too_low";
-  else if (pxPerMm < MIN_PX_PER_MM * 1.1) level = "borderline";
-  else level = "good";
-
-  return { pxPerMm, maxWidthM, maxHeightM, level };
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }
 
 export function PreviewEditStep({
+  wallLabel,
   imageUrl,
   widthM,
   heightM,
-  wallCount = 1,
-  wallLabel,
   panX,
   panY,
-  scale,
+  zoom,
   onPanChange,
-  onScaleChange,
+  onZoomChange,
   onCropDataReady,
 }: PreviewEditStepProps) {
-  const frameRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState<{ panX: number; panY: number; clientX: number; clientY: number } | null>(null);
-  const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
-  const [frameSize, setFrameSize] = useState<{ w: number; h: number } | null>(null);
+  const previewRef   = useRef<HTMLDivElement>(null);
+  const imgRef       = useRef<HTMLImageElement>(null);
+  const rafRef       = useRef<number | null>(null);
+  const dragStartRef = useRef<{ panX: number; panY: number; clientX: number; clientY: number } | null>(null);
 
-  /**
-   * Exports exactly the pixels visible inside the print frame as a JPEG.
-   * This blob is what we store in the cart and send to the factory—no further cropping.
-   */
+  const [isDragging,   setIsDragging]   = useState(false);
+  const [imgSize,      setImgSize]      = useState<Size | null>(null);
+  const [previewSize,  setPreviewSize]  = useState<Size | null>(null);
+
+  // Reset image-bound state when the URL changes.
+  useEffect(() => {
+    setImgSize(null);
+  }, [imageUrl]);
+
+  // Measure the preview surface (image is fitted to this — frame sits on top of image).
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setPreviewSize((prev) => {
+          if (prev && prev.w === rect.width && prev.h === rect.height) return prev;
+          return { w: rect.width, h: rect.height };
+        });
+      }
+    };
+
+    measure();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  // ── Layout math ─────────────────────────────────────────────────────────
+  // Image is contain-fit inside the preview surface at zoom=1, so the customer
+  // sees the WHOLE image. The wall frame (at the wall's aspect ratio) is overlaid
+  // and sized to fit *inside* the image at zoom=1 — so dragging changes the
+  // image position under a fixed frame, and zoom > 1 grows the image (making the
+  // frame cover a smaller portion = tighter crop).
+  const ready = imgSize !== null && previewSize !== null;
+
+  const wallAspect       = widthM / heightM;
+  const baseImageScale   = ready ? Math.min(previewSize.w / imgSize.w, previewSize.h / imgSize.h) : 0;
+  const effImageScale    = baseImageScale * zoom;
+  const imgDispW         = ready ? imgSize.w * effImageScale : 0;
+  const imgDispH         = ready ? imgSize.h * effImageScale : 0;
+  const baseImgW         = ready ? imgSize.w * baseImageScale : 0;
+  const baseImgH         = ready ? imgSize.h * baseImageScale : 0;
+
+  // Frame size on screen — fixed once imgSize/previewSize are known. The
+  // largest wall-aspect rectangle that fits inside the image at zoom=1.
+  // Trim 14 px so the user can always see the dimmed image bleed at the edges
+  // (otherwise on aspect-matched images the frame would touch the image edges).
+  const FRAME_INSET = 14;
+  const frameScreenW = ready
+    ? Math.max(0, Math.min(baseImgW, baseImgH * wallAspect) - FRAME_INSET * 2)
+    : 0;
+  const frameScreenH = frameScreenW / wallAspect;
+
+  // Pan bounds: frame must always stay inside the image.
+  const maxPanX = Math.max(0, (imgDispW - frameScreenW) / 2);
+  const maxPanY = Math.max(0, (imgDispH - frameScreenH) / 2);
+
+  // Re-clamp pan when sizes or zoom change.
+  useEffect(() => {
+    if (!ready) return;
+    const cx = clamp(panX, -maxPanX, maxPanX);
+    const cy = clamp(panY, -maxPanY, maxPanY);
+    if (cx !== panX || cy !== panY) {
+      onPanChange(cx, cy);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, maxPanX, maxPanY]);
+
+  // ── Crop blob ───────────────────────────────────────────────────────────
   const getCroppedBlob = useCallback(async (): Promise<Blob | null> => {
-    const frame = frameRef.current;
-    const img = imgRef.current;
-    if (!frame || !img || !img.naturalWidth || !imgSize) return null;
-    const rect = frame.getBoundingClientRect();
-    const frameW = rect.width;
-    const frameH = rect.height;
-    const natW = img.naturalWidth;
-    const natH = img.naturalHeight;
-    const coverScale = Math.max(frameW / natW, frameH / natH);
-    // Fix zoom at the minimum cover scale so the image always fills the wall area
-    // and users cannot zoom in past the natural resolution.
-    const displayScale = coverScale;
-    const sourceW = frameW / displayScale;
-    const sourceH = frameH / displayScale;
-    const sourceX = natW / 2 - sourceW / 2 - panX / displayScale;
-    const sourceY = natH / 2 - sourceH / 2 - panY / displayScale;
-    const sx = Math.max(0, Math.min(natW - sourceW, sourceX));
-    const sy = Math.max(0, Math.min(natH - sourceH, sourceY));
-    const sw = Math.min(sourceW, natW - sx);
-    const sh = Math.min(sourceH, natH - sy);
-    // Export as high‑resolution as possible while keeping dimensions reasonable for the browser.
-    // We take the cropped source region (sw × sh) in the original image space and scale it down
-    // only if it exceeds our safety cap. This keeps wallpapers crisp while avoiding 20k+ px exports.
-    const OUT_MAX = 8000; // cap longest edge at 8000px, which is already suitable for large walls
-    const scaleFactor = Math.min(OUT_MAX / sw, OUT_MAX / sh, 1);
-    const outW = Math.max(1, Math.round(sw * scaleFactor));
-    const outH = Math.max(1, Math.round(sh * scaleFactor));
-    const canvas = document.createElement("canvas");
-    canvas.width = outW;
-    canvas.height = outH;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
-    return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
-  }, [panX, panY, scale, imgSize]);
+    if (!imageUrl || !imgSize || !ready || effImageScale <= 0) return null;
+
+    // Source rectangle in image-natural pixels = the part of the image inside
+    // the wall frame at current zoom + pan.
+    const sourceW = frameScreenW / effImageScale;
+    const sourceH = frameScreenH / effImageScale;
+    const sourceX = imgSize.w / 2 - sourceW / 2 - panX / effImageScale;
+    const sourceY = imgSize.h / 2 - sourceH / 2 - panY / effImageScale;
+    const sx      = clamp(sourceX, 0, Math.max(0, imgSize.w - sourceW));
+    const sy      = clamp(sourceY, 0, Math.max(0, imgSize.h - sourceH));
+    const sw      = Math.min(sourceW, imgSize.w - sx);
+    const sh      = Math.min(sourceH, imgSize.h - sy);
+
+    return exportCroppedJpeg(imageUrl, { x: sx, y: sy, width: sw, height: sh });
+  }, [imageUrl, imgSize, ready, effImageScale, frameScreenW, frameScreenH, panX, panY]);
 
   useEffect(() => {
     if (onCropDataReady) onCropDataReady(getCroppedBlob);
   }, [onCropDataReady, getCroppedBlob]);
 
-  // Track the on-screen size of the wall frame so we can ensure the
-  // image always fully covers it (no dead space inside the crop area).
-  useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const update = () => {
-      const rect = frame.getBoundingClientRect();
-      setFrameSize({ w: rect.width, h: rect.height });
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, [widthM, heightM]);
-
   const handleImgLoad = () => {
     const img = imgRef.current;
-    if (img) setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
+    if (!img) return;
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    if (w > 0 && h > 0) setImgSize({ w, h });
   };
 
+  // ── Drag (pan) ──────────────────────────────────────────────────────────
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (!ready) return;
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     setIsDragging(true);
-    setDragStart({ panX, panY, clientX: e.clientX, clientY: e.clientY });
+    dragStartRef.current = { panX, panY, clientX: e.clientX, clientY: e.clientY };
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging || !dragStart || !imgSize || !frameSize) return;
+    if (!isDragging || !dragStartRef.current || !ready) return;
 
-    const dx = e.clientX - dragStart.clientX;
-    const dy = e.clientY - dragStart.clientY;
+    const start = dragStartRef.current;
+    const dx = e.clientX - start.clientX;
+    const dy = e.clientY - start.clientY;
 
-    const wallAspect = widthM > 0 && heightM > 0 ? widthM / heightM : 1;
-    const imgAspect = imgSize.w / imgSize.h;
-    // Decide primary drag axis, mirroring Photowall:
-    // if image is wider than wall -> drag along X; otherwise along Y.
-    const dragAxis: "x" | "y" = imgAspect > wallAspect ? "x" : "y";
+    const nextX = clamp(start.panX + dx, -maxPanX, maxPanX);
+    const nextY = clamp(start.panY + dy, -maxPanY, maxPanY);
 
-    // Compute scaled image size inside the wall frame.
-    const displayScale = Math.max(frameSize.w / imgSize.w, frameSize.h / imgSize.h);
-    const imgDisplayW = imgSize.w * displayScale;
-    const imgDisplayH = imgSize.h * displayScale;
-    const halfFrameW = frameSize.w / 2;
-    const halfFrameH = frameSize.h / 2;
-    const halfImgW = imgDisplayW / 2;
-    const halfImgH = imgDisplayH / 2;
-
-    // Allowed pan range so that the image always fully covers the wall frame
-    // (no white space can appear inside).
-    const minPanX = halfFrameW - halfImgW;
-    const maxPanX = halfImgW - halfFrameW;
-    const minPanY = halfFrameH - halfImgH;
-    const maxPanY = halfImgH - halfFrameH;
-
-    const nextPanXRaw = dragStart.panX + dx;
-    const nextPanYRaw = dragStart.panY + dy;
-
-    const nextPanX =
-      dragAxis === "x"
-        ? Math.min(Math.max(nextPanXRaw, minPanX), maxPanX)
-        : 0;
-    const nextPanY =
-      dragAxis === "y"
-        ? Math.min(Math.max(nextPanYRaw, minPanY), maxPanY)
-        : 0;
-
-    onPanChange(nextPanX, nextPanY);
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      onPanChange(nextX, nextY);
+    });
   };
 
-  const handlePointerUp = () => setIsDragging(false);
+  const endDrag = () => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    dragStartRef.current = null;
+    setIsDragging(false);
+  };
+
+  const handleReset = () => {
+    onPanChange(0, 0);
+    onZoomChange(1);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   if (!imageUrl || widthM <= 0 || heightM <= 0) return null;
 
-  const displayScale =
-    imgSize && frameSize
-      ? Math.max(frameSize.w / imgSize.w, frameSize.h / imgSize.h)
-      : 1;
-
-  const widthCm = widthM * 100;
+  const widthCm  = widthM  * 100;
   const heightCm = heightM * 100;
 
-  const quality =
-    imgSize && widthM > 0 && heightM > 0
-      ? describeQuality(imgSize.w, imgSize.h, widthM, heightM)
-      : null;
+  // Quality is based on the source pixels actually getting printed.
+  const sourcePxW = ready && effImageScale > 0 ? frameScreenW / effImageScale : 0;
+  const sourcePxH = ready && effImageScale > 0 ? frameScreenH / effImageScale : 0;
+  const quality = ready && sourcePxW > 0 && sourcePxH > 0
+    ? getQuality(sourcePxW, sourcePxH, widthM, heightM)
+    : null;
 
-  return (
-    <section className="rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
-      {/* Step header */}
-      <div className="flex items-start gap-4 mb-6">
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pw-ink text-sm font-bold text-white">
-          3
-        </span>
-        <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">
-            Position your image{wallLabel ?? ""}
-          </h2>
-          <p className="mt-1 text-sm text-pw-muted">
-            Drag to reframe. Only what's inside the bordered area will be printed.
-          </p>
-        </div>
-      </div>
+  const showResetLink = zoom > 1.001 || panX !== 0 || panY !== 0;
 
-      {/* Wall preview and crop area – Photowall-style grey grid with centred wall */}
-      <div className="mt-6 flex flex-col">
-        <div className="mx-auto w-full max-w-5xl">
-          <div
-            className="relative w-full rounded-xl border border-pw-stone bg-pw-bg/90 overflow-hidden"
-            style={{
-              // Subtle diagonal grid in the outer area, similar to Photowall's guides
-              backgroundImage:
-                "repeating-linear-gradient(135deg, rgba(148,148,148,0.18) 0, rgba(148,148,148,0.18) 1px, transparent 1px, transparent 16px)",
-            }}
-          >
-            {/* Faint full-image backdrop so users see what is being cropped away */}
-            {imgSize && (
-              <div className="pointer-events-none absolute inset-0 opacity-25">
-                <img
-                  src={imageUrl!}
-                  alt=""
-                  aria-hidden
-                  className="absolute left-1/2 top-1/2 max-w-none select-none object-cover"
-                  style={{
-                    width: imgSize.w * displayScale,
-                    height: imgSize.h * displayScale,
-                    transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
-                  }}
-                />
-              </div>
-            )}
+  const previewBody = (
+    <>
+      <div
+        ref={previewRef}
+        className="relative w-full overflow-hidden rounded-pw-card bg-pw-ink select-none"
+        style={{ paddingTop: "62%" }}
+      >
+        {/* Hidden loader image — triggers onLoad to capture natural dimensions */}
+        <img
+          ref={imgRef}
+          src={imageUrl}
+          alt=""
+          onLoad={handleImgLoad}
+          draggable={false}
+          className="invisible absolute inset-0 h-full w-full"
+          aria-hidden
+        />
 
-            {/* Wall frame */}
-            <div className="relative mx-auto my-8 w-[78%] max-w-[840px]">
+        {ready ? (
+          <>
+            {/* Dimmed full image — what's visible OUTSIDE the wall frame won't print */}
+            <div
+              className="absolute left-1/2 top-1/2 pointer-events-none"
+              style={{
+                width:  imgDispW,
+                height: imgDispH,
+                transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
+                backgroundImage:  `url(${imageUrl})`,
+                backgroundSize:   "100% 100%",
+                backgroundRepeat: "no-repeat",
+                filter:           "brightness(0.32) saturate(0.85)",
+                willChange:       isDragging ? "transform" : undefined,
+              }}
+              aria-hidden
+            />
+
+            {/* Wall frame (the print area) — overlaid on top, fixed screen size */}
+            <div
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-md ring-2 ring-white/95 shadow-[0_8px_24px_rgba(0,0,0,0.45)] pointer-events-none"
+              style={{
+                width:  frameScreenW,
+                height: frameScreenH,
+              }}
+            >
+              {/* Full-brightness image inside the frame — same screen position
+                  as the dimmed backdrop, just clipped by the frame's overflow */}
               <div
-                className="relative w-full bg-pw-stone/80 rounded-md shadow-sm"
-                style={{ aspectRatio: `${widthM} / ${heightM}` }}
-              >
-                <div
-                  ref={frameRef}
-                  className="absolute inset-0 rounded-md border-[3px] border-pw-ink/80 shadow-[0_0_0_1px_rgba(0,0,0,0.25)] overflow-hidden bg-pw-surface/90"
-                >
-                  <img
-                    ref={imgRef}
-                    src={imageUrl}
-                    alt="Your design"
-                    onLoad={handleImgLoad}
-                    draggable={false}
-                    className="absolute left-1/2 top-1/2 max-w-none select-none pointer-events-none object-cover"
-                    style={{
-                      width: imgSize ? imgSize.w * displayScale : "100%",
-                      height: imgSize ? imgSize.h * displayScale : "100%",
-                      transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
-                    }}
-                  />
-                </div>
+                className="absolute left-1/2 top-1/2"
+                style={{
+                  width:  imgDispW,
+                  height: imgDispH,
+                  transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
+                  backgroundImage:  `url(${imageUrl})`,
+                  backgroundSize:   "100% 100%",
+                  backgroundRepeat: "no-repeat",
+                  willChange:       isDragging ? "transform" : undefined,
+                }}
+                aria-hidden
+              />
 
-                {/* Drag overlay — touch-action:none tells the browser not to scroll
-                    on this element so pointer events fire cleanly. Scrolling the
-                    page still works by touching outside this frame. */}
-                <div
-                  className="absolute inset-0 cursor-grab active:cursor-grabbing rounded-md"
-                  style={{ touchAction: "none" }}
-                  onPointerDown={handlePointerDown}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onPointerLeave={handlePointerUp}
-                />
-              </div>
-
-              {/* Bottom width ruler-style label */}
-              <div className="mt-3 flex items-center justify-center gap-2">
-                <div className="h-px flex-1 bg-pw-muted" />
-                <span className="text-xs font-medium text-pw-ink tracking-wide">
-                  {widthCm.toFixed(0)} cm
-                </span>
-                <div className="h-px flex-1 bg-pw-muted" />
-              </div>
-
-              {/* Right-hand height label */}
-              <div className="absolute inset-y-0 -right-10 hidden md:flex flex-col items-center justify-center gap-2">
-                <div className="w-px flex-1 bg-pw-muted" />
-                <span className="text-xs font-medium text-pw-ink rotate-90 whitespace-nowrap tracking-wide">
-                  {heightCm.toFixed(0)} cm
-                </span>
-                <div className="w-px flex-1 bg-pw-muted" />
+              {/* 3×3 rule-of-thirds grid — inside the print frame */}
+              <div className="pointer-events-none absolute inset-0" aria-hidden>
+                <div className="absolute top-0 bottom-0 left-1/3   w-px bg-white/35" />
+                <div className="absolute top-0 bottom-0 left-2/3   w-px bg-white/35" />
+                <div className="absolute left-0 right-0 top-1/3    h-px bg-white/35" />
+                <div className="absolute left-0 right-0 top-2/3    h-px bg-white/35" />
               </div>
             </div>
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2 text-pw-muted">
+              <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="9" strokeWidth="2" strokeOpacity="0.25" />
+                <path d="M21 12a9 9 0 0 1-9 9" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
           </div>
-        </div>
+        )}
 
-        <p className="mt-3 text-xs text-pw-muted text-center">
-          Only what is visible inside the bordered area is printed.
-          <span className="sm:hidden"> Drag inside the frame to reposition — scroll outside it to move down the page.</span>
-        </p>
-      </div>
-
-
-      {quality && quality.level !== "good" && (
+        {/* Drag overlay — captures pointer events for pan across the whole preview */}
         <div
           className={[
-            "mt-5 flex gap-3 rounded-xl border p-4",
-            quality.level === "too_low"
-              ? "border-red-200 bg-red-50"
-              : "border-amber-200 bg-amber-50",
+            "absolute inset-0",
+            ready
+              ? (maxPanX > 0 || maxPanY > 0)
+                ? "cursor-grab active:cursor-grabbing"
+                : "cursor-default"
+              : "cursor-progress",
           ].join(" ")}
+          style={{ touchAction: "none" }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onPointerLeave={endDrag}
+        />
+
+        {/* Wall dimension chip — bottom of preview surface */}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none">
+          <span className="rounded-full bg-white/10 backdrop-blur-sm px-3 py-1 pw-overline text-white/85">
+            {widthCm.toFixed(0)} × {heightCm.toFixed(0)} cm
+          </span>
+        </div>
+      </div>
+
+      {/* Zoom slider */}
+      <div className="mt-5 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onZoomChange(clamp(zoom - ZOOM_STEP, MIN_ZOOM, MAX_ZOOM))}
+          disabled={zoom <= MIN_ZOOM + 0.001}
+          aria-label="Zoom out"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-pw-stone bg-pw-surface text-pw-ink hover:bg-pw-bg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          <svg
-            className={["mt-0.5 h-5 w-5 shrink-0", quality.level === "too_low" ? "text-red-500" : "text-amber-500"].join(" ")}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-            />
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeWidth={2} d="M5 12h14" />
           </svg>
-          <div>
-            <p className={["text-sm font-semibold", quality.level === "too_low" ? "text-red-800" : "text-amber-800"].join(" ")}>
-              {quality.level === "too_low" ? "Image too low-res for this wall size" : "Quality is close to the limit"}
-            </p>
-            <p className={["mt-0.5 text-sm", quality.level === "too_low" ? "text-red-700" : "text-amber-700"].join(" ")}>
-              {quality.level === "too_low"
-                ? "The print may look pixelated. Consider a higher-res file or reduce the wall size."
-                : "Will look good from a normal viewing distance. For sharper results, reduce dimensions slightly."}{" "}
-              Max recommended:{" "}
-              <strong>{quality.maxWidthM.toFixed(2)} x {quality.maxHeightM.toFixed(2)} m</strong>.
-            </p>
-          </div>
+        </button>
+        <input
+          type="range"
+          min={MIN_ZOOM}
+          max={MAX_ZOOM}
+          step={0.01}
+          value={zoom}
+          onChange={(e) => onZoomChange(parseFloat(e.target.value))}
+          aria-label="Zoom"
+          className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-pw-stone accent-pw-accent"
+        />
+        <button
+          type="button"
+          onClick={() => onZoomChange(clamp(zoom + ZOOM_STEP, MIN_ZOOM, MAX_ZOOM))}
+          disabled={zoom >= MAX_ZOOM - 0.001}
+          aria-label="Zoom in"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-pw-stone bg-pw-surface text-pw-ink hover:bg-pw-bg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+        {showResetLink && (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="pw-small font-medium text-pw-muted underline underline-offset-[6px] decoration-pw-ink/20 hover:text-pw-ink hover:decoration-pw-ink/60 transition-colors"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+
+      <p className="pw-small mt-2 text-center text-pw-muted-light">
+        Drag to choose what gets printed · Slide to zoom in for a tighter crop
+      </p>
+
+      {quality && quality.level !== "good" && (
+        <div className="mt-5">
+          <ConfigAlert
+            variant="warning"
+            title={
+              quality.level === "too_low"
+                ? "Will look soft on a wall this big"
+                : "Sharpest at slightly smaller sizes"
+            }
+          >
+            {quality.level === "too_low"
+              ? "It'll look fine from across the room but soft up close. Zoom in to crop tighter, use a higher-resolution image, or reduce the wall."
+              : "Looks fine from normal viewing distance. Zoom in for a tighter crop if you want it sharper up close."}{" "}
+            Crispest up to <strong className="text-pw-ink">{formatMaxSizeCm(quality.maxWidthM, quality.maxHeightM)}</strong>.
+          </ConfigAlert>
         </div>
       )}
-    </section>
+    </>
+  );
+
+  return (
+    <div className="rounded-pw border border-pw-stone bg-pw-bg p-4 sm:p-5">
+      {wallLabel && (
+        <p className="pw-small font-semibold text-pw-ink mb-3">
+          {wallLabel.replace(/^\s*·\s*/, "")}
+        </p>
+      )}
+      {previewBody}
+    </div>
   );
 }

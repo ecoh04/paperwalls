@@ -4,11 +4,11 @@ const footerSections = [
   {
     title: "Shop",
     links: [
-      { href: "/shop/custom-wallpaper",     label: "Custom wallpaper"      },
-      { href: "/how-it-works",              label: "How it works"           },
-      { href: "/materials",                 label: "Materials"              },
-      { href: "/inspiration",               label: "Inspiration"            },
-      { href: "/samples",                   label: "Order a sample pack"    },
+      { href: "/shop/custom-wallpaper", label: "Custom wallpaper"      },
+      { href: "/how-it-works",          label: "How it works"          },
+      { href: "/materials",             label: "Materials"             },
+      { href: "/inspiration",           label: "Inspiration"           },
+      { href: "/samples",               label: "Sample pack"           },
     ],
   },
   {
@@ -21,16 +21,11 @@ const footerSections = [
     ],
   },
   {
-    title: "Legal",
+    title: "Company",
     links: [
-      { href: "/privacy", label: "Privacy policy"   },
-      { href: "/terms",   label: "Terms of service" },
-    ],
-  },
-  {
-    title: "Brand",
-    links: [
-      { href: "/about", label: "About us" },
+      { href: "/about",    label: "About us"          },
+      { href: "/privacy",  label: "Privacy policy"    },
+      { href: "/terms",    label: "Terms of service"  },
     ],
   },
 ];
@@ -38,63 +33,67 @@ const footerSections = [
 export function Footer() {
   return (
     <footer className="border-t border-pw-stone bg-pw-bg">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mb-10 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-surface p-5 sm:p-6">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">Why customers choose PaperWalls</p>
-              <h3 className="mt-2 font-sans text-xl font-semibold text-pw-ink">Commercial print quality with simple ordering</h3>
-              <p className="mt-1 text-sm text-pw-ink/75">Upload your image, preview your crop, and checkout with free shipping nationwide.</p>
-            </div>
-            <Link
-              href="/config"
-              className="inline-flex shrink-0 items-center justify-center rounded-pw bg-pw-ink px-5 py-3 text-sm font-semibold text-white hover:bg-pw-ink-soft"
-            >
-              Start your design
-            </Link>
-          </div>
-          <div className="mt-4 grid gap-2 text-sm text-pw-ink/80 sm:grid-cols-3">
-            <p>72-hour production</p>
-            <p>Free shipping in South Africa</p>
-            <p>DIY or pro installer options</p>
-          </div>
+      <div className="mx-auto max-w-7xl px-5 pb-8 pt-14 sm:px-8 sm:pb-10 sm:pt-20 lg:px-12">
+
+        {/* Closing trust strip — slim, single line */}
+        <div className="mb-12 flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-pw-stone pb-10 sm:mb-14 sm:pb-12">
+          {[
+            "72-hour production",
+            "Free shipping nationwide",
+            "Made in Cape Town",
+            "Reprint guarantee",
+          ].map((claim) => (
+            <span key={claim} className="pw-small text-pw-ink/70">
+              {claim}
+            </span>
+          ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:gap-12">
+        {/* Brand + nav — single column on mobile, multi on desktop */}
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-12 sm:gap-8">
+          <div className="sm:col-span-12 lg:col-span-4">
+            <Link href="/" className="text-xl font-bold text-pw-ink">
+              paper<span className="text-pw-accent">walls</span>
+            </Link>
+            <p className="pw-body mt-4 max-w-sm text-pw-ink/70">
+              Custom wallpaper, made to order in Cape Town and shipped free
+              across South Africa.
+            </p>
+          </div>
           {footerSections.map((section) => (
-            <div key={section.title}>
-              <h3 className="text-xs font-medium uppercase tracking-widest text-pw-ink">
-                {section.title}
-              </h3>
+            <nav key={section.title} className="sm:col-span-4 lg:col-span-2 lg:col-start-auto">
+              <p className="pw-overline text-pw-ink">{section.title}</p>
               <ul className="mt-4 space-y-3">
                 {section.links.map((link) => (
                   <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-pw-ink/75 hover:text-pw-ink"
-                    >
+                    <Link href={link.href} className="pw-small text-pw-ink/70 hover:text-pw-ink transition-colors">
                       {link.label}
                     </Link>
                   </li>
                 ))}
               </ul>
-            </div>
+            </nav>
           ))}
+          {/* CTA column — desktop only */}
+          <div className="hidden lg:col-span-2 lg:block">
+            <p className="pw-overline text-pw-ink">Get started</p>
+            <Link
+              href="/config"
+              className="pw-small mt-4 inline-flex h-10 items-center rounded-pw bg-pw-ink px-4 font-semibold text-white hover:bg-pw-ink-soft transition-colors"
+            >
+              Design yours
+            </Link>
+          </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-pw-stone pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/" className="font-serif text-pw-ink">
-              paper<span className="text-pw-accent">walls</span>
-            </Link>
-            <span className="text-sm text-pw-muted">·</span>
-            <span className="text-sm text-pw-muted">Custom wallpaper, South Africa</span>
-          </div>
-          <p className="text-xs text-pw-muted-light">
-            © {new Date().getFullYear()} Paperwalls. All prices in ZAR.
+        <div className="mt-14 flex flex-col gap-3 border-t border-pw-stone pt-6 sm:mt-16 sm:flex-row sm:items-center sm:justify-between">
+          <p className="pw-small text-pw-muted-light">
+            © {new Date().getFullYear()} Paperwalls · All prices in ZAR
+          </p>
+          <p className="pw-small text-pw-muted-light">
+            Custom wallpaper · South Africa
           </p>
         </div>
-
       </div>
     </footer>
   );

@@ -7,7 +7,6 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageContainer } from "@/components/PageContainer";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
 import { formatZar } from "@/lib/pricing";
-import { SocialProofStrip } from "@/components/SocialProofStrip";
 import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export default function CheckoutPage() {
@@ -75,7 +74,6 @@ export default function CheckoutPage() {
         title="Checkout"
         description="Enter your details below. You’ll complete payment securely with PayFast."
       />
-      <SocialProofStrip className="mt-6" />
 
       {error && (
         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
@@ -121,8 +119,10 @@ export default function CheckoutPage() {
                         <p className="font-medium text-pw-ink">Custom wallpaper</p>
                         <p className="text-xs text-pw-muted-light">
                           {item.walls?.length
-                            ? item.walls.map((w, i) => `Wall ${i + 1}: ${w.widthM}×${w.heightM} m`).join(" · ")
-                            : `${item.widthM}×${item.heightM} m${item.wallCount > 1 ? ` × ${item.wallCount}` : ""}`}
+                            ? item.walls
+                                .map((w, i) => `Wall ${i + 1}: ${Math.round(w.widthM * 100)}×${Math.round(w.heightM * 100)} cm`)
+                                .join(" · ")
+                            : `${Math.round(item.widthM * 100)}×${Math.round(item.heightM * 100)} cm${item.wallCount > 1 ? ` × ${item.wallCount}` : ""}`}
                           {" "}· {item.totalSqm.toFixed(1)} m² · {item.wallpaperType === "peel_and_stick" ? "Peel & Stick" : "Traditional"} {item.material}
                         </p>
                       </div>

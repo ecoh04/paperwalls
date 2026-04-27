@@ -54,12 +54,29 @@ function loadCart(): CartItem[] {
   }
 }
 
-function saveCart(items: CartItem[]) {
-  if (typeof window === "undefined") return;
+function saveCart(items: CartItem[]): boolean {
+  if (typeof window === "undefined") return true;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch {
-    // ignore storage errors
+    return true;
+  } catch (e) {
+    // Most common cause: localStorage quota exceeded by base64 image data URLs.
+    // Cart still works in-memory for this session — we just can't survive a refresh.
+    if (
+      e instanceof DOMException &&
+      (e.name === "QuotaExceededError" || e.code === 22 || e.code === 1014)
+    ) {
+      console.warn(
+        "[PaperWalls cart] Local storage is full — your cart won't survive a page refresh. Complete checkout, or remove an item to free space."
+      );
+    } else {
+      console.warn("[PaperWalls cart] Could not persist cart:", e);
+    }
+    if (typeof document !== "undefined") {
+      // Non-fatal signal for any UI that wants to warn the user.
+      document.dispatchEvent(new CustomEvent("paperwalls:cart-save-failed"));
+    }
+    return false;
   }
 }
 

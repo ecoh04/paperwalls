@@ -47,10 +47,10 @@ export default function ReturnsPage() {
         <div className="mt-10">
           <h2 className="text-xl font-semibold text-pw-ink">Production defects & printing errors</h2>
           <p className="mt-2 text-pw-ink/80">
-            If your order arrives with a genuine production defect — including misaligned cuts,
-            significant colour banding, missing sections, or damage caused by our packaging — we
-            will reprint and reship your order at no cost to you, or issue a full refund, at your
-            discretion.
+            If your order arrives with a genuine production defect (including misaligned cuts,
+            significant colour banding, missing sections, or damage caused by our packaging),
+            we will reprint and reship your order at no cost to you, or issue a full refund, at
+            your discretion.
           </p>
           <p className="mt-3 text-pw-ink/80">
             To lodge a defect claim, please contact us within <strong className="text-pw-ink">7 days</strong> of

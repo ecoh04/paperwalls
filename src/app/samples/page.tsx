@@ -68,7 +68,7 @@ export default function SamplesPage() {
             Sample Swatch Pack
           </h1>
           <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
-            Feel the difference before you commit. We print and ship a real A5 swatch of every material we offer — using the same commercial press that prints your final order. Touch it, hold it to your wall, see how light hits it.
+            Feel the difference before you commit. We print and ship a real A5 swatch of every material we offer, on the same commercial press that prints your final order. Touch it, hold it to your wall, see how light hits it.
           </p>
         </div>
 
@@ -121,28 +121,28 @@ export default function SamplesPage() {
 
           {/* Right: purchase panel */}
           <div className="lg:col-span-2">
-            <div className="sticky top-24 rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm">
+            <div className="sticky top-[7rem] rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm">
 
               <div className="mb-5 border-b border-pw-stone pb-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-pw-muted">Sample Swatch Pack</p>
                 <p className="mt-1 font-sans text-3xl font-bold text-pw-ink">R 300</p>
                 <p className="mt-1 text-sm text-pw-ink/75">
-                  Shipping included · Delivered in 3–5 days
+                  Shipping included · Delivered in 3 to 5 days
                 </p>
               </div>
 
               <ul className="mb-6 space-y-2 text-sm text-pw-ink/80">
                 <li className="flex items-center gap-2">
-                  <span className="text-pw-accent">✓</span> A5 swatch of all 4 materials
+                  <span className="text-pw-accent">✓</span> A5 swatch of every material we offer
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-pw-accent">✓</span> Printed on the same press as your order
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="text-pw-accent">✓</span> R300 credited toward your first wallpaper order
+                  <span className="text-pw-accent">✓</span> Free shipping nationwide, fully tracked
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="text-pw-accent">✓</span> Ships nationwide, fully tracked
+                  <span className="text-pw-accent">✓</span> Delivered in 3 to 5 business days
                 </li>
               </ul>
 
@@ -154,8 +154,8 @@ export default function SamplesPage() {
                 {alreadyInCart
                   ? "View in cart →"
                   : added
-                  ? "Added — view in cart →"
-                  : "Add to cart — R300"}
+                  ? "Added. View in cart →"
+                  : "Add to cart, R300"}
               </button>
 
               {added && !alreadyInCart && (
@@ -168,7 +168,7 @@ export default function SamplesPage() {
               )}
 
               <p className="mt-4 text-center text-xs text-pw-muted">
-                Already ordered? The R300 is automatically credited against your next custom wallpaper order.
+                Pay once, keep the swatches. Order any time you want to compare again.
               </p>
             </div>
           </div>

@@ -1,530 +1,539 @@
-'use client'
+"use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/Button";
+import { Section } from "@/components/ui/Section";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { Eyebrow } from "@/components/ui/Eyebrow";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 
-const PRICE_PER_SQM: Record<string, number> = {
-  woven: 89,
-  nonwoven: 72,
-  peel: 105,
-  canvas: 134,
-};
-
-const MATERIAL_KEYS = ["woven", "nonwoven", "peel", "canvas"] as const;
-type MaterialKey = (typeof MATERIAL_KEYS)[number];
-
-const MATERIAL_LABELS: Record<MaterialKey, string> = {
-  woven: "Woven fabric",
-  nonwoven: "Non-woven",
-  peel: "Peel & stick",
-  canvas: "Textured canvas",
-};
+// Mobile-first 8-section flow tuned for DTC ecom CRO:
+//   1. Hero               — value prop + single primary CTA + secondary text link
+//   2. Gallery            — proof early via real installs (horizontal scroll mobile)
+//   3. Process            — 3 numbered steps, tight rhythm
+//   4. Finishes & price   — buy-box with anchor pricing
+//   5. Sample-pack rail   — secondary path for the considered buyer
+//   6. Why PaperWalls     — 3 trust signals, slim list on mobile
+//   7. FAQ                — objection handling
+//   8. Closing CTA        — dark, single decisive ask
 
 export default function HomePage() {
-  const [activeMaterial, setActiveMaterial] = useState<MaterialKey>("woven");
-  const [activeMat, setActiveMat] = useState(0);
-  const [width, setWidth] = useState(2.4);
-  const [height, setHeight] = useState(2.7);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  return (
+    <>
+      <HeroSection />
+      <GallerySection />
+      <ProcessSection />
+      <FinishesSection />
+      <SamplePackBanner />
+      <WhyPaperWalls />
+      <FAQSection />
+      <ClosingCTA />
+    </>
+  );
+}
 
-  const sqm = width * height;
-  const total = Math.round(sqm * PRICE_PER_SQM[activeMaterial] * 8.1);
-  const price = "R" + total.toLocaleString("en-ZA");
+// ── Reusable: simple centred text link for secondary CTAs ─────────────────
+function TextLink({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
+  return (
+    <Link
+      href={href}
+      className={["pw-small font-medium text-pw-muted underline underline-offset-[6px] decoration-pw-ink/20 hover:text-pw-ink hover:decoration-pw-ink/60 transition-colors", className].join(" ").trim()}
+    >
+      {children}
+    </Link>
+  );
+}
 
-  useEffect(() => {
-    const els = document.querySelectorAll<HTMLElement>(
-      ".feat-card, .step, .testi-card, .mat-tile"
-    );
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement;
-            el.style.opacity = "1";
-            el.style.transform = "translateY(0)";
-            obs.unobserve(el);
-          }
-        });
-      },
-      { threshold: 0.12 }
-    );
-    els.forEach((el) => {
-      el.style.opacity = "0";
-      el.style.transform = "translateY(16px)";
-      el.style.transition = "opacity 0.5s ease, transform 0.5s ease";
-      obs.observe(el);
-    });
-    return () => obs.disconnect();
-  }, []);
+// ── 1. Hero ────────────────────────────────────────────────────────────────
+function HeroSection() {
+  return (
+    <section className="bg-pw-bg">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-5 pb-10 pt-6 sm:gap-10 sm:px-8 sm:pb-14 sm:pt-10 lg:grid-cols-12 lg:gap-16 lg:px-12 lg:pb-24 lg:pt-20">
 
+        {/* Image first on mobile (visual hook); right on desktop */}
+        <div className="order-1 lg:order-2 lg:col-span-7">
+          <ImagePlaceholder
+            src="/images/home/hero.jpg"
+            aspectRatio="4/3"
+            aspectClassName="lg:!aspect-[4/5]"
+            dimensions="1600×2000"
+            priority
+            sizes="(min-width: 1024px) 58vw, 100vw"
+            prompt="Editorial Cape Town living room with botanical custom-printed wallpaper as feature wall behind an oat-bouclé sofa, warm afternoon light from a tall window, brass floor lamp, travertine coffee table with linen books, oak herringbone floors, white-washed plaster walls. Apartmento × Aesop × Kinfolk warmth. Photorealistic, no people."
+          />
+        </div>
 
-  const marqueeItems = [
-    "500+ SA orders printed",
-    "72-hour production",
-    "Cut to your exact dimensions",
-    "Renter-friendly peel & stick",
-    "From R72 per m²",
-    "Ships nationwide",
-    "No design experience needed",
-    "Ships rolled & ready to hang",
+        {/* Copy */}
+        <div className="order-2 flex flex-col justify-center lg:order-1 lg:col-span-5">
+          <Eyebrow>Custom wallpaper · Made in Cape Town</Eyebrow>
+          <h1 className="pw-display mt-4 text-pw-ink">
+            Your image.<br />
+            Your wall.
+          </h1>
+          <p className="pw-body-lg mt-4 max-w-md text-pw-ink/70 sm:mt-5">
+            Upload any photo, pattern, or artwork. We print it, cut it to your
+            wall&rsquo;s exact size, and ship it free across South Africa.
+          </p>
+
+          {/* CTAs — primary full-width on mobile, secondary as text link below */}
+          <div className="mt-6 flex flex-col items-center gap-4 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
+            <Button href="/config" variant="primary" size="lg" className="w-full sm:w-auto">
+              Design your wallpaper
+            </Button>
+            <TextLink href="/samples">Order samples first</TextLink>
+          </div>
+
+          {/* 3 trust signals — uniform single-line labels */}
+          <ul className="mt-8 grid grid-cols-3 gap-3 sm:mt-12 sm:gap-6">
+            {[
+              { num: "72-hour",   label: "Production" },
+              { num: "Free",      label: "Shipping" },
+              { num: "Cape Town", label: "Made by us" },
+            ].map((item) => (
+              <li key={item.label} className="flex flex-col gap-0.5">
+                <span className="pw-h3 text-pw-ink">{item.num}</span>
+                <span className="pw-overline text-pw-muted">{item.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── 2. Gallery — horizontal scroll on mobile, editorial grid on desktop ───
+function GallerySection() {
+  const images = [
+    {
+      src:     "/images/home/gallery-1.jpg",
+      caption: "Botanical · Satin · Living room",
+      prompt:  "Living room with custom botanical wallpaper",
+    },
+    {
+      src:     "/images/home/gallery-2.jpg",
+      caption: "Watercolour · Matte · Bedroom",
+      prompt:  "Bedroom with custom watercolour wallpaper",
+    },
+    {
+      src:     "/images/home/gallery-3.jpg",
+      caption: "Modern art · Linen · Home office",
+      prompt:  "Home office with custom modern art wallpaper",
+    },
+    {
+      src:     "/images/home/gallery-4.jpg",
+      caption: "Geometric · Satin · Hallway",
+      prompt:  "Hallway with custom geometric wallpaper",
+    },
+    {
+      src:     "/images/home/gallery-5.jpg",
+      caption: "Landscape · Matte · Stairwell",
+      prompt:  "Stairwell with custom landscape wallpaper",
+    },
   ];
 
   return (
-    <>
-      <section className="hero">
-        <div className="hero-left">
-          <Link href="/config" className="eyebrow eyebrow-pill fade-up">
-            From R72/m² · Ships in 72hrs — start yours →
-          </Link>
+    <Section tone="surface" id="gallery">
+      <SectionHeader
+        eyebrow="In real homes"
+        title="Wallpaper that becomes the room."
+        body="Every print is unique to the customer who ordered it."
+      />
 
-          <h1 className="hero-h1 fade-up delay-1">
-            Your image.<br />
-            <em>Your walls.</em>
-          </h1>
-
-          <p className="hero-sub fade-up delay-2">
-            Upload any image — printed on commercial-grade fabric and shipped to
-            your door, cut to your exact wall dimensions. No design skills
-            needed.
-          </p>
-
-          <div className="hero-ctas fade-up delay-3">
-            <Link href="/config" className="btn btn-primary">
-              Upload your design <span className="btn-arrow">↗</span>
-            </Link>
-            <Link href="/samples" className="hero-link">
-              Not sure yet? Order a sample pack →
-            </Link>
-          </div>
-
-          <div className="hero-trust fade-up delay-4">
-            <div className="trust-item">
-              <span className="trust-num">72hr</span>
-              <span className="trust-label">Print & dispatch</span>
-            </div>
-            <div className="trust-item">
-              <span className="trust-num">From R72</span>
-              <span className="trust-label">Per m²</span>
-            </div>
-            <div className="trust-item">
-              <span className="trust-num">4.9 ★</span>
-              <span className="trust-label">Customer rating</span>
-            </div>
-            <div className="trust-item">
-              <span className="trust-num">Any size</span>
-              <span className="trust-label">Cut to your exact wall</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="hero-right">
-          {/* Replace hero-image-panel with a Next.js <Image> when photography is ready */}
-          <div className="hero-image-panel" />
-        </div>
-      </section>
-
-      <div className="marquee-wrap">
-        <div className="marquee-track">
-          {[...marqueeItems, ...marqueeItems].map((item, i) => (
-            <div key={i} className="marquee-item">
-              <span className="marquee-dot" />
-              {item}
-            </div>
+      <div className="mt-8 sm:mt-10 lg:mt-12">
+        {/*
+          Mobile/tablet: 2-col grid with the hero image spanning both columns.
+          The horizontal-scroll-snap pattern looked cramped (image hugging
+          the right edge). A clean grid is more legible and predictable.
+        */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:hidden">
+          {images.map((img, i) => (
+            <figure key={i} className={i === 0 ? "col-span-2" : ""}>
+              <ImagePlaceholder
+                src={img.src}
+                aspectRatio={i === 0 ? "4/5" : "3/4"}
+                prompt={img.prompt}
+              />
+              <figcaption className="pw-small mt-2 text-pw-muted">{img.caption}</figcaption>
+            </figure>
           ))}
+        </div>
+
+        {/* Desktop: editorial 12-col grid */}
+        <div className="hidden lg:grid lg:grid-cols-12 lg:auto-rows-[280px] lg:gap-4">
+          <figure className="lg:col-span-7 lg:row-span-2">
+            <ImagePlaceholder src={images[0].src} aspectRatio="4/5" prompt={images[0].prompt} className="h-full" />
+          </figure>
+          <figure className="lg:col-span-5">
+            <ImagePlaceholder src={images[1].src} aspectRatio="4/3" prompt={images[1].prompt} className="h-full" />
+          </figure>
+          <figure className="lg:col-span-5">
+            <ImagePlaceholder src={images[2].src} aspectRatio="4/3" prompt={images[2].prompt} className="h-full" />
+          </figure>
+          <figure className="lg:col-span-4">
+            <ImagePlaceholder src={images[3].src} aspectRatio="3/4" prompt={images[3].prompt} className="h-full" />
+          </figure>
+          <figure className="lg:col-span-4">
+            <ImagePlaceholder src={images[4].src} aspectRatio="3/4" prompt={images[4].prompt} className="h-full" />
+          </figure>
+          <div className="lg:col-span-4 flex flex-col justify-end rounded-pw-card border border-pw-stone bg-pw-bg p-7">
+            <Eyebrow variant="muted">Bring your own image</Eyebrow>
+            <p className="pw-h3 mt-3 text-pw-ink">
+              Anything you can save as a file. We&rsquo;ll print it at any scale.
+            </p>
+          </div>
         </div>
       </div>
 
-      <section className="features">
-        <div className="feat-card">
-          <div className="feat-icon-wrap">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <rect x="2" y="2" width="8" height="8" rx="2.5" fill="#C4622D" />
-              <rect x="12" y="2" width="8" height="8" rx="2.5" fill="#C4622D" opacity="0.45" />
-              <rect x="2" y="12" width="8" height="8" rx="2.5" fill="#C4622D" opacity="0.45" />
-              <rect x="12" y="12" width="8" height="8" rx="2.5" fill="#C4622D" opacity="0.2" />
-            </svg>
-          </div>
-          <div className="feat-title">Start with any photo you own</div>
-          <p className="feat-body">
-            Your phone photo, a scanned painting, a downloaded pattern. If you can save it as a file, we can scale it to fill a wall — no design software or experience needed.
-          </p>
-        </div>
-        <div className="feat-card">
-          <div className="feat-icon-wrap">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <circle cx="11" cy="11" r="8" stroke="#C4622D" strokeWidth="1.5" />
-              <path d="M11 7v4.5l3 2" stroke="#C4622D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <div className="feat-title">On your wall in under a week</div>
-          <p className="feat-body">
-            We print and dispatch within 72 hours of payment. Add 2–4 days for nationwide delivery and you could be hanging it before the weekend is over.
-          </p>
-        </div>
-        <div className="feat-card">
-          <div className="feat-icon-wrap">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-              <path d="M3 11s3.5-6 8-6 8 6 8 6-3.5 6-8 6-8-6-8-6z" stroke="#C4622D" strokeWidth="1.5" />
-              <circle cx="11" cy="11" r="2.5" fill="#C4622D" />
-            </svg>
-          </div>
-          <div className="feat-title">The quality you see in hotels</div>
-          <p className="feat-body">
-            We run the same commercial press equipment used for large-format signage and retail displays. Sharp edges, zero banding, and colours that stay true to your original image.
-          </p>
-        </div>
-      </section>
+      {/* Single CTA below grid (both mobile & desktop) */}
+      <div className="mt-8 flex flex-col items-center gap-4 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-x-6 lg:mt-12">
+        <Button href="/config" variant="primary" size="lg" className="w-full sm:w-auto">
+          Design yours
+        </Button>
+        <TextLink href="/inspiration">See more inspiration →</TextLink>
+      </div>
+    </Section>
+  );
+}
 
-      <section className="gallery-section" id="gallery">
-        <div className="section-header">
-          <div className="eyebrow">Inspiration</div>
-          <h2 className="section-title">
-            Walls that make
-            <br />
-            <em style={{ fontStyle: "italic", color: "var(--accent)" }}>
-              the room.
-            </em>
-          </h2>
-          <p className="section-sub">
-            From abstract art to family photos — if you can save it as a file, we can print it at any scale.
-          </p>
-        </div>
+// ── 3. Process — 3 numbered steps, tight ─────────────────────────────────
+function ProcessSection() {
+  const steps = [
+    {
+      num:    "01",
+      title:  "Upload your image",
+      body:   "Any high-res JPG, PNG, or WebP. We check resolution against your wall before you check out.",
+      src:    "/images/home/process-1.jpg",
+      prompt: "Hand uploading an image on a phone",
+    },
+    {
+      num:    "02",
+      title:  "Pick your finish & size",
+      body:   "Three finishes, two ways to apply. Width and height in centimetres. Live price as you choose.",
+      src:    "/images/home/process-2.jpg",
+      prompt: "Wallpaper swatches arranged on a surface",
+    },
+    {
+      num:    "03",
+      title:  "We print, you hang",
+      body:   "Through our press in 72 hours. Panels arrive rolled, labelled in hanging order, with an install guide.",
+      src:    "/images/home/process-3.jpg",
+      prompt: "Hands smoothing wallpaper onto a wall",
+    },
+  ];
 
-        <div className="gallery-grid">
-          {[
-            {
-              cls: "gal-1",
-              caption: "Botanical gradient — Woven fabric, 3.2 × 2.7m",
-            },
-            {
-              cls: "gal-2",
-              caption: "Linen cross-hatch — Non-woven, 1.8 × 2.4m",
-            },
-            {
-              cls: "gal-3",
-              caption: "Midnight burn — Textured canvas, 2.4 × 2.7m",
-            },
-            {
-              cls: "gal-4",
-              caption: "Stone dot grid — Peel & stick, 1.2 × 2.4m",
-            },
-            {
-              cls: "gal-5",
-              caption: "Raw earth — Woven fabric, 2.8 × 2.7m",
-            },
-          ].map(({ cls, caption }) => (
-            <div key={cls} className="gallery-item">
-              <div className={cls} style={{ width: "100%", height: "100%" }} />
-              <div className="gallery-overlay">
-                <span className="gallery-caption">{caption}</span>
-              </div>
+  return (
+    <Section tone="bg" id="how">
+      <SectionHeader
+        eyebrow="How it works"
+        title="From your photo to your wall."
+        body="No design experience, no trade account, no minimums."
+      />
+
+      <ol className="mt-8 grid grid-cols-1 gap-6 sm:mt-10 sm:grid-cols-3 sm:gap-8 lg:mt-14 lg:gap-10">
+        {steps.map((step) => (
+          <li key={step.num} className="flex flex-col gap-4">
+            <ImagePlaceholder
+              src={step.src}
+              aspectRatio="16/10"
+              aspectClassName="sm:!aspect-square"
+              prompt={step.prompt}
+            />
+            <div className="flex items-baseline gap-3">
+              <span className="pw-overline text-pw-accent">{step.num}</span>
+              <h3 className="pw-h3 text-pw-ink">{step.title}</h3>
             </div>
-          ))}
-        </div>
+            <p className="pw-body text-pw-ink/70">{step.body}</p>
+          </li>
+        ))}
+      </ol>
 
-        <div className="gallery-cta">
-          <p className="gallery-cta-note">Every print is unique to your order. We print your image — not ours.</p>
-          <Link href="/config" className="btn btn-outline">
-            Start with your own image <span className="btn-arrow">↗</span>
-          </Link>
-        </div>
-      </section>
+      <div className="mt-8 flex justify-center sm:mt-12">
+        <Button href="/config" variant="primary" size="lg" className="w-full sm:w-auto">
+          Start designing
+        </Button>
+      </div>
+    </Section>
+  );
+}
 
-      <section className="materials" id="materials">
-        <div className="section-header">
-          <div className="eyebrow">Substrates</div>
-          <h2 className="section-title" style={{ color: "#fff" }}>
-            Four materials.
-            <br />
-            <em style={{ fontStyle: "italic", color: "var(--accent-mid)" }}>
-              One standard.
-            </em>
-          </h2>
-          <p className="section-sub">
-            Every substrate is printed on the same commercial press. The
-            difference is in the feel, finish, and installation method.
-          </p>
-        </div>
+// ── 4. Finishes — anchor pricing + clear options ──────────────────────────
+function FinishesSection() {
+  const finishes = [
+    {
+      name:        "Satin",
+      desc:        "Subtle sheen. Wipes clean. Sits comfortably in living rooms and family spaces.",
+      rangeFromTo: "R410 to R490",
+      tag:         "Most ordered",
+      src:         "/images/home/finish-satin.jpg",
+      prompt:      "Macro of satin-finish wallpaper",
+    },
+    {
+      name:        "Matte",
+      desc:        "Completely flat, non-reflective. Reads like fine art on the wall. Best for bright rooms.",
+      rangeFromTo: "R470 to R540",
+      tag:         null,
+      src:         "/images/home/finish-matte.jpg",
+      prompt:      "Macro of matte-finish wallpaper",
+    },
+    {
+      name:        "Linen",
+      desc:        "Textured, fabric-like. Catches light, adds depth. Designed to feel chosen, not generic.",
+      rangeFromTo: "R590 to R680",
+      tag:         "Most premium",
+      src:         "/images/home/finish-linen.jpg",
+      prompt:      "Macro of linen-textured wallpaper",
+    },
+  ];
 
-        <div className="materials-grid">
-          {[
-            {
-              swatch: "mat-swatch-woven",
-              name: "Woven Fabric",
-              desc: "A soft linen-like finish that looks and feels premium. Applies with paste, removes cleanly, and covers minor wall imperfections well.",
-              tag: "Most popular",
-              price: "R89",
-            },
-            {
-              swatch: "mat-swatch-nonwoven",
-              name: "Non-Woven",
-              desc: "Flat matte surface that renders sharp photographic detail edge-to-edge without distortion. Best for portraits, cityscapes and fine linework.",
-              tag: null,
-              price: "R72",
-            },
-            {
-              swatch: "mat-swatch-peel",
-              name: "Peel & Stick",
-              desc: "No paste, no damage, no commitment. Repositionable vinyl that peels off painted walls cleanly — perfect for renters or feature walls you might change.",
-              tag: "Renter-friendly",
-              price: "R105",
-            },
-            {
-              swatch: "mat-swatch-canvas",
-              name: "Textured Canvas",
-              desc: "A tactile, textured substrate that makes your image feel like a work of art. Heavier than standard wallpaper — best for bold, graphic imagery.",
-              tag: "Premium",
-              price: "R134",
-            },
-          ].map((mat, i) => (
-            <div
-              key={mat.name}
-              className={`mat-tile${activeMat === i ? " active" : ""}`}
-              onClick={() => setActiveMat(i)}
-            >
-              <div className={`mat-swatch ${mat.swatch}`} />
-              <div className="mat-name">{mat.name}</div>
-              <p className="mat-desc">{mat.desc}</p>
-              {mat.tag && <span className="mat-tag">{mat.tag}</span>}
-              <div className="mat-price">
-                {mat.price} <span>per m²</span>
+  return (
+    <Section tone="surface" id="finishes">
+      <SectionHeader
+        eyebrow="Choose your finish"
+        title="Three finishes. One commercial press."
+        body="Every order goes through the same machine. The choice is finish, how the surface catches light, and how it sticks to the wall."
+      />
+
+      <div className="mt-8 grid grid-cols-1 gap-5 sm:mt-12 sm:gap-6 md:grid-cols-3">
+        {finishes.map((f) => (
+          <article
+            key={f.name}
+            className="flex flex-col rounded-pw-card border border-pw-stone bg-pw-bg overflow-hidden"
+          >
+            <div className="relative">
+              <ImagePlaceholder
+                src={f.src}
+                aspectRatio="16/10"
+                aspectClassName="md:!aspect-[4/3]"
+                prompt={f.prompt}
+              />
+              {f.tag && (
+                <span className="pw-overline absolute top-4 left-4 rounded-full bg-pw-ink px-3 py-1 text-white">
+                  {f.tag}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-1 flex-col p-6">
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="pw-h3 text-pw-ink">{f.name}</h3>
+                <span className="pw-h3 whitespace-nowrap text-pw-ink">{f.rangeFromTo}</span>
               </div>
+              <p className="pw-small mt-1 text-pw-muted-light">per m²</p>
+              <p className="pw-body mt-4 text-pw-ink/70">{f.desc}</p>
             </div>
-          ))}
-        </div>
+          </article>
+        ))}
+      </div>
 
-        <div className="section-cta">
-          <Link href="/config" className="btn btn-accent">
-            Choose your material <span className="btn-arrow">↗</span>
-          </Link>
-          <p className="section-cta-note">
-            Ordering for a project?{" "}
-            <Link href="/contact">Contact us for bulk pricing →</Link>
+      {/* Application — Traditional vs Peel & Stick */}
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2">
+        <article className="rounded-pw-card border border-pw-stone bg-pw-bg p-6 sm:p-7">
+          <h3 className="pw-h3 text-pw-ink">Traditional</h3>
+          <p className="pw-small mt-1 text-pw-accent">Paste-the-wall</p>
+          <p className="pw-body mt-3 text-pw-ink/70">
+            Permanent, with the cleanest seams. Best for feature walls and rooms you&rsquo;re committing to.
           </p>
-        </div>
-      </section>
+        </article>
+        <article className="rounded-pw-card border border-pw-stone bg-pw-bg p-6 sm:p-7">
+          <h3 className="pw-h3 text-pw-ink">Peel &amp; Stick</h3>
+          <p className="pw-small mt-1 text-pw-accent">Self-adhesive</p>
+          <p className="pw-body mt-3 text-pw-ink/70">
+            Repositionable while you hang, removes cleanly when you&rsquo;re done. The right choice for renters.
+          </p>
+        </article>
+      </div>
 
-      <section className="how-section" id="how">
-        <div className="section-header">
-          <div className="eyebrow">The process</div>
-          <h2 className="section-title">
-            Four steps.
-            <br />
-            <em style={{ fontStyle: "italic", color: "var(--accent)" }}>
-              Order in minutes.
-            </em>
+      <div className="mt-8 flex justify-center sm:mt-12">
+        <Button href="/config" variant="primary" size="lg" className="w-full sm:w-auto">
+          See live pricing
+        </Button>
+      </div>
+    </Section>
+  );
+}
+
+// ── 5. Sample-pack banner ─────────────────────────────────────────────────
+function SamplePackBanner() {
+  return (
+    <section className="bg-pw-stone">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-5 py-10 sm:gap-10 sm:px-8 sm:py-14 lg:grid-cols-12 lg:items-center lg:gap-16 lg:px-12 lg:py-20">
+        <div className="lg:col-span-5">
+          <ImagePlaceholder
+            src="/images/home/sample-pack.jpg"
+            aspectRatio="4/3"
+            prompt="Sample pack with wallpaper swatches"
+          />
+        </div>
+        <div className="lg:col-span-7">
+          <Eyebrow variant="muted">Not ready to commit?</Eyebrow>
+          <h2 className="pw-h2 mt-3 text-pw-ink">
+            Feel the materials in your hand first.
           </h2>
-          <p className="section-sub">
-            No design experience needed. No trade account. Just your image and
-            your dimensions.
+          <p className="pw-body-lg mt-4 max-w-xl text-pw-ink/70">
+            A5 swatches of every finish, printed on the same press as your final
+            order. R300, ships free, arrives in 3 to 5 days.
           </p>
-        </div>
-
-        <div className="steps-grid">
-          {[
-            {
-              num: "01",
-              title: "Upload your file",
-              body: "Drop any high-resolution image — JPG, PNG, TIFF, or PDF. We'll flag if your DPI is too low before you pay.",
-              tag: "Free DPI check",
-            },
-            {
-              num: "02",
-              title: "Choose your material",
-              body: "Pick from 4 substrate options. Enter your exact wall dimensions — we cut every order to the millimetre.",
-              tag: "Live price estimate",
-            },
-            {
-              num: "03",
-              title: "We print & ship",
-              body: "Your order hits our commercial press within 24 hours of payment confirmation. Arrives rolled, labelled by panel, and ready to hang.",
-              tag: "72hr production",
-            },
-            {
-              num: "04",
-              title: "Hang it — we make it easy",
-              body: "Every order includes a substrate-specific hanging guide. Panels arrive rolled and labelled in order. Most customers hang their wall in an afternoon.",
-              tag: "Guide included",
-            },
-          ].map((step) => (
-            <div key={step.num} className="step">
-              <div className="step-num">{step.num}</div>
-              <div className="step-title">{step.title}</div>
-              <p className="step-body">{step.body}</p>
-              <span className="step-tag">{step.tag}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="section-cta">
-          <Link href="/config" className="btn btn-primary">
-            Start your order <span className="btn-arrow">↗</span>
-          </Link>
-        </div>
-      </section>
-
-      <section className="testimonials">
-        <div className="section-header">
-          <div className="eyebrow">Reviews</div>
-          <h2 className="section-title">What our customers say</h2>
-          <div className="review-summary">
-            <span className="review-stars">★★★★★</span>
-            <span className="review-count">4.9 · 200+ verified orders</span>
+          <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:flex-wrap sm:gap-x-6">
+            <Button href="/samples" variant="primary" size="lg" className="w-full sm:w-auto">
+              Order sample pack · R300
+            </Button>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
 
-        <div className="testimonials-grid">
-          {[
-            {
-              quote:
-                "I uploaded a photo I took on my phone — the print quality was extraordinary. Our living room is completely transformed.",
-              initials: "SL",
-              name: "Sarah Louw",
-              detail: "Interior designer · Cape Town",
-              badge: "Verified buyer",
-              avatarBg: "#F2E8E1",
-              avatarColor: "#C4622D",
-            },
-            {
-              quote:
-                "Used Paperwalls for a restaurant renovation. Six walls, all custom. The consistency panel-to-panel is exceptional. Every client who visits comments on them.",
-              initials: "MN",
-              name: "Musa Nkosi",
-              detail: "Hospitality operator · Johannesburg",
-              badge: "Verified buyer",
-              avatarBg: "#EAF5EE",
-              avatarColor: "#1A6B35",
-            },
-            {
-              quote:
-                "The peel-and-stick is genuinely brilliant. I&apos;ve repositioned it twice and it still holds perfectly — and came off cleanly when I moved flats.",
-              initials: "JM",
-              name: "Jess Marais",
-              detail: "Renter · Pretoria",
-              badge: "Verified buyer",
-              avatarBg: "#E6F0FB",
-              avatarColor: "#1A5FAD",
-            },
-          ].map((t) => (
-            <div key={t.name} className="testi-card">
-              <div className="testi-stars">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="star" />
-                ))}
-              </div>
-              <p className="testi-quote">&ldquo;{t.quote}&rdquo;</p>
-              <div className="testi-author">
-                <div
-                  className="testi-avatar"
-                  style={{ background: t.avatarBg, color: t.avatarColor }}
+// ── 6. Why PaperWalls — 3 trust signals ───────────────────────────────────
+function WhyPaperWalls() {
+  const reasons = [
+    {
+      title: "Printed in Cape Town",
+      body:  "Our own press, our own people, our own QC. No imported rolls, no third-party fulfilment.",
+    },
+    {
+      title: "Cut to your wall",
+      body:  "Every order cut to the millimetre based on your dimensions. There are no standard sizes.",
+    },
+    {
+      title: "Reprint guarantee",
+      body:  "If anything ships imperfect, we reprint at no cost. Send a photo within 7 days, sorted in 48 hours.",
+    },
+  ];
+
+  return (
+    <Section tone="bg">
+      <SectionHeader
+        eyebrow="Why PaperWalls"
+        title="Standards we hold ourselves to."
+      />
+
+      {/* Mobile: clean bullet list. Desktop: 3-card grid. */}
+      <ul className="mt-8 flex flex-col gap-5 sm:mt-12 md:grid md:grid-cols-3 md:gap-8">
+        {reasons.map((r) => (
+          <li key={r.title} className="flex gap-4 md:flex-col md:gap-3">
+            <span
+              aria-hidden
+              className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-pw-accent md:mt-0 md:h-2 md:w-2"
+            />
+            <div>
+              <h3 className="pw-h3 text-pw-ink">{r.title}</h3>
+              <p className="pw-body mt-1.5 text-pw-ink/70 md:mt-2">{r.body}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+// ── 7. FAQ ────────────────────────────────────────────────────────────────
+const FAQ = [
+  {
+    q: "Do I need design software or special files?",
+    a: "No. If you have a photo on your phone, you have everything you need. Upload any JPG, PNG, or WebP. We handle the print setup from there.",
+  },
+  {
+    q: "What if my image isn't high-resolution enough?",
+    a: "We check resolution against your wall dimensions before you pay. If the file is too small, we tell you upfront and suggest a smaller wall or a sharper image.",
+  },
+  {
+    q: "How do I measure my wall correctly?",
+    a: "Width × height in centimetres, edge to edge at the widest and tallest points. We cut every order to the millimetre, so measure twice.",
+  },
+  {
+    q: "I rent. Will peel-and-stick damage my walls?",
+    a: "No. Our peel-and-stick removes cleanly from painted plaster without leaving residue, and can be repositioned during install.",
+  },
+  {
+    q: "How long does delivery take?",
+    a: "72 hours through our press from payment, then 2 to 4 business days for nationwide delivery. You get a tracking number when it ships.",
+  },
+];
+
+function FAQSection() {
+  const [open, setOpen] = useState<number | null>(0);
+  return (
+    <Section tone="surface" id="faq">
+      <div className="grid gap-8 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-4">
+          <SectionHeader
+            eyebrow="Common questions"
+            title="The five things everyone asks."
+            body={
+              <>
+                Still unsure?{" "}
+                <Link
+                  href="/contact"
+                  className="text-pw-accent underline underline-offset-[5px] decoration-pw-accent/40 hover:decoration-pw-accent"
                 >
-                  {t.initials}
-                </div>
-                <div>
-                  <div className="testi-name">{t.name}</div>
-                  <div className="testi-detail">{t.detail}</div>
-                  <div className="testi-verified">{t.badge}</div>
-                </div>
-              </div>
-            </div>
-          ))}
+                  Talk to us.
+                </Link>
+              </>
+            }
+          />
         </div>
-      </section>
+        <ul className="lg:col-span-8">
+          {FAQ.map((item, i) => {
+            const isOpen = open === i;
+            return (
+              <li key={i} className="border-b border-pw-stone first:border-t">
+                <button
+                  type="button"
+                  onClick={() => setOpen(isOpen ? null : i)}
+                  aria-expanded={isOpen}
+                  className="flex w-full items-center justify-between gap-4 py-5 text-left transition-colors sm:py-6"
+                >
+                  <span className="pw-h3 text-pw-ink">{item.q}</span>
+                  <span
+                    className={[
+                      "shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full border border-pw-stone text-pw-ink transition-transform",
+                      isOpen ? "rotate-45 bg-pw-accent-soft border-pw-accent text-pw-accent" : "",
+                    ].join(" ").trim()}
+                    aria-hidden
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 5v14M5 12h14" />
+                    </svg>
+                  </span>
+                </button>
+                {isOpen && (
+                  <p className="pw-body pb-6 -mt-1 max-w-3xl text-pw-ink/70">{item.a}</p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </Section>
+  );
+}
 
-      <section className="faq-section" id="faq">
-        <div className="section-header">
-          <div className="eyebrow">Common questions</div>
-          <h2 className="section-title">
-            Everything you need
-            <br />
-            <em style={{ fontStyle: "italic", color: "var(--accent)" }}>
-              to know.
-            </em>
+// ── 8. Closing CTA ────────────────────────────────────────────────────────
+function ClosingCTA() {
+  return (
+    <Section tone="ink" density="default">
+      <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-end lg:gap-16">
+        <div className="lg:col-span-7">
+          <Eyebrow className="text-pw-accent-mid">Ready when you are</Eyebrow>
+          <h2 className="pw-display mt-3 text-white sm:mt-4">
+            Your image.<br />
+            On your wall this week.
           </h2>
-          <p className="section-sub">
-            Still not sure?{" "}
-            <Link href="/contact" style={{ color: "var(--accent)", textDecoration: "underline", textUnderlineOffset: "3px" }}>
-              Chat to us directly →
-            </Link>
+          <p className="pw-body-lg mt-4 max-w-xl text-white/65 sm:mt-5">
+            Upload your photo, choose your finish, get a live price in under sixty seconds.
           </p>
         </div>
-
-        <div className="faq-accordion">
-          {[
-            {
-              q: "Do I need design software or special files?",
-              a: "No. If you have a photo on your phone, you have everything you need. Just upload any JPG, PNG, TIFF or PDF — we handle the print setup from there.",
-            },
-            {
-              q: "What if my image isn't high-resolution enough?",
-              a: "We check your file's DPI before you pay. If it's too low for your chosen dimensions, we'll tell you upfront — no nasty surprises when it arrives.",
-            },
-            {
-              q: "How do I measure my wall correctly?",
-              a: "Width × height in centimetres, measured at the widest and tallest points. We cut every order to the millimetre, so measure twice. Our how-it-works page has a full guide.",
-            },
-            {
-              q: "Which material should I choose?",
-              a: "Woven fabric suits most homes. Non-woven is best for photographic detail. Peel & stick is for renters or commitment-free decorating. Canvas is a premium, art-gallery feel.",
-            },
-            {
-              q: "I'm renting — will peel & stick damage my walls?",
-              a: "No. Our peel & stick removes cleanly from painted or plaster walls without leaving residue. It can also be repositioned if you need to adjust after hanging.",
-            },
-            {
-              q: "What if the print isn't right when it arrives?",
-              a: "If there's a print defect — banding, colour shift, transit damage — we reprint at no cost. Send us a photo within 7 days and we sort it within 48 hours.",
-            },
-            {
-              q: "How long does delivery take after I order?",
-              a: "Production is 72 hours from payment confirmation. Nationwide delivery adds 2–4 business days depending on your province. You receive a tracking number when it ships.",
-            },
-            {
-              q: "Can I order wallpaper for multiple walls?",
-              a: "Yes. The configurator supports multi-wall orders — add each wall's dimensions separately and we print, label, and ship them together as one order.",
-            },
-          ].map((item, i) => (
-            <div
-              key={i}
-              className={`faq-accordion-item${openFaq === i ? " open" : ""}`}
-            >
-              <button
-                className="faq-accordion-trigger"
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                aria-expanded={openFaq === i}
-              >
-                <span className="faq-accordion-q">{item.q}</span>
-                <span className="faq-accordion-icon">+</span>
-              </button>
-              <div className="faq-accordion-body">
-                <p className="faq-accordion-a">{item.a}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div className="cta-banner">
-        <div>
-          <h2 className="cta-banner-title">
-            Your image.
-            <br />
-            <em>On your wall within the week.</em>
-          </h2>
-          <p className="cta-banner-sub">
-            Upload your photo, choose your material, and get a live price in under 60 seconds. Printed in Cape Town. Delivered nationwide.
-          </p>
-        </div>
-        <div className="cta-banner-actions">
-          <Link href="/config" className="btn btn-accent">
-            Upload your design <span className="btn-arrow">↗</span>
-          </Link>
-          <span className="cta-note">
-            No account needed &nbsp;·&nbsp; No design skills required
+        <div className="flex flex-col items-center gap-3 lg:col-span-5 lg:items-end">
+          <Button href="/config" variant="light-on-ink" size="lg" className="w-full sm:w-auto">
+            Design your wallpaper
+          </Button>
+          <span className="pw-small text-center text-white/45 lg:text-right">
+            No payment yet · Free shipping
           </span>
         </div>
       </div>
-
-    </>
+    </Section>
   );
 }
