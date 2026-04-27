@@ -18,6 +18,82 @@
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   v2 design-system typography utilities
+
+   Single source of truth for type scale across the redesigned site. Use these
+   alongside Tailwind utilities. All headings use DM Serif Display; bodies use
+   DM Sans. Italic emphasis (<em>) on serif headings is intentional — it's
+   the brand voice.
+   ──────────────────────────────────────────────────────────────────────── */
+
+@layer components {
+  .pw-display {
+    font-family: "DM Serif Display", Georgia, serif;
+    font-size:   clamp(44px, 5.6vw, 80px);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+  }
+
+  .pw-h1 {
+    font-family: "DM Serif Display", Georgia, serif;
+    font-size:   clamp(36px, 4vw, 56px);
+    line-height: 1.06;
+    letter-spacing: -0.03em;
+  }
+
+  .pw-h2 {
+    font-family: "DM Serif Display", Georgia, serif;
+    font-size:   clamp(28px, 3.2vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+
+  .pw-h3 {
+    font-family: "DM Serif Display", Georgia, serif;
+    font-size:   clamp(20px, 1.7vw, 26px);
+    line-height: 1.25;
+    letter-spacing: -0.018em;
+  }
+
+  .pw-body-lg {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size:   clamp(16px, 1.3vw, 18px);
+    line-height: 1.65;
+    font-weight: 300;
+  }
+
+  .pw-body {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size:   15px;
+    line-height: 1.65;
+  }
+
+  .pw-small {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size:   13px;
+    line-height: 1.55;
+  }
+
+  .pw-overline {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size:   11px;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 500;
+  }
+
+  /* Italic emphasis inside DM Serif Display headings — brand voice. */
+  .pw-display em,
+  .pw-h1 em,
+  .pw-h2 em,
+  .pw-h3 em {
+    font-style: italic;
+    font-weight: 400;
+  }
+}
+
 /* Design system from provided CSS (trimmed to core tokens and layout classes) */
 
 :root {
