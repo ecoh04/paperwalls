@@ -1,19 +1,25 @@
 type ImagePlaceholderProps = {
   /** Generation prompt — used both as alt text for the rendered image and as the
    *  visible label on the placeholder while the asset is still being generated. */
-  prompt:        string;
-  /** CSS aspect-ratio value, e.g. "16/10" or "3/4". */
-  aspectRatio:   string;
+  prompt:           string;
+  /** CSS aspect-ratio value, e.g. "16/10" or "3/4". Applied as the base aspect on
+   *  the inner sized element. */
+  aspectRatio:      string;
   /** Once the asset is ready, set this to its public path (e.g. "/images/home/hero.jpg")
    *  and the component renders the image instead of the placeholder. */
-  src?:          string;
+  src?:             string;
   /** Optional caption shown below the image. */
-  caption?:      string;
-  className?:    string;
+  caption?:         string;
+  /** Classes for the OUTER wrapper (layout, shadow, h-full, lg:col-span-N etc.). */
+  className?:       string;
+  /** Classes for the INNER aspect-ratio element. Use `sm:!aspect-square` here to
+   *  override the base aspectRatio at a breakpoint — the `!` is required because
+   *  the base aspect is set via inline style. */
+  aspectClassName?: string;
   /** Recommended generated dimensions, e.g. "1600×2000". */
-  dimensions?:   string;
+  dimensions?:      string;
   /** Override the placeholder gradient with a custom one. */
-  gradient?:     string;
+  gradient?:        string;
 };
 
 const DEFAULT_GRADIENT =
@@ -26,22 +32,27 @@ const DEFAULT_GRADIENT =
  * the prompt + recommended dimensions so it's obvious what still needs work.
  * The moment a file path is wired up, the component switches to rendering
  * the actual image with the prompt as the alt text.
+ *
+ * Layout split: `className` styles the outer wrapper, `aspectClassName` styles
+ * the inner aspect-ratio element (use this for responsive aspect overrides).
  */
 export function ImagePlaceholder({
   prompt,
   aspectRatio,
   src,
   caption,
-  className     = "",
+  className       = "",
+  aspectClassName = "",
   dimensions,
-  gradient      = DEFAULT_GRADIENT,
+  gradient        = DEFAULT_GRADIENT,
 }: ImagePlaceholderProps) {
   return (
     <div className={["relative w-full overflow-hidden rounded-pw-card", className].join(" ").trim()}>
-      <div className="relative w-full" style={{ aspectRatio }}>
+      <div
+        className={["relative w-full", aspectClassName].join(" ").trim()}
+        style={{ aspectRatio }}
+      >
         {src ? (
-          // Real image. eslint-disable-next-line @next/next/no-img-element — keeping plain
-          // <img> for now to avoid Next.js Image config; can swap to next/image later.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={src}
@@ -51,10 +62,7 @@ export function ImagePlaceholder({
             decoding="async"
           />
         ) : (
-          <div
-            className="absolute inset-0"
-            style={{ background: gradient }}
-          >
+          <div className="absolute inset-0" style={{ background: gradient }}>
             <div className="absolute inset-0 flex flex-col justify-end gap-2 p-5 text-white/85">
               <span className="pw-overline text-white/55">
                 Pending photography{dimensions ? ` · ${dimensions}` : ""}
