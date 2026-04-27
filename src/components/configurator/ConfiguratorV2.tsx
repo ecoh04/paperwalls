@@ -10,26 +10,17 @@ import {
   formatZar,
   getPricePerSqmCents,
 } from "@/lib/pricing";
-import { getQuality, MIN_PX_PER_MM } from "@/lib/quality";
-import { DEFAULT_CONFIG, type ConfiguratorState } from "@/types/configurator";
-import type { WallpaperType, WallpaperMaterial } from "@/types/order";
+import { MIN_PX_PER_MM } from "@/lib/quality";
+import { DEFAULT_CONFIG, type ConfiguratorState, type WallSpec } from "@/types/configurator";
+import type { WallpaperType, WallpaperMaterial, ApplicationMethod } from "@/types/order";
 import { PreviewEditStep } from "./PreviewEditStep";
 import { OrderSummaryPanel } from "./OrderSummaryPanel";
 import { MobileSummaryBar } from "./MobileSummaryBar";
 import { ConfigAlert } from "./ConfigAlert";
 
-/* ── Smart defaults ──────────────────────────────────────────────────────
-   3.0 × 2.7 m is a typical lounge feature wall. With Satin / Traditional / DIY
-   the buyer sees a real running price (R3,321) the moment the page loads,
-   no input required. They tweak from there. */
-const SMART_DEFAULTS: ConfiguratorState = {
-  ...DEFAULT_CONFIG,
-  widthM:  3.0,
-  heightM: 2.7,
-};
-
 const MAX_SIZE_MB = 50;
-const ACCEPT       = "image/jpeg,image/png,image/webp";
+const ACCEPT      = "image/jpeg,image/png,image/webp";
+const KIT_CENTS   = 60000;
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -57,16 +48,26 @@ const FLOW_INPUT_CLASSES =
 export function ConfiguratorV2() {
   const router = useRouter();
   const { addItem } = useCart();
-  const getCroppedBlobRef = useRef<(() => Promise<Blob | null>) | null>(null);
 
-  const [state, setState]             = useState<ConfiguratorState>(SMART_DEFAULTS);
+  // Single-mode crop blob; per-wall blobs for multi-different mode.
+  const getCroppedBlobRef  = useRef<(() => Promise<Blob | null>) | null>(null);
+  const getCroppedBlobRefs = useRef<((() => Promise<Blob | null>) | null)[]>([]);
+
+  const [state, setState]             = useState<ConfiguratorState>(DEFAULT_CONFIG);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting,  setSubmitting]  = useState(false);
   const [moreWalls,   setMoreWalls]   = useState(false);
 
   // ── Derived ────────────────────────────────────────────────────────────
-  const totalSqm = state.widthM * state.heightM * Math.max(1, state.wallCount);
+  const isMultiDifferent =
+    state.wallCount > 1 &&
+    state.multiWallMode === "different" &&
+    state.walls.length === state.wallCount;
+
+  const totalSqm = isMultiDifferent
+    ? state.walls.reduce((sum, w) => sum + w.widthM * w.heightM, 0)
+    : state.widthM * state.heightM * Math.max(1, state.wallCount);
 
   const subtotalCents = useMemo(
     () => calculateSubtotalCents(totalSqm, state.wallpaperType, state.material, state.application),
@@ -80,13 +81,35 @@ export function ConfiguratorV2() {
     return `For ${Math.round(state.widthM * 100)} × ${Math.round(state.heightM * 100)} cm, use at least ${minW} × ${minH} px for the sharpest print.`;
   }, [state.widthM, state.heightM]);
 
-  const worstQuality = useMemo<"good" | "borderline" | "too_low" | null>(() => {
-    if (totalSqm <= 0) return null;
-    if (!state.imageWidthPx || !state.imageHeightPx) return null;
-    return getQuality(state.imageWidthPx, state.imageHeightPx, state.widthM, state.heightM).level;
-  }, [totalSqm, state.imageWidthPx, state.imageHeightPx, state.widthM, state.heightM]);
+  // ── Wall-count and multi-mode handlers ─────────────────────────────────
+  const ensureWallsLength = useCallback((n: number, currentWalls: WallSpec[], currentW: number, currentH: number): WallSpec[] => {
+    return Array.from({ length: n }, (_, i) =>
+      currentWalls[i] ?? { widthM: currentW, heightM: currentH }
+    );
+  }, []);
 
-  // ── Upload handlers ────────────────────────────────────────────────────
+  const handleWallCountChange = useCallback((n: number) => {
+    setState((s) => ({
+      ...s,
+      wallCount: n,
+      ...(n === 1 ? { multiWallMode: "same" as const, walls: [] } : {}),
+      ...(n > 1 && s.multiWallMode === "different"
+        ? { walls: ensureWallsLength(n, s.walls, s.widthM, s.heightM) }
+        : {}),
+    }));
+  }, [ensureWallsLength]);
+
+  const handleMultiWallMode = useCallback((mode: "same" | "different") => {
+    setState((s) => ({
+      ...s,
+      multiWallMode: mode,
+      ...(mode === "different"
+        ? { walls: ensureWallsLength(s.wallCount, s.walls, s.widthM, s.heightM) }
+        : { walls: [] }),
+    }));
+  }, [ensureWallsLength]);
+
+  // ── Single-image upload ────────────────────────────────────────────────
   const handleFileSelect = useCallback(
     (file: File | null) => {
       setUploadError(null);
@@ -126,34 +149,107 @@ export function ConfiguratorV2() {
     [state.imagePreviewUrl]
   );
 
-  const setPan  = useCallback((x: number, y: number) => setState((s) => ({ ...s, panX: x, panY: y })), []);
-  const setZoom = useCallback((z: number)             => setState((s) => ({ ...s, zoom: z })),         []);
+  // ── Per-wall image upload (multi-different mode) ───────────────────────
+  const handleWallFileSelect = useCallback((wallIndex: number, file: File | null) => {
+    setState((s) => {
+      const next = [...s.walls];
+      const prev = next[wallIndex];
+      if (prev?.imagePreviewUrl) URL.revokeObjectURL(prev.imagePreviewUrl);
+      if (!next[wallIndex]) next[wallIndex] = { widthM: 0, heightM: 0 };
+      next[wallIndex] = {
+        ...next[wallIndex],
+        imageFile:       file ?? null,
+        imagePreviewUrl: file ? URL.createObjectURL(file) : null,
+        imageWidthPx:    null,
+        imageHeightPx:   null,
+        panX: 0, panY: 0, zoom: 1,
+      };
+      return { ...s, walls: next };
+    });
 
-  const setCropReady = useCallback((getBlob: () => Promise<Blob | null>) => {
-    getCroppedBlobRef.current = getBlob;
+    if (file) {
+      const objectUrl = URL.createObjectURL(file);
+      loadImageDimensions(objectUrl)
+        .then(({ widthPx, heightPx }) => {
+          setState((s) => {
+            const next = [...s.walls];
+            if (!next[wallIndex]) return s;
+            next[wallIndex] = { ...next[wallIndex], imageWidthPx: widthPx, imageHeightPx: heightPx };
+            return { ...s, walls: next };
+          });
+        })
+        .catch(() => {})
+        .finally(() => URL.revokeObjectURL(objectUrl));
+    }
   }, []);
 
-  // Cleanup on unmount
+  // ── Per-wall dimension setter ──────────────────────────────────────────
+  const setWallSize = useCallback((wallIndex: number, field: "widthM" | "heightM", cm: number) => {
+    setState((s) => {
+      const next = [...s.walls];
+      if (!next[wallIndex]) next[wallIndex] = { widthM: 0, heightM: 0 };
+      next[wallIndex] = { ...next[wallIndex], [field]: cm / 100 };
+      return { ...s, walls: next };
+    });
+  }, []);
+
+  // ── Pan + zoom ─────────────────────────────────────────────────────────
+  const setPan      = useCallback((x: number, y: number) => setState((s) => ({ ...s, panX: x, panY: y })), []);
+  const setZoom     = useCallback((z: number)             => setState((s) => ({ ...s, zoom: z })),         []);
+  const setWallPan  = useCallback((wallIndex: number, x: number, y: number) => {
+    setState((s) => {
+      const next = [...s.walls];
+      if (!next[wallIndex]) return s;
+      next[wallIndex] = { ...next[wallIndex], panX: x, panY: y };
+      return { ...s, walls: next };
+    });
+  }, []);
+  const setWallZoom = useCallback((wallIndex: number, z: number) => {
+    setState((s) => {
+      const next = [...s.walls];
+      if (!next[wallIndex]) return s;
+      next[wallIndex] = { ...next[wallIndex], zoom: z };
+      return { ...s, walls: next };
+    });
+  }, []);
+
+  // ── Crop blob registration ─────────────────────────────────────────────
+  const setCropReady     = useCallback((getBlob: () => Promise<Blob | null>) => {
+    getCroppedBlobRef.current = getBlob;
+  }, []);
+  const setCropReadyWall = useCallback((wallIndex: number, getBlob: () => Promise<Blob | null>) => {
+    getCroppedBlobRefs.current[wallIndex] = getBlob;
+  }, []);
+
+  // ── Cleanup on unmount ─────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       if (state.imagePreviewUrl) URL.revokeObjectURL(state.imagePreviewUrl);
+      state.walls.forEach((w) => { if (w.imagePreviewUrl) URL.revokeObjectURL(w.imagePreviewUrl); });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Validation ─────────────────────────────────────────────────────────
-  const dimensionsValid = state.widthM > 0 && state.heightM > 0;
-  const imageUploaded   = !!state.imagePreviewUrl;
-  const qualityBlocks   = worstQuality === "too_low";
-  const canAddToCart    = dimensionsValid && imageUploaded && !qualityBlocks;
+  const dimensionsValid = isMultiDifferent
+    ? state.walls.every((w) => w.widthM > 0 && w.heightM > 0)
+    : state.widthM > 0 && state.heightM > 0;
+
+  const imageUploaded = isMultiDifferent
+    ? state.walls.every((w) => w.imagePreviewUrl)
+    : !!state.imagePreviewUrl;
+
+  // Quality only WARNS. We never block add-to-cart on resolution — buyer
+  // decides, reprint guarantee covers genuine defects, and cold traffic
+  // uploads phone photos that look fine on a feature wall.
+  const canAddToCart = dimensionsValid && imageUploaded;
 
   const blockedReason = useMemo(() => {
     if (canAddToCart) return null;
-    if (!imageUploaded)    return "Add your image to continue.";
-    if (!dimensionsValid)  return "Enter your wall size to continue.";
-    if (qualityBlocks)     return "Image is too low-resolution. Try a sharper file or reduce the wall.";
+    if (!dimensionsValid) return "Enter your wall size to continue.";
+    if (!imageUploaded)   return "Add your image to continue.";
     return "Finish setting up to continue.";
-  }, [canAddToCart, dimensionsValid, imageUploaded, qualityBlocks]);
+  }, [canAddToCart, dimensionsValid, imageUploaded]);
 
   // ── Add to cart ────────────────────────────────────────────────────────
   const handleAddToCart = useCallback(async () => {
@@ -162,31 +258,56 @@ export function ConfiguratorV2() {
     setSubmitting(true);
 
     try {
-      if (!state.imagePreviewUrl) return;
-      const getBlob = getCroppedBlobRef.current;
-      let imageDataUrl: string;
-      if (getBlob) {
-        const blob = await getBlob();
-        if (!blob) {
-          setSubmitError("Couldn't generate the print file. Reposition the image and try again.");
+      if (isMultiDifferent) {
+        getCroppedBlobRefs.current = getCroppedBlobRefs.current.slice(0, state.walls.length);
+        const blobs = await Promise.all(
+          getCroppedBlobRefs.current.map((getBlob) => (getBlob ? getBlob() : Promise.resolve(null)))
+        );
+        if (blobs.some((b) => !b)) {
+          setSubmitError("Couldn't generate one of the print files. Reposition the image and try again.");
           return;
         }
-        imageDataUrl = await blobToDataUrl(blob);
+        const imageDataUrls = await Promise.all(blobs.map((b) => blobToDataUrl(b!)));
+        addItem({
+          type:          "wallpaper",
+          widthM:        state.walls[0].widthM,
+          heightM:       state.walls[0].heightM,
+          wallCount:     state.wallCount,
+          walls:         state.walls.map((w) => ({ widthM: w.widthM, heightM: w.heightM })),
+          totalSqm,
+          wallpaperType: state.wallpaperType,
+          material:      state.material,
+          application:   state.application,
+          subtotalCents,
+          imageDataUrls,
+        });
       } else {
-        imageDataUrl = state.imagePreviewUrl;
+        if (!state.imagePreviewUrl) return;
+        const getBlob = getCroppedBlobRef.current;
+        let imageDataUrl: string;
+        if (getBlob) {
+          const blob = await getBlob();
+          if (!blob) {
+            setSubmitError("Couldn't generate the print file. Reposition the image and try again.");
+            return;
+          }
+          imageDataUrl = await blobToDataUrl(blob);
+        } else {
+          imageDataUrl = state.imagePreviewUrl;
+        }
+        addItem({
+          type:          "wallpaper",
+          widthM:        state.widthM,
+          heightM:       state.heightM,
+          wallCount:     state.wallCount,
+          totalSqm,
+          wallpaperType: state.wallpaperType,
+          material:      state.material,
+          application:   state.application,
+          subtotalCents,
+          imageDataUrl,
+        });
       }
-      addItem({
-        type:          "wallpaper",
-        widthM:        state.widthM,
-        heightM:       state.heightM,
-        wallCount:     state.wallCount,
-        totalSqm,
-        wallpaperType: state.wallpaperType,
-        material:      state.material,
-        application:   state.application,
-        subtotalCents,
-        imageDataUrl,
-      });
       router.push("/cart");
     } catch (err) {
       console.error("Add-to-cart failed:", err);
@@ -194,39 +315,63 @@ export function ConfiguratorV2() {
     } finally {
       setSubmitting(false);
     }
-  }, [canAddToCart, submitting, state, totalSqm, subtotalCents, addItem, router]);
+  }, [canAddToCart, submitting, state, totalSqm, subtotalCents, isMultiDifferent, addItem, router]);
+
+  // First-available image for the desktop summary thumbnail.
+  const summaryImageUrl = isMultiDifferent
+    ? (state.walls[0]?.imagePreviewUrl ?? null)
+    : state.imagePreviewUrl;
 
   // ── Render ─────────────────────────────────────────────────────────────
-  // pb-28 on the outer wrapper reserves space for the fixed MobileSummaryBar.
-  // Putting it on the sections wrapper alone left dead space between the
-  // last section and the order summary panel.
   return (
     <div className="pb-28 lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start lg:pb-10">
       <div className="space-y-5 sm:space-y-6">
 
-        {/* 1 — Image (the emotional hook) */}
+        {/* 1 — Image */}
         <FlowSection
-          title={imageUploaded ? "Your image" : "Add your image"}
-          subtitle={imageUploaded
-            ? "Looks great. Position it on your wall below if you want."
-            : "Any photo, artwork or pattern. We'll print it to fit your wall."}
+          title={
+            isMultiDifferent
+              ? `Your designs (${state.wallCount})`
+              : (state.imagePreviewUrl ? "Your image" : "Add your image")
+          }
+          subtitle={
+            isMultiDifferent
+              ? "Upload one image per wall. We'll print and cut each to its size."
+              : (state.imagePreviewUrl
+                  ? "Looks great. Position it on your wall below if you want."
+                  : "Any photo, artwork or pattern. We'll print it to fit your wall.")
+          }
         >
-          <UploadCard
-            imagePreviewUrl={state.imagePreviewUrl}
-            imageWidthPx={state.imageWidthPx ?? null}
-            imageHeightPx={state.imageHeightPx ?? null}
-            uploadError={uploadError}
-            onFileSelect={handleFileSelect}
-          />
+          {!isMultiDifferent ? (
+            <UploadCard
+              imagePreviewUrl={state.imagePreviewUrl}
+              imageWidthPx={state.imageWidthPx ?? null}
+              imageHeightPx={state.imageHeightPx ?? null}
+              uploadError={uploadError}
+              hint={resolutionHint}
+              onFileSelect={handleFileSelect}
+            />
+          ) : (
+            <div className="space-y-4">
+              {state.walls.map((wall, i) => (
+                <div key={i} className="rounded-pw border border-pw-stone bg-pw-bg p-4 sm:p-5">
+                  <p className="pw-small font-semibold text-pw-ink mb-3">Wall {i + 1}</p>
+                  <UploadCard
+                    imagePreviewUrl={wall.imagePreviewUrl ?? null}
+                    imageWidthPx={wall.imageWidthPx ?? null}
+                    imageHeightPx={wall.imageHeightPx ?? null}
+                    uploadError={null}
+                    onFileSelect={(file) => handleWallFileSelect(i, file)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
-          {/* Wall preview — always visible once both image and dimensions exist.
-              The user sees their image positioned on the wall by default; the
-              drag/zoom controls inside are the optional fine-tune. */}
-          {imageUploaded && dimensionsValid && (
+          {/* Single-mode wall preview, always visible once image + dims set */}
+          {!isMultiDifferent && state.imagePreviewUrl && dimensionsValid && (
             <div className="mt-5 sm:mt-6">
-              <p className="pw-overline text-pw-ink mb-3">
-                On your wall
-              </p>
+              <p className="pw-overline text-pw-ink mb-3">On your wall</p>
               <PreviewEditStep
                 compact
                 imageUrl={state.imagePreviewUrl}
@@ -241,18 +386,48 @@ export function ConfiguratorV2() {
               />
             </div>
           )}
+
+          {/* Multi-different per-wall previews, only render walls that have both image + dims */}
+          {isMultiDifferent && state.walls.some((w) => w.imagePreviewUrl && w.widthM > 0 && w.heightM > 0) && (
+            <div className="mt-5 space-y-4 sm:mt-6">
+              <p className="pw-overline text-pw-ink">On your walls</p>
+              {state.walls.map((wall, i) => {
+                const hasContent = !!wall.imagePreviewUrl && wall.widthM > 0 && wall.heightM > 0;
+                if (!hasContent) return null;
+                return (
+                  <PreviewEditStep
+                    key={i}
+                    compact
+                    wallLabel={`Wall ${i + 1}`}
+                    imageUrl={wall.imagePreviewUrl ?? null}
+                    widthM={wall.widthM}
+                    heightM={wall.heightM}
+                    panX={wall.panX ?? 0}
+                    panY={wall.panY ?? 0}
+                    zoom={wall.zoom ?? 1}
+                    onPanChange={(x, y) => setWallPan(i, x, y)}
+                    onZoomChange={(z)    => setWallZoom(i, z)}
+                    onCropDataReady={(getBlob) => setCropReadyWall(i, getBlob)}
+                  />
+                );
+              })}
+            </div>
+          )}
         </FlowSection>
 
         {/* 2 — Wall size */}
         <FlowSection
           title="Your wall size"
-          subtitle="Pre-filled with a typical feature wall. Edit to match yours."
+          subtitle="Measure floor to ceiling, edge to edge, in centimetres. Add a few cm of bleed each side for a clean trim."
         >
           <DimensionsBlock
             state={state}
             setState={setState}
             moreWalls={moreWalls}
             setMoreWalls={setMoreWalls}
+            onWallCountChange={handleWallCountChange}
+            onMultiWallModeChange={handleMultiWallMode}
+            onWallSize={setWallSize}
           />
         </FlowSection>
 
@@ -264,34 +439,30 @@ export function ConfiguratorV2() {
           <MaterialBlock state={state} setState={setState} totalSqm={totalSqm} />
         </FlowSection>
 
-        {/* 4 — Pro install toggle (one line, not its own step) */}
-        <ProInstallToggle
+        {/* 4 — Installation (DIY default + optional kit, or pro toggle) */}
+        <InstallSection
           state={state}
           setState={setState}
           totalSqm={totalSqm}
         />
 
-        {/* Soft escape hatch for hesitant cold traffic: only renders while
-            they haven't reached add-to-cart-ready. Once configured, it
-            disappears so it doesn't compete with the primary CTA. */}
-        {!canAddToCart && !submitting && (
-          <SampleNudge />
-        )}
+        {/* Sample nudge for hesitant cold traffic — disappears when ready */}
+        {!canAddToCart && !submitting && <SampleNudge />}
 
         {submitError && (
-          <ConfigAlert variant="error" title="Something went wrong">
-            {submitError}
-          </ConfigAlert>
+          <ConfigAlert variant="error" title="Something went wrong">{submitError}</ConfigAlert>
         )}
       </div>
 
-      {/* Sticky right-column summary (desktop) */}
+      {/* Desktop sticky right-column summary */}
       <div className="mt-5 sm:mt-6 lg:mt-0">
         <OrderSummaryPanel
-          imagePreviewUrl={state.imagePreviewUrl}
+          imagePreviewUrl={summaryImageUrl}
           widthM={state.widthM}
           heightM={state.heightM}
           wallCount={state.wallCount}
+          walls={isMultiDifferent ? state.walls.map((w) => ({ widthM: w.widthM, heightM: w.heightM })) : undefined}
+          isMultiDifferent={isMultiDifferent}
           totalSqm={totalSqm}
           wallpaperType={state.wallpaperType}
           material={state.material}
@@ -302,7 +473,6 @@ export function ConfiguratorV2() {
         />
       </div>
 
-      {/* Mobile fixed bottom bar */}
       <MobileSummaryBar
         totalSqm={totalSqm}
         subtotalCents={subtotalCents}
@@ -314,7 +484,7 @@ export function ConfiguratorV2() {
   );
 }
 
-/* ── FlowSection: a content block, not a numbered step ──────────────── */
+/* ── FlowSection ──────────────────────────────────────────────────────── */
 function FlowSection({
   title, subtitle, children,
 }: {
@@ -335,14 +505,15 @@ function FlowSection({
   );
 }
 
-/* ── Upload card — drop-zone or current-image preview ───────────────── */
+/* ── UploadCard ───────────────────────────────────────────────────────── */
 function UploadCard({
-  imagePreviewUrl, imageWidthPx, imageHeightPx, uploadError, onFileSelect,
+  imagePreviewUrl, imageWidthPx, imageHeightPx, uploadError, hint, onFileSelect,
 }: {
   imagePreviewUrl: string | null;
   imageWidthPx:    number | null;
   imageHeightPx:   number | null;
   uploadError:     string | null;
+  hint?:           string;
   onFileSelect:    (file: File | null) => void;
 }) {
   const [drag, setDrag] = useState(false);
@@ -380,6 +551,9 @@ function UploadCard({
               JPG, PNG or WebP, up to 50 MB.
             </p>
           </div>
+          {hint && (
+            <p className="pw-small mx-auto max-w-sm text-center text-pw-muted-light">{hint}</p>
+          )}
         </label>
         {uploadError && (
           <ConfigAlert variant="error" title="Image issue">{uploadError}</ConfigAlert>
@@ -420,56 +594,68 @@ function UploadCard({
   );
 }
 
-/* ── DimensionsBlock — pre-filled, compact, with optional more-walls ── */
+/* ── DimensionsBlock ──────────────────────────────────────────────────── */
 function DimensionsBlock({
   state, setState, moreWalls, setMoreWalls,
+  onWallCountChange, onMultiWallModeChange, onWallSize,
 }: {
   state: ConfiguratorState;
   setState: React.Dispatch<React.SetStateAction<ConfiguratorState>>;
   moreWalls: boolean;
   setMoreWalls: React.Dispatch<React.SetStateAction<boolean>>;
+  onWallCountChange: (n: number) => void;
+  onMultiWallModeChange: (m: "same" | "different") => void;
+  onWallSize: (i: number, field: "widthM" | "heightM", cm: number) => void;
 }) {
   const widthCm  = state.widthM  > 0 ? Math.round(state.widthM  * 100) : 0;
   const heightCm = state.heightM > 0 ? Math.round(state.heightM * 100) : 0;
-  const isMulti  = state.wallCount > 1;
+  const isMulti        = state.wallCount > 1;
+  const usingDifferent = isMulti && state.multiWallMode === "different";
+
+  const totalSame = state.widthM * state.heightM * Math.max(1, state.wallCount);
+  const totalDiff = state.walls.reduce((s, w) => s + w.widthM * w.heightM, 0);
+  const totalSqm  = usingDifferent ? totalDiff : totalSame;
 
   return (
     <div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="v2-w" className="pw-overline mb-2 block text-pw-muted">Width (cm)</label>
-          <input
-            id="v2-w"
-            type="number" min={10} max={2000} step={1}
-            value={widthCm > 0 ? widthCm : ""}
-            placeholder="300"
-            onChange={(e) => {
-              const cm = Math.max(0, Math.floor(parseFloat(e.target.value) || 0));
-              setState((s) => ({ ...s, widthM: cm / 100, panX: 0, panY: 0, zoom: 1 }));
-            }}
-            className={FLOW_INPUT_CLASSES}
-          />
+      {/* Single / "same" mode width + height */}
+      {(!isMulti || state.multiWallMode === "same") && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="v2-w" className="pw-overline mb-2 block text-pw-muted">Width (cm)</label>
+            <input
+              id="v2-w"
+              type="number" min={10} max={2000} step={1}
+              value={widthCm > 0 ? widthCm : ""}
+              placeholder="300"
+              onChange={(e) => {
+                const cm = Math.max(0, Math.floor(parseFloat(e.target.value) || 0));
+                setState((s) => ({ ...s, widthM: cm / 100, panX: 0, panY: 0, zoom: 1 }));
+              }}
+              className={FLOW_INPUT_CLASSES}
+            />
+          </div>
+          <div>
+            <label htmlFor="v2-h" className="pw-overline mb-2 block text-pw-muted">Height (cm)</label>
+            <input
+              id="v2-h"
+              type="number" min={10} max={2000} step={1}
+              value={heightCm > 0 ? heightCm : ""}
+              placeholder="270"
+              onChange={(e) => {
+                const cm = Math.max(0, Math.floor(parseFloat(e.target.value) || 0));
+                setState((s) => ({ ...s, heightM: cm / 100, panX: 0, panY: 0, zoom: 1 }));
+              }}
+              className={FLOW_INPUT_CLASSES}
+            />
+          </div>
         </div>
-        <div>
-          <label htmlFor="v2-h" className="pw-overline mb-2 block text-pw-muted">Height (cm)</label>
-          <input
-            id="v2-h"
-            type="number" min={10} max={2000} step={1}
-            value={heightCm > 0 ? heightCm : ""}
-            placeholder="270"
-            onChange={(e) => {
-              const cm = Math.max(0, Math.floor(parseFloat(e.target.value) || 0));
-              setState((s) => ({ ...s, heightM: cm / 100, panX: 0, panY: 0, zoom: 1 }));
-            }}
-            className={FLOW_INPUT_CLASSES}
-          />
-        </div>
-      </div>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <p className="pw-small text-pw-muted">
-          {(state.widthM * state.heightM * Math.max(1, state.wallCount)).toFixed(1)} m² total
-        </p>
+        {totalSqm > 0 && (
+          <p className="pw-small text-pw-muted">{totalSqm.toFixed(1)} m² total</p>
+        )}
         {!moreWalls && !isMulti && (
           <button
             type="button"
@@ -482,39 +668,113 @@ function DimensionsBlock({
       </div>
 
       {(moreWalls || isMulti) && (
-        <div className="mt-5 border-t border-pw-stone pt-5">
-          <p className="pw-overline text-pw-ink mb-3">How many walls?</p>
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3, 4].map((n) => {
-              const active = state.wallCount === n;
-              return (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setState((s) => ({ ...s, wallCount: n }))}
-                  aria-pressed={active}
-                  className={[
-                    "rounded-pw border px-5 py-2.5 pw-small font-medium transition-colors touch-manipulation",
-                    active
-                      ? "border-pw-ink bg-pw-surface text-pw-ink ring-1 ring-pw-ink/15"
-                      : "border-pw-stone bg-pw-bg text-pw-muted hover:border-pw-ink/40 hover:text-pw-ink",
-                  ].join(" ")}
-                >
-                  {n} wall{n > 1 ? "s" : ""}
-                </button>
-              );
-            })}
+        <div className="mt-5 space-y-5 border-t border-pw-stone pt-5">
+          {/* Wall count */}
+          <div>
+            <p className="pw-overline text-pw-ink mb-3">How many walls?</p>
+            <div className="flex flex-wrap gap-2">
+              {[1, 2, 3, 4].map((n) => {
+                const active = state.wallCount === n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => onWallCountChange(n)}
+                    aria-pressed={active}
+                    className={[
+                      "rounded-pw border px-5 py-2.5 pw-small font-medium transition-colors touch-manipulation",
+                      active
+                        ? "border-pw-ink bg-pw-surface text-pw-ink ring-1 ring-pw-ink/15"
+                        : "border-pw-stone bg-pw-bg text-pw-muted hover:border-pw-ink/40 hover:text-pw-ink",
+                    ].join(" ")}
+                  >
+                    {n} wall{n > 1 ? "s" : ""}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <p className="pw-small mt-3 text-pw-muted-light">
-            We&rsquo;ll repeat the same image across all walls at the size you set above.
-          </p>
+
+          {/* Same / different mode */}
+          {isMulti && (
+            <div>
+              <p className="pw-overline text-pw-ink mb-1">Same image and size on every wall?</p>
+              <p className="pw-small text-pw-muted mb-3">
+                Same: one image, repeated at the size you set above. Different: each wall on its own.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(["same", "different"] as const).map((mode) => {
+                  const active = state.multiWallMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => onMultiWallModeChange(mode)}
+                      aria-pressed={active}
+                      className={[
+                        "rounded-pw border px-5 py-2.5 pw-small font-medium transition-colors touch-manipulation",
+                        active
+                          ? "border-pw-ink bg-pw-surface text-pw-ink ring-1 ring-pw-ink/15"
+                          : "border-pw-stone bg-pw-bg text-pw-muted hover:border-pw-ink/40 hover:text-pw-ink",
+                      ].join(" ")}
+                    >
+                      {mode === "same" ? "Same on all" : "Different per wall"}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Per-wall dimension inputs */}
+          {usingDifferent && (
+            <div className="space-y-4">
+              {Array.from({ length: state.wallCount }, (_, i) => {
+                const w   = state.walls[i] ?? { widthM: 0, heightM: 0 };
+                const cmW = Math.round(w.widthM  * 100);
+                const cmH = Math.round(w.heightM * 100);
+                return (
+                  <div key={i} className="rounded-pw border border-pw-stone bg-pw-bg p-4 sm:p-5">
+                    <p className="pw-small font-semibold text-pw-ink mb-3">Wall {i + 1}</p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className="pw-overline mb-2 block text-pw-muted">Width (cm)</label>
+                        <input
+                          type="number" min={10} max={2000} step={1}
+                          value={cmW > 0 ? cmW : ""}
+                          placeholder="300"
+                          onChange={(e) => onWallSize(i, "widthM", Math.max(0, Math.floor(parseFloat(e.target.value) || 0)))}
+                          className={FLOW_INPUT_CLASSES}
+                        />
+                      </div>
+                      <div>
+                        <label className="pw-overline mb-2 block text-pw-muted">Height (cm)</label>
+                        <input
+                          type="number" min={10} max={2000} step={1}
+                          value={cmH > 0 ? cmH : ""}
+                          placeholder="270"
+                          onChange={(e) => onWallSize(i, "heightM", Math.max(0, Math.floor(parseFloat(e.target.value) || 0)))}
+                          className={FLOW_INPUT_CLASSES}
+                        />
+                      </div>
+                    </div>
+                    {w.widthM > 0 && w.heightM > 0 && (
+                      <p className="pw-small mt-2 font-medium text-pw-muted">
+                        {(w.widthM * w.heightM).toFixed(1)} m²
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-/* ── MaterialBlock — type pills + finish cards with price ───────────── */
+/* ── MaterialBlock ────────────────────────────────────────────────────── */
 function MaterialBlock({
   state, setState, totalSqm,
 }: {
@@ -594,7 +854,6 @@ function MaterialBlock({
                 active ? "border-pw-ink ring-1 ring-pw-ink/15" : "border-pw-stone hover:border-pw-ink/40",
               ].join(" ")}
             >
-              {/* Real macro photo of the finish — same image used on the PDP */}
               <div className="relative h-24 w-full overflow-hidden bg-pw-stone sm:h-28">
                 <NextImage
                   src={m.image}
@@ -613,8 +872,17 @@ function MaterialBlock({
                 <span className="pw-body font-semibold text-pw-ink">{m.label}</span>
                 <p className="pw-small mt-1 text-pw-muted">{m.description}</p>
                 <div className="mt-auto pt-3">
-                  <p className="pw-overline text-pw-muted-light">{formatZar(perSqm)}/m²</p>
-                  <p className="pw-h3 text-pw-ink">{formatZar(Math.round(subtotal))}</p>
+                  {totalSqm > 0 ? (
+                    <>
+                      <p className="pw-overline text-pw-muted-light">{formatZar(perSqm)}/m²</p>
+                      <p className="pw-h3 text-pw-ink">{formatZar(Math.round(subtotal))}</p>
+                    </>
+                  ) : (
+                    <p className="pw-h3 text-pw-ink">
+                      {formatZar(perSqm)}
+                      <span className="pw-small font-normal text-pw-muted-light">/m²</span>
+                    </p>
+                  )}
                 </div>
               </div>
             </button>
@@ -625,7 +893,99 @@ function MaterialBlock({
   );
 }
 
-/* ── SampleNudge — low-commit alternative path for hesitant buyers ─── */
+/* ── InstallSection — DIY by default, optional kit, or pro toggle ───── */
+function InstallSection({
+  state, setState, totalSqm,
+}: {
+  state: ConfiguratorState;
+  setState: React.Dispatch<React.SetStateAction<ConfiguratorState>>;
+  totalSqm: number;
+}) {
+  const isPro    = state.application === "pro_installer";
+  const hasKit   = state.application === "diy_kit";
+  const proCost  = calculateInstallationCents("pro_installer", totalSqm);
+
+  const setApplication = (next: ApplicationMethod) =>
+    setState((s) => ({ ...s, application: next }));
+
+  return (
+    <div className="space-y-3">
+      {/* Pro install toggle (when on, the kit option is hidden — pro covers materials) */}
+      <button
+        type="button"
+        onClick={() => setApplication(isPro ? "diy" : "pro_installer")}
+        aria-pressed={isPro}
+        className={[
+          "flex w-full items-center gap-4 rounded-pw-card border p-5 text-left transition-colors touch-manipulation sm:p-6",
+          isPro ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink/15" : "border-pw-stone bg-pw-surface hover:border-pw-ink/40",
+        ].join(" ")}
+      >
+        <ToggleSwitch on={isPro} />
+        <div className="min-w-0 flex-1">
+          <p className="pw-body font-semibold text-pw-ink">Add a pro installer</p>
+          <p className="pw-small text-pw-muted">
+            Certified installer to your address. All materials included.
+          </p>
+        </div>
+        <span className="shrink-0 text-right">
+          <span className="pw-body block font-semibold text-pw-ink">
+            {totalSqm > 0 ? `+${formatZar(proCost)}` : "Quote on size"}
+          </span>
+          {totalSqm > 0 && (
+            <span className="pw-overline block text-pw-muted-light">
+              for {totalSqm.toFixed(1)} m²
+            </span>
+          )}
+        </span>
+      </button>
+
+      {/* DIY kit add-on — only when not Pro (pro brings their own materials) */}
+      {!isPro && (
+        <button
+          type="button"
+          onClick={() => setApplication(hasKit ? "diy" : "diy_kit")}
+          aria-pressed={hasKit}
+          className={[
+            "flex w-full items-center gap-4 rounded-pw-card border p-5 text-left transition-colors touch-manipulation sm:p-6",
+            hasKit ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink/15" : "border-pw-stone bg-pw-surface hover:border-pw-ink/40",
+          ].join(" ")}
+        >
+          <ToggleSwitch on={hasKit} />
+          <div className="min-w-0 flex-1">
+            <p className="pw-body font-semibold text-pw-ink">Add an install kit</p>
+            <p className="pw-small text-pw-muted">
+              Adhesive activator, smoothing squeegee, brush. Everything you need to hang it solo.
+            </p>
+          </div>
+          <span className="pw-body shrink-0 font-semibold text-pw-ink">
+            +{formatZar(KIT_CENTS)}
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ToggleSwitch({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={[
+        "relative flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
+        on ? "bg-pw-ink" : "bg-pw-stone",
+      ].join(" ")}
+    >
+      <span
+        className={[
+          "absolute h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+          on ? "translate-x-[22px]" : "translate-x-0.5",
+        ].join(" ")}
+      />
+    </span>
+  );
+}
+
+/* ── SampleNudge — soft escape hatch for hesitant cold traffic ───────── */
 function SampleNudge() {
   return (
     <div className="rounded-pw-card border border-pw-stone bg-pw-bg p-5 sm:p-6">
@@ -644,61 +1004,5 @@ function SampleNudge() {
         </svg>
       </a>
     </div>
-  );
-}
-
-/* ── ProInstallToggle — single-line opt-in, not a step ──────────────── */
-function ProInstallToggle({
-  state, setState, totalSqm,
-}: {
-  state: ConfiguratorState;
-  setState: React.Dispatch<React.SetStateAction<ConfiguratorState>>;
-  totalSqm: number;
-}) {
-  const isPro = state.application === "pro_installer";
-  const proCost = calculateInstallationCents("pro_installer", totalSqm);
-
-  return (
-    <button
-      type="button"
-      onClick={() => setState((s) => ({ ...s, application: isPro ? "diy" : "pro_installer" }))}
-      aria-pressed={isPro}
-      className={[
-        "flex w-full items-center gap-4 rounded-pw-card border p-5 text-left transition-colors touch-manipulation sm:p-6",
-        isPro ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink/15" : "border-pw-stone bg-pw-surface hover:border-pw-ink/40",
-      ].join(" ")}
-    >
-      {/* Toggle pill */}
-      <span
-        aria-hidden
-        className={[
-          "relative flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-          isPro ? "bg-pw-ink" : "bg-pw-stone",
-        ].join(" ")}
-      >
-        <span
-          className={[
-            "absolute h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
-            isPro ? "translate-x-[22px]" : "translate-x-0.5",
-          ].join(" ")}
-        />
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <p className="pw-body font-semibold text-pw-ink">Add a pro installer</p>
-        <p className="pw-small text-pw-muted">
-          Certified installer to your address. All materials included.
-        </p>
-      </div>
-
-      <span className="shrink-0 text-right">
-        <span className="pw-body block font-semibold text-pw-ink">
-          {isPro ? `+${formatZar(proCost)}` : formatZar(proCost)}
-        </span>
-        <span className="pw-overline block text-pw-muted-light">
-          for {totalSqm.toFixed(1)} m²
-        </span>
-      </span>
-    </button>
   );
 }

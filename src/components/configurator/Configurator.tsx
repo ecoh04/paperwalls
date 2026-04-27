@@ -13,7 +13,7 @@ import { ConfigStep } from "./ConfigStep";
 import { ConfigAlert } from "./ConfigAlert";
 import { useCart } from "@/contexts/CartContext";
 import { calculateSubtotalCents } from "@/lib/pricing";
-import { getQuality, MIN_PX_PER_MM } from "@/lib/quality";
+import { MIN_PX_PER_MM } from "@/lib/quality";
 import { DEFAULT_CONFIG, type ConfiguratorState, type WallSpec } from "@/types/configurator";
 
 // ── Step ordering ───────────────────────────────────────────────────────────
@@ -78,27 +78,6 @@ export function Configurator() {
     const minH = Math.ceil(state.heightM * 1000 * MIN_PX_PER_MM);
     return `For ${Math.round(state.widthM * 100)} × ${Math.round(state.heightM * 100)} cm, use at least ${minW} × ${minH} px for a sharp print.`;
   }, [state.widthM, state.heightM]);
-
-  // Worst quality across all walls (single + same mode = single check; different mode = max severity).
-  const worstQuality = useMemo<"good" | "borderline" | "too_low" | null>(() => {
-    if (totalSqm <= 0) return null;
-
-    const evals: ("good" | "borderline" | "too_low")[] = [];
-    if (isMultiDifferent) {
-      for (const w of state.walls) {
-        if (w.imageWidthPx && w.imageHeightPx && w.widthM > 0 && w.heightM > 0) {
-          evals.push(getQuality(w.imageWidthPx, w.imageHeightPx, w.widthM, w.heightM).level);
-        }
-      }
-    } else if (state.imageWidthPx && state.imageHeightPx) {
-      // Same-image-each-wall: each wall is the same dimensions, so the per-wall check applies once.
-      evals.push(getQuality(state.imageWidthPx, state.imageHeightPx, state.widthM, state.heightM).level);
-    }
-    if (evals.length === 0) return null;
-    if (evals.includes("too_low"))    return "too_low";
-    if (evals.includes("borderline")) return "borderline";
-    return "good";
-  }, [totalSqm, isMultiDifferent, state.walls, state.imageWidthPx, state.imageHeightPx, state.widthM, state.heightM]);
 
   // ── Image upload (single image) ──────────────────────────────────────────
   const handleFileSelect = useCallback(
@@ -242,17 +221,15 @@ export function Configurator() {
     ? state.walls.every((w) => w.imagePreviewUrl)
     : !!state.imagePreviewUrl;
 
-  const qualityBlocks = worstQuality === "too_low";
-
-  const canAddToCart = dimensionsValid && allWallImagesUploaded && !qualityBlocks;
+  // Quality only WARNS. We never block add-to-cart on resolution.
+  const canAddToCart = dimensionsValid && allWallImagesUploaded;
 
   const blockedReason: string | null = useMemo(() => {
     if (canAddToCart) return null;
     if (!dimensionsValid)        return "Enter your wall dimensions to continue.";
     if (!allWallImagesUploaded)  return "Upload your image to continue.";
-    if (qualityBlocks)           return "Image is too low-resolution for this wall size. Use a sharper file or reduce the wall.";
     return "Complete the steps to continue.";
-  }, [canAddToCart, dimensionsValid, allWallImagesUploaded, qualityBlocks]);
+  }, [canAddToCart, dimensionsValid, allWallImagesUploaded]);
 
   // ── Add to cart ──────────────────────────────────────────────────────────
   const handleAddToCart = useCallback(async () => {
