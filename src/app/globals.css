@@ -1,6 +1,7 @@
-/* Fraunces (variable serif, weights 300–900 + opsz axis 9–144) for editorial
-   headings; Inter for body and UI. Two families only — never introduce a third. */
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap");
+/* One family across the whole site: Inter. Hierarchy is weight + size +
+   letter-spacing — never font-swap. Bold weights (700-800) on headings give
+   the simple-luxury, confident feel; regular (400) on body keeps it readable. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -13,9 +14,9 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: "Fraunces", "Times New Roman", Georgia, serif;
-    font-weight: 600;
-    letter-spacing: -0.02em;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.025em;
   }
 
   ::selection {
@@ -27,53 +28,44 @@
 /* ─────────────────────────────────────────────────────────────────────────
    v2 design-system typography
 
-   Two families. Six sizes. That's it — every page, every section, every
-   piece of copy uses one of these utility classes. If you're tempted to
-   set a custom font-size somewhere, reuse an existing class instead.
+   ONE family (Inter), SIX sizes total. Headings are heavy weights (700-800);
+   body is regular (400). Hierarchy = size + weight, nothing else.
 
-   - Headings (display, h2, h3) → Fraunces serif, weights 600–700.
-   - Everything else (body, small, overline, UI) → Inter sans, 400–500.
-
-   Hierarchy = family contrast (serif vs sans) × size × weight.
+   If you're tempted to set a custom font-size or weight somewhere, reuse an
+   existing class. Add a new one only if a real new use case justifies it.
    ──────────────────────────────────────────────────────────────────────── */
 
 @layer components {
 
-  /* — Display: hero only. One per page. Heaviest editorial serif. ———— */
+  /* — Display: hero h1, closing CTA. Maximum confidence. ———————— */
   .pw-display {
-    font-family:           "Fraunces", "Times New Roman", Georgia, serif;
-    font-size:             clamp(44px, 6vw, 72px);
-    line-height:           1.02;
-    letter-spacing:        -0.035em;
-    font-weight:           700;
-    font-optical-sizing:   auto;
-    font-variation-settings: "opsz" 144;
+    font-family:    "Inter", system-ui, sans-serif;
+    font-size:      clamp(44px, 6vw, 72px);
+    line-height:    1.02;
+    letter-spacing: -0.04em;
+    font-weight:    800;
   }
 
-  /* — H2 (and h1 on non-hero pages): every section heading. Bold for impact. — */
+  /* — H1 / H2: every section heading. Heavy and confident. ———— */
   .pw-h1,
   .pw-h2 {
-    font-family:           "Fraunces", "Times New Roman", Georgia, serif;
-    font-size:             clamp(28px, 3.2vw, 40px);
-    line-height:           1.1;
-    letter-spacing:        -0.025em;
-    font-weight:           700;
-    font-optical-sizing:   auto;
-    font-variation-settings: "opsz" 72;
+    font-family:    "Inter", system-ui, sans-serif;
+    font-size:      clamp(28px, 3.2vw, 40px);
+    line-height:    1.1;
+    letter-spacing: -0.03em;
+    font-weight:    800;
   }
 
-  /* — H3: card titles, sub-section heads. ———————————————— */
+  /* — H3: card titles, sub-section heads. Bold but not display-heavy. — */
   .pw-h3 {
-    font-family:           "Fraunces", "Times New Roman", Georgia, serif;
-    font-size:             20px;
-    line-height:           1.3;
-    letter-spacing:        -0.015em;
-    font-weight:           600;
-    font-optical-sizing:   auto;
-    font-variation-settings: "opsz" 24;
+    font-family:    "Inter", system-ui, sans-serif;
+    font-size:      20px;
+    line-height:    1.3;
+    letter-spacing: -0.02em;
+    font-weight:    700;
   }
 
-  /* — Body large: hero subtext, section leads. Inter, slightly looser. — */
+  /* — Body large: hero subtext, section leads. ————————————— */
   .pw-body-lg {
     font-family: "Inter", system-ui, sans-serif;
     font-size:   18px;
@@ -105,17 +97,17 @@
     line-height:    1.4;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    font-weight:    500;
+    font-weight:    600;
   }
 
-  /* Italic emphasis inside Fraunces headings — the editorial "voice" beat.
-     Fraunces italic has personality on its own; no need for an accent colour. */
+  /* Italic emphasis inside headings — Inter italic, slightly lighter weight
+     so it visually steps back from the rest of the heading. Used sparingly. */
   .pw-display em,
   .pw-h1 em,
   .pw-h2 em,
   .pw-h3 em {
     font-style:  italic;
-    font-weight: inherit;
+    font-weight: 600;
   }
 }
 
@@ -135,9 +127,9 @@
   --stone-dark: #D4C9BE;
   --border: rgba(26, 23, 20, 0.1);
   --border-mid: rgba(26, 23, 20, 0.18);
-  /* Two families: Fraunces (editorial serif) for headlines, Inter for body/UI.
-     Hierarchy comes from family + weight + size — never font-swap mid-sentence. */
-  --serif: "Fraunces", "Times New Roman", Georgia, serif;
+  /* One family across the site: Inter. Hierarchy is weight + size, never
+     font-swap. CSS vars kept for legacy class compatibility. */
+  --serif: "Inter", system-ui, -apple-system, sans-serif;
   --sans:  "Inter", system-ui, -apple-system, sans-serif;
   --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --shadow-sm: 0 1px 3px rgba(26, 23, 20, 0.08),
