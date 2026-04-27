@@ -4,32 +4,42 @@ import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
 import { useRouter } from "next/navigation";
-import { PageContainer } from "@/components/PageContainer";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { Section } from "@/components/ui/Section";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { Eyebrow } from "@/components/ui/Eyebrow";
+import { Button } from "@/components/ui/Button";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 
 const SAMPLE_PRICE_CENTS = 30_000; // R300
 
-const MATERIALS = [
+const FINISHES = [
   {
-    name: "Woven fabric",
-    desc: "Our most popular substrate. Soft texture, rich colour depth, repositionable.",
-    tag: "Best seller",
+    name:        "Satin",
+    sub:         "Subtle sheen, easy clean",
+    description: "Soft sheen, deep colour. Wipes clean. Sits comfortably in living rooms and family spaces.",
+    image:       "/images/product/pdp-07-satin.jpg",
   },
   {
-    name: "Non-woven",
-    desc: "Paste-the-wall application. Perfectly smooth finish, ideal for large murals.",
-    tag: "Easiest install",
+    name:        "Matte",
+    sub:         "Flat, non-reflective",
+    description: "Completely flat, no glare. Renders fine detail without reflection. Best in bright rooms.",
+    image:       "/images/product/pdp-08-matte.jpg",
+    tag:         "Most ordered",
   },
   {
-    name: "Peel & stick",
-    desc: "Renter-friendly. No paste, no damage. Removes cleanly when you're ready.",
-    tag: "Renter friendly",
+    name:        "Linen",
+    sub:         "Textured, premium feel",
+    description: "Fabric-like weave, catches light. Adds tactile depth. Designed to feel chosen, not generic.",
+    image:       "/images/product/pdp-09-linen.jpg",
+    tag:         "Most premium",
   },
-  {
-    name: "Textured canvas",
-    desc: "Heavy-weight with a subtle linen weave. Hotel and commercial grade.",
-    tag: "Premium",
-  },
+];
+
+const INCLUDES = [
+  "A5 swatch of every finish, printed on our commercial press",
+  "Free nationwide delivery, fully tracked",
+  "Delivered in 3 to 5 business days",
+  "R150 credited to your wallpaper order when you come back",
 ];
 
 export default function SamplesPage() {
@@ -49,146 +59,152 @@ export default function SamplesPage() {
   }
 
   return (
-    <PageContainer>
-      <Breadcrumbs
-        items={[
-          { href: "/", label: "Home" },
-          { label: "Sample Swatch Pack" },
-        ]}
-      />
-
-      <div className="mx-auto max-w-4xl">
-
-        {/* Header */}
-        <div className="mb-10 max-w-xl">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-pw-accent">
-            Not sure which material to choose?
-          </p>
-          <h1 className="font-sans text-4xl sm:text-5xl font-bold tracking-tight text-pw-ink">
-            Sample Swatch Pack
-          </h1>
-          <p className="mt-4 text-base sm:text-lg text-pw-ink/80 leading-relaxed">
-            Feel the difference before you commit. We print and ship a real A5 swatch of every material we offer, on the same commercial press that prints your final order. Touch it, hold it to your wall, see how light hits it.
-          </p>
+    <main className="bg-pw-bg">
+      {/* ── Page header ─────────────────────────────────────────────────── */}
+      <Section tone="bg" density="tight">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-center lg:gap-16">
+          <div className="lg:col-span-6">
+            <Eyebrow>Sample pack</Eyebrow>
+            <h1 className="pw-display mt-3 text-pw-ink sm:mt-4">
+              Hold it before<br />you commit.
+            </h1>
+            <p className="pw-body-lg mt-4 max-w-md text-pw-ink/70 sm:mt-5">
+              An A5 swatch of every finish on the same commercial press that prints
+              your wallpaper. Touch it, hold it to the wall, see how the light hits.
+            </p>
+          </div>
+          <div className="lg:col-span-6">
+            <ImagePlaceholder
+              src="/images/product/pdp-14-sample.jpg"
+              aspectRatio="4/3"
+              priority
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              prompt="PaperWalls sample pack flat-lay with three finish swatches and kraft envelope"
+            />
+          </div>
         </div>
+      </Section>
 
-        <div className="grid gap-8 lg:grid-cols-5">
+      {/* ── Three finishes (matches PDP and configurator) ─────────────── */}
+      <Section tone="surface" id="finishes">
+        <SectionHeader
+          eyebrow="Three finishes"
+          title="Same press, three surfaces."
+          body="Every order goes through the same machine. The choice is finish, how the surface catches light, and how it feels under your hand."
+        />
 
-          {/* Left: product card */}
-          <div className="lg:col-span-3">
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:mt-12 sm:gap-6 md:grid-cols-3">
+          {FINISHES.map((f) => (
+            <article
+              key={f.name}
+              className="flex flex-col overflow-hidden rounded-pw-card border border-pw-stone bg-pw-bg"
+            >
+              <div className="relative">
+                <ImagePlaceholder
+                  src={f.image}
+                  aspectRatio="4/3"
+                  prompt={`${f.name} finish texture macro`}
+                />
+                {f.tag && (
+                  <span className="pw-overline absolute left-4 top-4 rounded-full bg-pw-ink px-3 py-1 text-white">
+                    {f.tag}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-1 flex-col p-6">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="pw-h3 text-pw-ink">{f.name}</h3>
+                  <span className="pw-small whitespace-nowrap text-pw-muted">{f.sub}</span>
+                </div>
+                <p className="pw-body mt-3 text-pw-ink/70">{f.description}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </Section>
 
-            {/* Swatch preview */}
-            <div className="mb-6 grid grid-cols-2 gap-2 rounded-pw-card overflow-hidden" style={{ height: 260 }}>
-              <div className="rounded-tl-pw-card" style={{ background: "linear-gradient(135deg, #8b7355 0%, #6b543c 30%, #4a3728 60%, #7c6245 100%)" }} />
-              <div className="rounded-tr-pw-card" style={{
-                background: "#c5beaa",
-                backgroundImage: "repeating-linear-gradient(30deg, transparent, transparent 20px, rgba(255,255,255,0.3) 20px, rgba(255,255,255,0.3) 21px), repeating-linear-gradient(-30deg, transparent, transparent 20px, rgba(255,255,255,0.3) 20px, rgba(255,255,255,0.3) 21px)"
-              }} />
-              <div className="rounded-bl-pw-card" style={{
-                background: "#2e2a26",
-                backgroundImage: "radial-gradient(circle at 20% 30%, rgba(196,98,45,0.5) 0%, transparent 30%), radial-gradient(circle at 80% 70%, rgba(196,98,45,0.3) 0%, transparent 25%)"
-              }} />
-              <div className="rounded-br-pw-card" style={{
-                background: "linear-gradient(160deg, #5c4a3c 0%, #3d2e24 50%, #6b5141 100%)"
-              }} />
-            </div>
+      {/* ── Buy panel + what's included ─────────────────────────────── */}
+      <Section tone="bg" id="buy">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-start lg:gap-16">
 
-            {/* Materials list */}
-            <ul className="space-y-3">
-              {MATERIALS.map((m) => (
-                <li
-                  key={m.name}
-                  className="flex items-start gap-3 rounded-pw-card border border-pw-stone bg-pw-surface p-4"
-                >
-                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft">
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-                      <path d="M2 5l2.5 2.5L8 2.5" stroke="#C4622D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          {/* What's included */}
+          <div className="lg:col-span-7">
+            <Eyebrow>What's in the pack</Eyebrow>
+            <h2 className="pw-h2 mt-3 text-pw-ink sm:mt-4">
+              Four reasons it's R150 well spent.
+            </h2>
+            <ul className="mt-7 space-y-5">
+              {INCLUDES.map((item) => (
+                <li key={item} className="flex items-start gap-4">
+                  <span
+                    aria-hidden
+                    className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-pw-accent-soft"
+                  >
+                    <svg className="h-3 w-3 text-pw-accent" fill="none" viewBox="0 0 10 10">
+                      <path d="M2 5l2.5 2.5L8 2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-medium text-pw-ink">{m.name}</p>
-                      <span className="rounded-full bg-pw-accent-soft px-2 py-0.5 text-xs text-pw-accent">
-                        {m.tag}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-sm text-pw-muted">{m.desc}</p>
-                  </div>
+                  </span>
+                  <p className="pw-body text-pw-ink/80">{item}</p>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Right: purchase panel */}
-          <div className="lg:col-span-2">
-            <div className="sticky top-[7rem] rounded-pw-card border border-pw-stone bg-pw-surface p-6 shadow-pw-sm">
+          {/* Sticky purchase panel (desktop sticky, normal flow on mobile) */}
+          <div className="lg:col-span-5">
+            <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8 lg:sticky lg:top-[7rem]">
+              <Eyebrow variant="muted">Sample pack</Eyebrow>
+              <p className="pw-h1 mt-3 text-pw-ink">R150</p>
+              <p className="pw-small mt-1 text-pw-muted">
+                Free delivery, 3 to 5 business days.
+              </p>
 
-              <div className="mb-5 border-b border-pw-stone pb-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-pw-muted">Sample Swatch Pack</p>
-                <p className="mt-1 font-sans text-3xl font-bold text-pw-ink">R 300</p>
-                <p className="mt-1 text-sm text-pw-ink/75">
-                  Shipping included · Delivered in 3 to 5 days
-                </p>
+              <div className="mt-6">
+                {alreadyInCart ? (
+                  <Button href="/cart" variant="primary" size="lg" className="w-full">
+                    View in cart
+                  </Button>
+                ) : added ? (
+                  <Button href="/cart" variant="primary" size="lg" className="w-full">
+                    Added. View in cart
+                  </Button>
+                ) : (
+                  <Button onClick={handleAddToCart} variant="primary" size="lg" className="w-full">
+                    Add to cart
+                  </Button>
+                )}
               </div>
 
-              <ul className="mb-6 space-y-2 text-sm text-pw-ink/80">
-                <li className="flex items-center gap-2">
-                  <span className="text-pw-accent">✓</span> A5 swatch of every material we offer
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-pw-accent">✓</span> Printed on the same press as your order
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-pw-accent">✓</span> Free shipping nationwide, fully tracked
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-pw-accent">✓</span> Delivered in 3 to 5 business days
-                </li>
-              </ul>
-
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                className="w-full rounded-pw bg-pw-ink py-3 text-sm font-medium text-white transition hover:bg-pw-ink-soft"
-              >
-                {alreadyInCart
-                  ? "View in cart →"
-                  : added
-                  ? "Added. View in cart →"
-                  : "Add to cart, R300"}
-              </button>
-
-              {added && !alreadyInCart && (
-                <Link
-                  href="/cart"
-                  className="mt-3 block text-center text-sm text-pw-muted underline underline-offset-2 hover:text-pw-ink"
-                >
-                  View cart
-                </Link>
-              )}
-
-              <p className="mt-4 text-center text-xs text-pw-muted">
-                Pay once, keep the swatches. Order any time you want to compare again.
+              <p className="pw-small mt-4 text-center text-pw-muted">
+                The R150 credits to your wallpaper order when you come back.
               </p>
             </div>
           </div>
-
         </div>
+      </Section>
 
-        {/* Bottom CTA */}
-        <div className="mt-16 rounded-pw-card border border-pw-stone bg-pw-stone p-8 text-center">
-          <p className="text-sm font-medium text-pw-ink">Already know what you want?</p>
-          <p className="mt-1 text-sm text-pw-muted">Skip the swatches and go straight to your custom wallpaper.</p>
-          <Link
-            href="/config"
-            className="mt-4 inline-flex items-center gap-2 rounded-pw bg-pw-ink px-6 py-3 text-sm font-medium text-white hover:bg-pw-ink-soft"
-          >
-            Start designing
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-white/15 text-xs">↗</span>
-          </Link>
+      {/* ── Closing CTA ──────────────────────────────────────────────── */}
+      <Section tone="ink" density="default" id="closing">
+        <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-end lg:gap-16">
+          <div className="lg:col-span-7">
+            <Eyebrow className="text-pw-accent-mid">Already decided?</Eyebrow>
+            <h2 className="pw-display mt-3 text-white sm:mt-4">
+              Skip the swatches.
+            </h2>
+            <p className="pw-body-lg mt-4 max-w-xl text-white/65 sm:mt-5">
+              Drop in your image, set your wall size, get a live price in under sixty seconds.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 lg:col-span-5 lg:items-end">
+            <Button href="/config" variant="light-on-ink" size="lg" className="w-full sm:w-auto">
+              Design your wallpaper
+            </Button>
+            <span className="pw-small text-center text-white/45 lg:text-right">
+              No payment until you approve the price.
+            </span>
+          </div>
         </div>
-
-      </div>
-    </PageContainer>
+      </Section>
+    </main>
   );
 }

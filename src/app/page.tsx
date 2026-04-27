@@ -326,22 +326,27 @@ function FinishesSection() {
         ))}
       </div>
 
-      {/* Application — Traditional vs Peel & Stick */}
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2">
-        <article className="rounded-pw-card border border-pw-stone bg-pw-bg p-6 sm:p-7">
-          <h3 className="pw-h3 text-pw-ink">Traditional</h3>
-          <p className="pw-small mt-1 text-pw-accent">Paste-the-wall</p>
-          <p className="pw-body mt-3 text-pw-ink/70">
-            Permanent, with the cleanest seams. Best for feature walls and rooms you&rsquo;re committing to.
-          </p>
-        </article>
-        <article className="rounded-pw-card border border-pw-stone bg-pw-bg p-6 sm:p-7">
-          <h3 className="pw-h3 text-pw-ink">Peel &amp; Stick</h3>
-          <p className="pw-small mt-1 text-pw-accent">Self-adhesive</p>
-          <p className="pw-body mt-3 text-pw-ink/70">
-            Repositionable while you hang, removes cleanly when you&rsquo;re done. The right choice for renters.
-          </p>
-        </article>
+      {/* Application — single split card so it doesn't read as "two more finishes" */}
+      <div className="mt-8 sm:mt-12">
+        <p className="pw-overline text-pw-muted text-center">Two ways to apply it</p>
+        <div className="mt-3 overflow-hidden rounded-pw border border-pw-stone bg-pw-bg sm:mt-4">
+          <div className="grid grid-cols-1 divide-y divide-pw-stone sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+            <div className="flex items-baseline gap-3 px-5 py-4 sm:px-6 sm:py-5">
+              <span aria-hidden className="text-pw-accent">●</span>
+              <div>
+                <span className="pw-small font-semibold text-pw-ink">Traditional</span>
+                <span className="pw-small text-pw-muted"> · paste-the-wall, permanent. Best for feature walls.</span>
+              </div>
+            </div>
+            <div className="flex items-baseline gap-3 px-5 py-4 sm:px-6 sm:py-5">
+              <span aria-hidden className="text-pw-accent">○</span>
+              <div>
+                <span className="pw-small font-semibold text-pw-ink">Peel &amp; Stick</span>
+                <span className="pw-small text-pw-muted"> · self-adhesive, removable. The right choice for renters.</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="mt-8 flex justify-center sm:mt-12">

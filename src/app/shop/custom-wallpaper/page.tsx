@@ -56,7 +56,6 @@ export default function CustomWallpaperPage() {
       <SamplePackBanner />
       <FAQSection />
       <ClosingCTA />
-      <StickyMobileCTA price={price} />
     </>
   );
 }
@@ -884,59 +883,3 @@ function ClosingCTA() {
   );
 }
 
-// ── Sticky mobile CTA — past hero through to closing CTA ──────────────────
-function StickyMobileCTA({ price }: { price: number }) {
-  const [pastHero,    setPastHero]    = useState(false);
-  const [closingNear, setClosingNear] = useState(false);
-
-  useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
-
-    const hero = document.getElementById("buy-box");
-    let obsHero: IntersectionObserver | undefined;
-    if (hero) {
-      obsHero = new IntersectionObserver(
-        ([entry]) => setPastHero(!entry.isIntersecting),
-        { threshold: 0, rootMargin: "0px 0px -90% 0px" }
-      );
-      obsHero.observe(hero);
-    }
-
-    const closing = document.getElementById("closing-cta");
-    let obsClosing: IntersectionObserver | undefined;
-    if (closing) {
-      obsClosing = new IntersectionObserver(
-        ([entry]) => setClosingNear(entry.isIntersecting),
-        { threshold: 0, rootMargin: "0px 0px -100px 0px" }
-      );
-      obsClosing.observe(closing);
-    }
-
-    return () => {
-      obsHero?.disconnect();
-      obsClosing?.disconnect();
-    };
-  }, []);
-
-  const visible = pastHero && !closingNear;
-
-  return (
-    <div
-      className={[
-        "fixed inset-x-0 bottom-0 z-40 border-t border-pw-stone bg-pw-bg/95 backdrop-blur transition-transform duration-300 lg:hidden",
-        visible ? "translate-y-0" : "translate-y-full pointer-events-none",
-      ].join(" ")}
-      aria-hidden={!visible}
-    >
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-5 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-        <div className="flex flex-1 flex-col">
-          <span className="pw-overline text-pw-muted">From</span>
-          <span className="pw-h3 text-pw-ink">R{price} / m²</span>
-        </div>
-        <Button href="/config" variant="primary" size="md" className="shrink-0 px-6">
-          Design yours
-        </Button>
-      </div>
-    </div>
-  );
-}
