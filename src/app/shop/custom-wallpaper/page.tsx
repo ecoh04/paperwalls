@@ -38,6 +38,7 @@ export default function CustomWallpaperPage() {
 
   return (
     <>
+      <MobileHero />
       <BuyBox
         activeImage={activeImage}
         setActiveImage={setActiveImage}
@@ -111,15 +112,9 @@ function BuyBox({
     <section id="buy-box" className="bg-pw-bg">
       <div className="mx-auto max-w-7xl px-5 pt-6 pb-10 sm:px-8 sm:pt-8 sm:pb-14 lg:px-12 lg:pt-12 lg:pb-20">
 
-        {/* MOBILE-ONLY product header — sits above the gallery so cold traffic
-            sees title + rating + price before the image fills the fold. */}
-        <div className="mb-5 lg:hidden">
-          <ProductHeader price={price} />
-        </div>
-
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
 
-          {/* GALLERY — left column on desktop, top on mobile (after the header) */}
+          {/* GALLERY — left column on desktop, top on mobile */}
           <Gallery
             images={BUY_BOX_IMAGES}
             activeImage={activeImage}
@@ -130,10 +125,7 @@ function BuyBox({
           <div className="lg:col-span-5">
             <div className="lg:sticky lg:top-24">
 
-              {/* DESKTOP-ONLY header — same component as the mobile one above */}
-              <div className="hidden lg:block">
-                <ProductHeader price={price} />
-              </div>
+              <ProductHeader price={price} />
 
               {/* Description */}
               <p className="pw-body mt-5 text-pw-ink/70">
@@ -244,6 +236,46 @@ function BuyBox({
               </ul>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Mobile hero (cold-traffic precursor) ─────────────────────────────────
+// Standard DTC mobile hero: full-bleed lifestyle image, headline, single
+// primary CTA, social-proof line. Hidden on desktop — desktop goes
+// straight from header to buy box.
+function MobileHero() {
+  return (
+    <section className="lg:hidden bg-pw-bg">
+      {/* Full-bleed image — edge to edge, no padding, taller portrait crop */}
+      <div className="relative aspect-[4/5] w-full overflow-hidden">
+        <ImagePlaceholder
+          src="/images/product/pdp-01-hero.jpg"
+          aspectRatio="4/5"
+          priority
+          sizes="100vw"
+          prompt="Sunlit South African living room with custom wallpaper as the feature wall"
+          className="rounded-none"
+        />
+      </div>
+
+      {/* Hero copy — centred, premium-quiet, single primary CTA */}
+      <div className="px-5 pt-7 pb-9 text-center sm:px-8 sm:pt-9 sm:pb-12">
+        <Eyebrow>Custom wallpaper · Made in Cape Town</Eyebrow>
+        <h1 className="pw-display mt-3 text-pw-ink">
+          Your image.<br />Your wall.
+        </h1>
+        <p className="pw-body mt-4 mx-auto max-w-md text-pw-ink/70">
+          Print any image onto any wall. Made-to-order, yours in five days.
+        </p>
+        <Button href="/config" variant="primary" size="lg" className="mt-7 w-full">
+          Design yours
+        </Button>
+        <div className="mt-5 flex items-center justify-center gap-2">
+          <span aria-hidden className="text-pw-accent text-base tracking-wide">★★★★★</span>
+          <span className="pw-small text-pw-ink/65">4.9 from 847 South African homes</span>
         </div>
       </div>
     </section>
