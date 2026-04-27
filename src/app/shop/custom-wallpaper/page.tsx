@@ -8,31 +8,54 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 
-// CRO-tuned product page. Key conversion elements:
-//   - Hero with PRICE ANCHOR ("From R410/m²") above-the-fold
-//   - Benefits strip immediately after hero (4 trust signals at-a-glance)
-//   - In-real-homes proof BEFORE the buy box (belief before decision)
-//   - Choose-your-finish buy box with anchor pricing + "Most ordered" pill
-//   - Side-by-side editorial: what arrives + how to hang
-//   - Comparison table (PaperWalls vs Standard) — high-converting element
-//   - Sample-pack risk reversal
-//   - Product-specific FAQ destroying ordering objections
-//   - Closing CTA + sticky mobile bar (appears after hero scroll)
+// ── Shopify-style Product Detail Page ─────────────────────────────────────
+// Above-the-fold: classic 2-col buy box (gallery left, info + CTA right).
+// Below-the-fold: product description, materials deep-dive, what's in the
+// box, real-homes gallery, comparison, sample-pack, FAQ, closing CTA.
+// Plus: sticky mobile CTA from past-hero through to closing CTA.
+
+const FINISH_PRICING = {
+  satin: { traditional: 410, peelAndStick: 490 },
+  matte: { traditional: 470, peelAndStick: 540 },
+  linen: { traditional: 590, peelAndStick: 680 },
+} as const;
+
+type Finish      = keyof typeof FINISH_PRICING;
+type Application = "traditional" | "peelAndStick";
+
+const FINISH_DETAILS: Record<Finish, { name: string; sub: string; swatch: string }> = {
+  satin: { name: "Satin", sub: "Subtle sheen, easy clean",  swatch: "linear-gradient(135deg, #E8DFD2 0%, #C4A78A 60%, #8C6F58 100%)" },
+  matte: { name: "Matte", sub: "Flat, non-reflective",      swatch: "linear-gradient(135deg, #DDD3C5 0%, #B5A795 100%)" },
+  linen: { name: "Linen", sub: "Textured, premium feel",    swatch: "linear-gradient(135deg, #D4C9BE 0%, #A38C72 50%, #6B543C 100%)" },
+};
 
 export default function CustomWallpaperPage() {
+  const [activeImage,       setActiveImage]       = useState(0);
+  const [activeFinish,      setActiveFinish]      = useState<Finish>("satin");
+  const [activeApplication, setActiveApplication] = useState<Application>("traditional");
+
+  const price = FINISH_PRICING[activeFinish][activeApplication];
+
   return (
     <>
-      <HeroSection />
-      <BenefitsStrip />
-      <GalleryProof />
-      <ProcessSection />
-      <FinishesSection />
-      <ExperienceSection />
+      <BuyBox
+        activeImage={activeImage}
+        setActiveImage={setActiveImage}
+        activeFinish={activeFinish}
+        setActiveFinish={setActiveFinish}
+        activeApplication={activeApplication}
+        setActiveApplication={setActiveApplication}
+        price={price}
+      />
+      <ProductDescription />
+      <MaterialsSection />
+      <WhatsInBox />
+      <RealHomesGallery />
       <ComparisonSection />
       <SamplePackBanner />
       <FAQSection />
       <ClosingCTA />
-      <StickyMobileCTA />
+      <StickyMobileCTA price={price} />
     </>
   );
 }
@@ -49,354 +72,386 @@ function TextLink({ href, children, className = "" }: { href: string; children: 
   );
 }
 
-// ── 1. Hero — product H1 + price anchor + dual CTA ────────────────────────
-function HeroSection() {
+// ── BUY BOX (above the fold) ──────────────────────────────────────────────
+const BUY_BOX_IMAGES = [
+  { src: "/images/product/pdp-hero.jpg",     alt: "Custom wallpaper in a modern living room" },
+  { src: "/images/product/pdp-detail.jpg",   alt: "Macro detail of printed wallpaper texture and pattern" },
+  { src: "/images/product/pdp-corner.jpg",   alt: "Corner detail showing seamless install" },
+  { src: "/images/product/pdp-alt-room.jpg", alt: "Custom wallpaper in a bedroom setting" },
+];
+
+type BuyBoxProps = {
+  activeImage:        number;
+  setActiveImage:     (i: number) => void;
+  activeFinish:       Finish;
+  setActiveFinish:    (f: Finish) => void;
+  activeApplication:  Application;
+  setActiveApplication: (a: Application) => void;
+  price:              number;
+};
+
+function BuyBox({
+  activeImage, setActiveImage,
+  activeFinish, setActiveFinish,
+  activeApplication, setActiveApplication,
+  price,
+}: BuyBoxProps) {
   return (
-    <section className="bg-pw-bg" id="product-hero">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-5 pb-10 pt-6 sm:gap-10 sm:px-8 sm:pb-14 sm:pt-10 lg:grid-cols-12 lg:gap-16 lg:px-12 lg:pb-24 lg:pt-20">
+    <section id="buy-box" className="bg-pw-bg">
+      <div className="mx-auto max-w-7xl px-5 pt-4 pb-10 sm:px-8 sm:pt-6 sm:pb-14 lg:px-12 lg:pt-10 lg:pb-20">
 
-        {/* Image first on mobile */}
-        <div className="order-1 lg:order-2 lg:col-span-7">
-          <ImagePlaceholder
-            src="/images/product/product-hero.jpg"
-            aspectRatio="4/3"
-            aspectClassName="lg:!aspect-[4/5]"
-            dimensions="1600×2000"
-            prompt="Editorial bedroom photograph, custom-printed earthy abstract-pattern wallpaper covering a feature wall behind a low-profile linen-upholstered bed. Tan leather throw pillows, vintage ceramic table lamp, an open hardcover book, dried palm fronds in a stoneware vessel. Warm afternoon light from a tall right-side window, oak herringbone floors, white-washed plaster perimeter walls. Composition: portrait, eye-level, wallpaper occupies the full frame behind the bed. Apartmento × Aesop × Kinfolk. Photorealistic, no people."
-          />
-        </div>
+        {/* Breadcrumbs */}
+        <nav className="pw-small mb-4 flex flex-wrap items-center gap-x-2 text-pw-muted sm:mb-6">
+          <Link href="/" className="hover:text-pw-ink transition-colors">Home</Link>
+          <span className="text-pw-muted-light">/</span>
+          <Link href="/shop" className="hover:text-pw-ink transition-colors">Shop</Link>
+          <span className="text-pw-muted-light">/</span>
+          <span className="text-pw-ink">Custom wallpaper</span>
+        </nav>
 
-        {/* Copy */}
-        <div className="order-2 flex flex-col justify-center lg:order-1 lg:col-span-5">
-          <Eyebrow>Custom wallpaper</Eyebrow>
-          <h1 className="pw-display mt-4 text-pw-ink">
-            Wallpaper printed exactly to your wall.
-          </h1>
-          <p className="pw-body-lg mt-4 max-w-md text-pw-ink/70 sm:mt-5">
-            Upload any image. We print it commercial-grade, cut it to the millimetre,
-            and ship it free across South Africa.
-          </p>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
 
-          {/* Price anchor */}
-          <div className="mt-6 flex items-baseline gap-3 sm:mt-8">
-            <span className="pw-overline text-pw-muted">From</span>
-            <span className="pw-h2 text-pw-ink">R410</span>
-            <span className="pw-body text-pw-muted">per m²</span>
+          {/* GALLERY — left column on desktop, top on mobile */}
+          <div className="lg:col-span-7">
+            {/* Main image */}
+            <ImagePlaceholder
+              src={BUY_BOX_IMAGES[activeImage].src}
+              aspectRatio="1/1"
+              prompt={BUY_BOX_IMAGES[activeImage].alt}
+            />
+            {/* Thumbnail row */}
+            <div className="mt-3 grid grid-cols-4 gap-2 sm:mt-4 sm:gap-3">
+              {BUY_BOX_IMAGES.map((img, i) => {
+                const active = i === activeImage;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setActiveImage(i)}
+                    aria-label={`Show image ${i + 1}`}
+                    aria-pressed={active}
+                    className={[
+                      "relative overflow-hidden rounded-pw-card transition-all",
+                      active ? "ring-2 ring-pw-ink ring-offset-2 ring-offset-pw-bg" : "ring-1 ring-pw-stone hover:ring-pw-ink/40",
+                    ].join(" ")}
+                  >
+                    <ImagePlaceholder
+                      src={img.src}
+                      aspectRatio="1/1"
+                      prompt={img.alt}
+                    />
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* CTAs */}
-          <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
-            <Button href="/config" variant="primary" size="lg" className="w-full sm:w-auto">
-              Design your wallpaper
-            </Button>
-            <TextLink href="/samples">Order samples first</TextLink>
-          </div>
+          {/* PRODUCT INFO — right column on desktop (sticky), below gallery on mobile */}
+          <div className="lg:col-span-5">
+            <div className="lg:sticky lg:top-24">
 
-          {/* Trust micro-stats */}
-          <ul className="mt-8 grid grid-cols-3 gap-3 sm:mt-12 sm:gap-6">
-            {[
-              { num: "72-hour",   label: "Production" },
-              { num: "Free",      label: "Shipping" },
-              { num: "Guaranteed", label: "Reprint cover" },
-            ].map((item) => (
-              <li key={item.label} className="flex flex-col gap-0.5">
-                <span className="pw-h3 text-pw-ink">{item.num}</span>
-                <span className="pw-overline text-pw-muted">{item.label}</span>
-              </li>
-            ))}
-          </ul>
+              {/* Title + price */}
+              <Eyebrow>Custom wallpaper</Eyebrow>
+              <h1 className="pw-h1 mt-3 text-pw-ink">
+                Wallpaper printed to your wall.
+              </h1>
+              <div className="mt-5 flex items-baseline gap-3">
+                <span className="pw-h2 text-pw-ink">R{price}</span>
+                <span className="pw-body text-pw-muted">per m²</span>
+              </div>
+              <p className="pw-small mt-1 text-pw-muted">
+                Final price is calculated from your wall size in the configurator.
+              </p>
+
+              {/* Description */}
+              <p className="pw-body mt-5 text-pw-ink/70">
+                Upload any image. We print it on commercial-grade substrate, cut it to
+                your wall&rsquo;s exact dimensions, and ship it free across South Africa.
+                Made to order in Cape Town.
+              </p>
+
+              {/* Variant 1 — Application */}
+              <div className="mt-7 border-t border-pw-stone pt-7">
+                <div className="flex items-baseline justify-between">
+                  <span className="pw-overline text-pw-ink">Application</span>
+                  <span className="pw-small text-pw-muted">
+                    {activeApplication === "traditional" ? "Paste-the-wall" : "Self-adhesive"}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {[
+                    { id: "traditional"  as const, label: "Traditional",   sub: "Paste-the-wall" },
+                    { id: "peelAndStick" as const, label: "Peel & Stick",  sub: "Renter-friendly" },
+                  ].map((opt) => {
+                    const active = opt.id === activeApplication;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setActiveApplication(opt.id)}
+                        aria-pressed={active}
+                        className={[
+                          "flex flex-col items-start rounded-pw border p-4 text-left transition-colors",
+                          active
+                            ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink"
+                            : "border-pw-stone bg-pw-surface hover:border-pw-ink/40",
+                        ].join(" ")}
+                      >
+                        <span className="pw-small font-semibold text-pw-ink">{opt.label}</span>
+                        <span className="pw-small mt-1 text-pw-muted">{opt.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Variant 2 — Finish */}
+              <div className="mt-6 border-t border-pw-stone pt-6">
+                <div className="flex items-baseline justify-between">
+                  <span className="pw-overline text-pw-ink">Finish</span>
+                  <span className="pw-small text-pw-muted">{FINISH_DETAILS[activeFinish].sub}</span>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {(Object.keys(FINISH_DETAILS) as Finish[]).map((f) => {
+                    const active = f === activeFinish;
+                    const detail = FINISH_DETAILS[f];
+                    return (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setActiveFinish(f)}
+                        aria-pressed={active}
+                        className={[
+                          "flex flex-col items-stretch overflow-hidden rounded-pw border bg-pw-surface text-left transition-colors",
+                          active ? "border-pw-ink ring-1 ring-pw-ink" : "border-pw-stone hover:border-pw-ink/40",
+                        ].join(" ")}
+                      >
+                        <span
+                          aria-hidden
+                          className="block h-12 w-full"
+                          style={{ background: detail.swatch }}
+                        />
+                        <span className="block px-3 py-2 text-center">
+                          <span className="pw-small block font-semibold text-pw-ink">{detail.name}</span>
+                          <span className="pw-overline block text-pw-muted">R{FINISH_PRICING[f][activeApplication]}/m²</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* CTAs */}
+              <div className="mt-7 flex flex-col items-stretch gap-3">
+                <Button href="/config" variant="primary" size="lg" className="w-full">
+                  Design your wallpaper
+                </Button>
+                <TextLink href="/samples" className="text-center">
+                  Order samples first
+                </TextLink>
+              </div>
+
+              {/* Trust badges */}
+              <ul className="mt-7 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-pw-stone pt-6">
+                {[
+                  "72-hour production",
+                  "Free SA shipping",
+                  "Reprint guarantee",
+                  "Made in Cape Town",
+                ].map((b) => (
+                  <li key={b} className="flex items-center gap-2 pw-small text-pw-ink/70">
+                    <svg className="h-4 w-4 shrink-0 text-pw-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {b}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-// ── 2. Benefits strip — 4 quick-trust at-a-glance ─────────────────────────
-function BenefitsStrip() {
-  const benefits = [
-    { title: "72-hour production", body: "Through our press in 3 days. Tracking when it ships." },
-    { title: "Free nationwide",    body: "Shipped free across South Africa, all 9 provinces." },
-    { title: "Made-to-order",      body: "No standard sizes. No minimums. Cut to your wall." },
-    { title: "Reprint guarantee",  body: "Defects on us. Send a photo within 7 days." },
-  ];
-
+// ── Product description ──────────────────────────────────────────────────
+function ProductDescription() {
   return (
-    <Section tone="surface" density="tight">
-      <ul className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-4 sm:gap-8">
-        {benefits.map((b) => (
-          <li key={b.title} className="flex flex-col gap-2">
-            <h3 className="pw-h3 text-pw-ink">{b.title}</h3>
-            <p className="pw-small text-pw-muted">{b.body}</p>
-          </li>
-        ))}
-      </ul>
+    <Section tone="surface" id="description">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-5">
+          <SectionHeader
+            eyebrow="About this wallpaper"
+            title="Made to order, cut to your wall."
+          />
+        </div>
+        <div className="space-y-5 lg:col-span-7">
+          <p className="pw-body-lg text-pw-ink/80">
+            PaperWalls is custom wallpaper printed in Cape Town on commercial-grade
+            substrate. There are no standard rolls or pre-printed designs. You upload
+            any image, choose a finish, and we print exactly what you sent at exactly
+            the size you measured.
+          </p>
+          <p className="pw-body text-pw-ink/70">
+            Every order is checked for resolution against your wall before payment, cut
+            to the millimetre, labelled in hanging order, and shipped with a printed
+            install guide chosen for the substrate you picked. If anything ships
+            imperfect, we reprint at no cost.
+          </p>
+
+          {/* Specs grid */}
+          <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-pw-stone pt-6 sm:grid-cols-3">
+            {[
+              { label: "Substrate",       value: "Commercial-grade" },
+              { label: "Finish options",  value: "Satin · Matte · Linen" },
+              { label: "Application",     value: "Traditional or peel-and-stick" },
+              { label: "Wall sizes",      value: "Any, cut to mm" },
+              { label: "Production",      value: "72 hours" },
+              { label: "Shipping",        value: "Free across SA" },
+            ].map((spec) => (
+              <div key={spec.label}>
+                <dt className="pw-overline text-pw-muted">{spec.label}</dt>
+                <dd className="pw-body mt-1 text-pw-ink">{spec.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
     </Section>
   );
 }
 
-// ── 3. Gallery proof (compact, 3 images) ──────────────────────────────────
-function GalleryProof() {
-  const images = [
+// ── Materials deep-dive ──────────────────────────────────────────────────
+function MaterialsSection() {
+  const finishes = [
     {
-      src:     "/images/home/gallery-1.jpg",
-      caption: "Botanical · Satin · Living room",
-      prompt:  "Living room with custom botanical wallpaper",
+      name: "Satin", desc: "Subtle sheen with deep colour. Wipes clean. Sits comfortably in living rooms and family spaces.",
+      range: "From R410/m²", src: "/images/product/pdp-satin.jpg", alt: "Macro of satin wallpaper",
     },
     {
-      src:     "/images/home/gallery-2.jpg",
-      caption: "Watercolour · Matte · Bedroom",
-      prompt:  "Bedroom with custom watercolour wallpaper",
+      name: "Matte", desc: "Completely flat, non-reflective. Renders fine detail without glare. Best for bright rooms.",
+      range: "From R470/m²", src: "/images/product/pdp-matte.jpg", alt: "Macro of matte wallpaper",
     },
     {
-      src:     "/images/home/gallery-3.jpg",
-      caption: "Modern art · Linen · Home office",
-      prompt:  "Home office with custom modern art wallpaper",
+      name: "Linen", desc: "Textured, fabric-like surface. Catches light, adds depth. Designed to feel like a chosen material.",
+      range: "From R590/m²", src: "/images/product/pdp-linen.jpg", alt: "Macro of linen-textured wallpaper",
     },
   ];
 
   return (
-    <Section tone="bg" id="gallery">
+    <Section tone="bg" id="materials">
       <SectionHeader
-        eyebrow="In real homes"
-        title="Wallpaper that becomes the room."
-        body="Every print is unique to the customer who ordered it."
+        eyebrow="Three finishes"
+        title="Same press, three surfaces."
+        body="Every order goes through the same commercial press. The choice is finish, how the surface catches light, and how the wallpaper feels under your hand."
       />
 
+      <div className="mt-8 grid grid-cols-1 gap-5 sm:mt-12 sm:gap-6 md:grid-cols-3">
+        {finishes.map((f) => (
+          <article key={f.name} className="flex flex-col rounded-pw-card border border-pw-stone bg-pw-surface overflow-hidden">
+            <ImagePlaceholder
+              src={f.src}
+              aspectRatio="4/3"
+              prompt={f.alt}
+            />
+            <div className="flex flex-1 flex-col p-6">
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="pw-h3 text-pw-ink">{f.name}</h3>
+                <span className="pw-small whitespace-nowrap text-pw-muted">{f.range}</span>
+              </div>
+              <p className="pw-body mt-3 text-pw-ink/70">{f.desc}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+// ── What's in the box ────────────────────────────────────────────────────
+function WhatsInBox() {
+  return (
+    <Section tone="surface" id="whats-in-box">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center lg:gap-16">
+        <div className="lg:col-span-6">
+          <ImagePlaceholder
+            src="/images/product/pdp-unboxing.jpg"
+            aspectRatio="4/3"
+            prompt="Unboxing flat-lay of PaperWalls package contents"
+          />
+        </div>
+        <div className="lg:col-span-6">
+          <SectionHeader
+            eyebrow="What's in the box"
+            title="Made to be unboxed."
+          />
+          <ul className="mt-7 space-y-5">
+            {[
+              { t: "Your wallpaper, panel by panel",     b: "Cut to your dimensions, labelled in hanging order so you know exactly which panel goes where." },
+              { t: "Substrate-specific install guide",   b: "Step-by-step printed instructions for either paste-the-wall or peel-and-stick, depending on what you ordered." },
+              { t: "Kraft-paper presentation",           b: "Rolls protected in kraft paper with a cotton ribbon. Not throwaway packaging." },
+              { t: "Care card with the reprint promise", b: "If anything ships imperfect, send a photo within 7 days. Replacement on the press within 48 hours." },
+            ].map((item) => (
+              <li key={item.t} className="flex gap-4">
+                <span aria-hidden className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-pw-accent" />
+                <div>
+                  <h3 className="pw-h3 text-pw-ink">{item.t}</h3>
+                  <p className="pw-body mt-1.5 text-pw-ink/70">{item.b}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+// ── Real homes gallery ────────────────────────────────────────────────────
+function RealHomesGallery() {
+  const images = [
+    { src: "/images/product/pdp-home-1.jpg", caption: "Watercolour · Matte · Dining room",  alt: "Dining room with custom watercolour wallpaper" },
+    { src: "/images/product/pdp-home-2.jpg", caption: "Geometric · Satin · Reading nook",   alt: "Reading nook with custom geometric wallpaper" },
+    { src: "/images/product/pdp-home-3.jpg", caption: "Landscape · Linen · Home office",    alt: "Home office with custom landscape wallpaper" },
+  ];
+
+  return (
+    <Section tone="bg" id="real-homes">
+      <SectionHeader
+        eyebrow="In real homes"
+        title="Different walls, same press."
+      />
       <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-3 sm:gap-6">
         {images.map((img, i) => (
           <figure key={i}>
             <ImagePlaceholder
               src={img.src}
-              aspectRatio="3/4"
-              prompt={img.prompt}
+              aspectRatio="4/5"
+              prompt={img.alt}
             />
             <figcaption className="pw-small mt-2 text-pw-muted">{img.caption}</figcaption>
           </figure>
         ))}
       </div>
-
-      <div className="mt-8 flex justify-center sm:mt-12">
-        <TextLink href="/inspiration">See more inspiration →</TextLink>
-      </div>
     </Section>
   );
 }
 
-// ── 4. Process — 3 steps reusing homepage images ──────────────────────────
-function ProcessSection() {
-  const steps = [
-    {
-      num:    "01",
-      title:  "Upload your image",
-      body:   "Any high-res JPG, PNG, or WebP. We check resolution against your wall size before you pay.",
-      src:    "/images/home/process-1.jpg",
-      prompt: "Hand uploading an image on a phone",
-    },
-    {
-      num:    "02",
-      title:  "Pick finish & size",
-      body:   "Three finishes, two ways to apply, your wall in centimetres. Live price as you choose.",
-      src:    "/images/home/process-2.jpg",
-      prompt: "Wallpaper swatches arranged on a surface",
-    },
-    {
-      num:    "03",
-      title:  "We print, you hang",
-      body:   "Through our press in 72 hours. Panels arrive rolled, labelled, with a substrate-specific install guide.",
-      src:    "/images/home/process-3.jpg",
-      prompt: "Hands smoothing wallpaper onto a wall",
-    },
-  ];
-
-  return (
-    <Section tone="surface" id="how">
-      <SectionHeader
-        eyebrow="How it works"
-        title="From your photo to your wall."
-        body="No design experience, no trade account, no minimums. Just an image and your dimensions."
-      />
-
-      <ol className="mt-8 grid grid-cols-1 gap-6 sm:mt-14 sm:grid-cols-3 sm:gap-8 lg:gap-10">
-        {steps.map((step) => (
-          <li key={step.num} className="flex flex-col gap-4">
-            <ImagePlaceholder
-              src={step.src}
-              aspectRatio="16/10"
-              aspectClassName="sm:!aspect-square"
-              prompt={step.prompt}
-            />
-            <div className="flex items-baseline gap-3">
-              <span className="pw-overline text-pw-accent">{step.num}</span>
-              <h3 className="pw-h3 text-pw-ink">{step.title}</h3>
-            </div>
-            <p className="pw-body text-pw-ink/70">{step.body}</p>
-          </li>
-        ))}
-      </ol>
-
-      <div className="mt-8 flex justify-center sm:mt-12">
-        <Button href="/config" variant="primary" size="lg" className="w-full sm:w-auto">
-          Start designing
-        </Button>
-      </div>
-    </Section>
-  );
-}
-
-// ── 5. Finishes — anchor pricing ─────────────────────────────────────────
-function FinishesSection() {
-  const finishes = [
-    {
-      name:   "Satin",
-      desc:   "Subtle sheen. Wipes clean. Sits comfortably in living rooms and family spaces.",
-      range:  "R410 to R490",
-      tag:    "Most ordered",
-      src:    "/images/home/finish-satin.jpg",
-      prompt: "Macro of satin-finish wallpaper",
-    },
-    {
-      name:   "Matte",
-      desc:   "Completely flat, non-reflective. Reads like fine art on the wall. Best for bright rooms.",
-      range:  "R470 to R540",
-      tag:    null,
-      src:    "/images/home/finish-matte.jpg",
-      prompt: "Macro of matte-finish wallpaper",
-    },
-    {
-      name:   "Linen",
-      desc:   "Textured, fabric-like. Catches light, adds depth. Designed to feel chosen, not generic.",
-      range:  "R590 to R680",
-      tag:    "Most premium",
-      src:    "/images/home/finish-linen.jpg",
-      prompt: "Macro of linen-textured wallpaper",
-    },
-  ];
-
-  return (
-    <Section tone="bg" id="finishes">
-      <SectionHeader
-        eyebrow="Choose your finish"
-        title="Three finishes. One commercial press."
-        body="Every order goes through the same machine. The choice is finish, how the surface catches light, and how it sticks to the wall."
-      />
-
-      <div className="mt-8 grid grid-cols-1 gap-5 sm:mt-12 sm:gap-6 md:grid-cols-3">
-        {finishes.map((f) => (
-          <article
-            key={f.name}
-            className="flex flex-col rounded-pw-card border border-pw-stone bg-pw-surface overflow-hidden"
-          >
-            <div className="relative">
-              <ImagePlaceholder
-                src={f.src}
-                aspectRatio="16/10"
-                aspectClassName="md:!aspect-[4/3]"
-                prompt={f.prompt}
-              />
-              {f.tag && (
-                <span className="pw-overline absolute top-4 left-4 rounded-full bg-pw-ink px-3 py-1 text-white">
-                  {f.tag}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-1 flex-col p-6">
-              <div className="flex items-baseline justify-between gap-3">
-                <h3 className="pw-h3 text-pw-ink">{f.name}</h3>
-                <span className="pw-h3 whitespace-nowrap text-pw-ink">{f.range}</span>
-              </div>
-              <p className="pw-small mt-1 text-pw-muted-light">per m²</p>
-              <p className="pw-body mt-4 text-pw-ink/70">{f.desc}</p>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2">
-        <article className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-7">
-          <h3 className="pw-h3 text-pw-ink">Traditional</h3>
-          <p className="pw-small mt-1 text-pw-accent">Paste-the-wall</p>
-          <p className="pw-body mt-3 text-pw-ink/70">
-            Permanent, with the cleanest seams. Best for feature walls and rooms you&rsquo;re committing to.
-          </p>
-        </article>
-        <article className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-7">
-          <h3 className="pw-h3 text-pw-ink">Peel &amp; Stick</h3>
-          <p className="pw-small mt-1 text-pw-accent">Self-adhesive</p>
-          <p className="pw-body mt-3 text-pw-ink/70">
-            Repositionable while you hang, removes cleanly when you&rsquo;re done. The right choice for renters.
-          </p>
-        </article>
-      </div>
-
-      <div className="mt-8 flex justify-center sm:mt-12">
-        <Button href="/config" variant="primary" size="lg" className="w-full sm:w-auto">
-          See live pricing
-        </Button>
-      </div>
-    </Section>
-  );
-}
-
-// ── 6. Experience — what arrives + how to hang (editorial 2-up) ───────────
-function ExperienceSection() {
-  return (
-    <Section tone="surface">
-      <SectionHeader
-        eyebrow="What arrives"
-        title="Made to be unboxed."
-        body="Premium presentation, clear labelling, and an install guide chosen for the substrate you ordered."
-      />
-
-      <div className="mt-8 grid grid-cols-1 gap-6 sm:mt-12 sm:gap-8 lg:grid-cols-2 lg:gap-12">
-        <article className="flex flex-col gap-5">
-          <ImagePlaceholder
-            src="/images/product/unboxing.jpg"
-            aspectRatio="4/3"
-            dimensions="1600×1200"
-            prompt="Top-down editorial of a partially-unrolled wallpaper roll on a warm stone-coloured surface, kraft-paper packaging neatly folded to the side, a small printed care card with the PaperWalls logo visible. The wallpaper unrolled enough to show a beautiful botanical pattern in earthy sage, terracotta, and oat tones. Cotton ribbon tied in a loose knot on the kraft paper, scissors and measuring tape arranged thoughtfully but not staged. Soft natural side-light from the left. Mood: Aesop product photography meets Kinfolk craft. Photorealistic, sharp focus, no people."
-          />
-          <div>
-            <h3 className="pw-h3 text-pw-ink">Premium presentation</h3>
-            <p className="pw-body mt-3 text-pw-ink/70">
-              Wallpaper rolls protected in kraft, every panel labelled in hanging order,
-              and a printed care card with substrate-specific install instructions.
-            </p>
-          </div>
-        </article>
-        <article className="flex flex-col gap-5">
-          <ImagePlaceholder
-            src="/images/product/install-detail.jpg"
-            aspectRatio="4/3"
-            dimensions="1600×1200"
-            prompt="Editorial close-up showing a wallpaper panel meeting a wall corner where it has just been smoothed onto the wall — only a hand and a smoothing brush visible, the rest of the frame is freshly-installed custom wallpaper showing crisp pattern detail and zero seams. Pattern is a warm muted botanical with rich colour saturation. Soft natural light from the left, oak floor visible at the bottom. Mood: artisanal craft, premium hotel-lobby quality. Photorealistic, sharp focus."
-          />
-          <div>
-            <h3 className="pw-h3 text-pw-ink">Designed to be hung at home</h3>
-            <p className="pw-body mt-3 text-pw-ink/70">
-              Most customers hang it themselves in an afternoon. If you&rsquo;d rather not,
-              a pro installer is available at checkout.
-            </p>
-          </div>
-        </article>
-      </div>
-    </Section>
-  );
-}
-
-// ── 7. Comparison — PaperWalls vs standard wallpaper ──────────────────────
+// ── Comparison ──────────────────────────────────────────────────────────
 function ComparisonSection() {
   const rows = [
-    { label: "Use your own image",        us: true,  them: false, themLabel: "Stock patterns only" },
-    { label: "Cut to your exact wall",    us: true,  them: false, themLabel: "Standard rolls only" },
-    { label: "Made-to-order",             us: true,  them: false, themLabel: "Warehouse stock" },
-    { label: "72-hour production",        us: true,  them: false, themLabel: "1 to 2 weeks typical" },
-    { label: "Free nationwide shipping",  us: true,  them: false, themLabel: "Varies, often paid" },
-    { label: "Resolution checked pre-pay", us: true, them: false, themLabel: "No file pre-check" },
-    { label: "Reprint guarantee",         us: true,  them: false, themLabel: "Limited or none" },
+    { label: "Use your own image",         us: true,  themLabel: "Stock patterns only" },
+    { label: "Cut to your exact wall",     us: true,  themLabel: "Standard rolls only" },
+    { label: "Made-to-order",              us: true,  themLabel: "Warehouse stock" },
+    { label: "72-hour production",         us: true,  themLabel: "1 to 2 weeks typical" },
+    { label: "Free nationwide shipping",   us: true,  themLabel: "Varies, often paid" },
+    { label: "Resolution checked pre-pay", us: true,  themLabel: "No file pre-check" },
+    { label: "Reprint guarantee",          us: true,  themLabel: "Limited or none" },
   ];
 
   return (
-    <Section tone="bg">
+    <Section tone="surface" id="comparison">
       <SectionHeader
         eyebrow="The difference"
         title="PaperWalls vs standard wallpaper."
@@ -404,7 +459,6 @@ function ComparisonSection() {
       />
 
       <div className="mt-8 sm:mt-12">
-        {/* Mobile: vertical stacked rows. Desktop: 3-col grid (feature, us, them). */}
         <div className="overflow-hidden rounded-pw-card border border-pw-stone">
           {/* Header row */}
           <div className="grid grid-cols-[1.4fr_1fr_1fr] bg-pw-stone/40 sm:grid-cols-[1.6fr_1fr_1fr]">
@@ -417,40 +471,29 @@ function ComparisonSection() {
             </div>
           </div>
 
-          {/* Rows */}
           <ul>
             {rows.map((row, i) => (
               <li
                 key={row.label}
                 className={[
                   "grid grid-cols-[1.4fr_1fr_1fr] sm:grid-cols-[1.6fr_1fr_1fr]",
-                  i % 2 === 0 ? "bg-pw-surface" : "bg-pw-bg",
+                  i % 2 === 0 ? "bg-pw-bg" : "bg-pw-surface",
                 ].join(" ")}
               >
                 <div className="px-4 py-4 sm:px-6 sm:py-5">
                   <span className="pw-body font-medium text-pw-ink">{row.label}</span>
                 </div>
                 <div className="flex items-center justify-center px-3 py-4 sm:px-6 sm:py-5">
-                  {row.us ? (
+                  {row.us && (
                     <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-pw-accent-soft text-pw-accent">
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     </span>
-                  ) : (
-                    <span className="pw-small text-pw-muted">—</span>
                   )}
                 </div>
                 <div className="flex items-center justify-center px-3 py-4 text-center sm:px-6 sm:py-5">
-                  {row.them ? (
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-pw-stone text-pw-ink/40">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </span>
-                  ) : (
-                    <span className="pw-small text-pw-muted">{row.themLabel}</span>
-                  )}
+                  <span className="pw-small text-pw-muted">{row.themLabel}</span>
                 </div>
               </li>
             ))}
@@ -461,14 +504,14 @@ function ComparisonSection() {
   );
 }
 
-// ── 8. Sample-pack rail — risk reversal ──────────────────────────────────
+// ── Sample-pack rail ─────────────────────────────────────────────────────
 function SamplePackBanner() {
   return (
     <section className="bg-pw-stone">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-5 py-10 sm:gap-10 sm:px-8 sm:py-14 lg:grid-cols-12 lg:items-center lg:gap-16 lg:px-12 lg:py-20">
         <div className="lg:col-span-5">
           <ImagePlaceholder
-            src="/images/home/sample-pack.jpg"
+            src="/images/product/pdp-sample.jpg"
             aspectRatio="4/3"
             prompt="Sample pack with wallpaper swatches"
           />
@@ -493,7 +536,7 @@ function SamplePackBanner() {
   );
 }
 
-// ── 9. FAQ — product-specific objection handling ─────────────────────────
+// ── FAQ ─────────────────────────────────────────────────────────────────
 const FAQ = [
   {
     q: "How do I measure my wall?",
@@ -517,14 +560,14 @@ const FAQ = [
   },
   {
     q: "Do you ship internationally?",
-    a: "Currently we ship across South Africa only. International shipping is on the roadmap. For commercial / bulk orders abroad, contact us directly.",
+    a: "Currently we ship across South Africa only. International shipping is on the roadmap. For commercial or bulk orders abroad, contact us directly.",
   },
 ];
 
 function FAQSection() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <Section tone="surface" id="faq">
+    <Section tone="bg" id="faq">
       <div className="grid gap-8 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-4">
           <SectionHeader
@@ -579,10 +622,10 @@ function FAQSection() {
   );
 }
 
-// ── 10. Closing CTA ──────────────────────────────────────────────────────
+// ── Closing CTA ─────────────────────────────────────────────────────────
 function ClosingCTA() {
   return (
-    <Section tone="ink" density="default" id="closing-cta">
+    <Section tone="ink" id="closing-cta" density="default">
       <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-end lg:gap-16">
         <div className="lg:col-span-7">
           <Eyebrow className="text-pw-accent-mid">Ready when you are</Eyebrow>
@@ -606,15 +649,15 @@ function ClosingCTA() {
   );
 }
 
-// ── 11. Sticky mobile CTA — appears after hero scroll, hides at closing CTA ──
-function StickyMobileCTA() {
+// ── Sticky mobile CTA — past hero through to closing CTA ──────────────────
+function StickyMobileCTA({ price }: { price: number }) {
   const [pastHero,    setPastHero]    = useState(false);
   const [closingNear, setClosingNear] = useState(false);
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
 
-    const hero = document.getElementById("product-hero");
+    const hero = document.getElementById("buy-box");
     let obsHero: IntersectionObserver | undefined;
     if (hero) {
       obsHero = new IntersectionObserver(
@@ -653,7 +696,7 @@ function StickyMobileCTA() {
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-5 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         <div className="flex flex-1 flex-col">
           <span className="pw-overline text-pw-muted">From</span>
-          <span className="pw-h3 text-pw-ink">R410 / m²</span>
+          <span className="pw-h3 text-pw-ink">R{price} / m²</span>
         </div>
         <Button href="/config" variant="primary" size="md" className="shrink-0 px-6">
           Design yours
