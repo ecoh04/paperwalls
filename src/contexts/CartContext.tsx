@@ -36,6 +36,10 @@ type CartContextValue = {
   removeItem:         (id: string) => void;
   clearCart:          () => void;
   identifyCustomer:   (email: string, name?: string, phone?: string) => void;
+  /** Slide-out cart drawer state. */
+  isCartOpen:         boolean;
+  openCart:           () => void;
+  closeCart:          () => void;
 };
 
 export const CartContext = createContext<CartContextValue | null>(null);
@@ -152,9 +156,13 @@ function captureAttribution(): SessionAttribution {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems]         = useState<CartItem[]>([]);
   const [sessionId, setSessionId] = useState<string>("");
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const attribution               = useRef<SessionAttribution>({});
   const syncTimer                 = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender             = useRef(true);
+
+  const openCart  = useCallback(() => setIsCartOpen(true),  []);
+  const closeCart = useCallback(() => setIsCartOpen(false), []);
 
   useEffect(() => {
     setItems(loadCart());
@@ -203,6 +211,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       saveCart(next);
       return next;
     });
+    // Always surface the drawer when something is added so the buyer
+    // sees confirmation without losing their place on the page.
+    setIsCartOpen(true);
   }, []);
 
   const removeItem = useCallback((id: string) => {
@@ -238,6 +249,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     removeItem,
     clearCart,
     identifyCustomer,
+    isCartOpen,
+    openCart,
+    closeCart,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
@@ -252,6 +266,9 @@ const emptyCartValue: CartContextValue = {
   removeItem:       () => {},
   clearCart:        () => {},
   identifyCustomer: () => {},
+  isCartOpen:       false,
+  openCart:         () => {},
+  closeCart:        () => {},
 };
 
 export function useCart(): CartContextValue {

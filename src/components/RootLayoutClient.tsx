@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { FocusedHeader } from "@/components/FocusedHeader";
 import { CartProvider } from "@/contexts/CartContext";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
+import { CartDrawer } from "@/components/CartDrawer";
 
 export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,6 +24,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
         <AnnouncementBar />
         <FocusedHeader />
         <main className="flex-1">{children}</main>
+        <CartDrawer />
       </CartProvider>
     );
   }
@@ -34,6 +36,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
         <FocusedHeader />
         <main className="flex-1">{children}</main>
         <Footer />
+        <CartDrawer />
       </CartProvider>
     );
   }
@@ -46,6 +49,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
+      <CartDrawer />
     </CartProvider>
   );
 }

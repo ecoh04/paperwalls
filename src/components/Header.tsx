@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useCart } from "@/contexts/CartContext";
 
 const NAV_LINKS = [
   { href: "/how-it-works", label: "How it works" },
@@ -13,6 +14,8 @@ const NAV_LINKS = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const { items, openCart } = useCart();
+  const cartCount = items.length;
 
   // Lock body scroll when the mobile menu is open.
   useEffect(() => {
@@ -57,15 +60,24 @@ export function Header() {
             paper<span className="text-pw-accent">walls</span>
           </Link>
 
-          <Link
-            href="/cart"
-            aria-label="Cart"
-            className="-mr-2 flex h-10 w-10 items-center justify-center justify-self-end rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors"
+          <button
+            type="button"
+            onClick={() => { setOpen(false); openCart(); }}
+            aria-label={`Cart (${cartCount} item${cartCount === 1 ? "" : "s"})`}
+            className="relative -mr-2 flex h-10 w-10 items-center justify-center justify-self-end rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
-          </Link>
+            {cartCount > 0 && (
+              <span
+                aria-hidden
+                className="pw-overline absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-pw-accent px-1 text-white"
+              >
+                {cartCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Desktop bar */}
@@ -91,15 +103,24 @@ export function Header() {
             >
               Design yours
             </Link>
-            <Link
-              href="/cart"
-              aria-label="Cart"
-              className="flex h-10 w-10 items-center justify-center rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors"
+            <button
+              type="button"
+              onClick={openCart}
+              aria-label={`Cart (${cartCount} item${cartCount === 1 ? "" : "s"})`}
+              className="relative flex h-10 w-10 items-center justify-center rounded-pw text-pw-ink hover:bg-pw-stone/40 transition-colors"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-            </Link>
+              {cartCount > 0 && (
+                <span
+                  aria-hidden
+                  className="pw-overline absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-pw-accent px-1 text-white"
+                >
+                  {cartCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>

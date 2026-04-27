@@ -14,7 +14,8 @@ type CommonProps = {
 type LinkButtonProps = CommonProps & {
   href: string;
   type?: never;
-  onClick?: never;
+  /** Fires before navigation. Useful for closing drawers/menus on click-through. */
+  onClick?: () => void;
   disabled?: never;
 };
 
@@ -57,7 +58,7 @@ export function Button(props: ButtonProps) {
 
   if ("href" in props && props.href) {
     return (
-      <Link href={props.href} className={cls}>
+      <Link href={props.href} className={cls} onClick={props.onClick}>
         {children}
       </Link>
     );

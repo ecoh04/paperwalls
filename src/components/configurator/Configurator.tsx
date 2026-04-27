@@ -2,7 +2,6 @@
 
 import NextImage from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useCart } from "@/contexts/CartContext";
 import {
   calculateSubtotalCents,
@@ -20,7 +19,6 @@ import { ConfigAlert } from "./ConfigAlert";
 
 const MAX_SIZE_MB = 50;
 const ACCEPT      = "image/jpeg,image/png,image/webp";
-const KIT_CENTS   = 60000;
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -46,7 +44,6 @@ const FLOW_INPUT_CLASSES =
 /* ──────────────────────────────────────────────────────────────────────── */
 
 export function Configurator() {
-  const router = useRouter();
   const { addItem } = useCart();
 
   // Single-mode crop blob; per-wall blobs for multi-different mode.
@@ -308,14 +305,15 @@ export function Configurator() {
           imageDataUrl,
         });
       }
-      router.push("/cart");
+      // Cart drawer auto-opens via CartContext.addItem so the buyer sees
+      // their new item without losing their place on the configurator.
     } catch (err) {
       console.error("Add-to-cart failed:", err);
       setSubmitError("Something went wrong while preparing your order. Please try again.");
     } finally {
       setSubmitting(false);
     }
-  }, [canAddToCart, submitting, state, totalSqm, subtotalCents, isMultiDifferent, addItem, router]);
+  }, [canAddToCart, submitting, state, totalSqm, subtotalCents, isMultiDifferent, addItem]);
 
   // First-available image for the desktop summary thumbnail.
   const summaryImageUrl = isMultiDifferent
@@ -891,7 +889,7 @@ function MaterialBlock({
   );
 }
 
-/* ── InstallSection — DIY by default, optional kit, or pro toggle ───── */
+/* ── InstallSection — binary DIY vs Pro choice ──────────────────────── */
 function InstallSection({
   state, setState, totalSqm,
 }: {
@@ -899,87 +897,83 @@ function InstallSection({
   setState: React.Dispatch<React.SetStateAction<ConfiguratorState>>;
   totalSqm: number;
 }) {
-  const isPro    = state.application === "pro_installer";
-  const hasKit   = state.application === "diy_kit";
-  const proCost  = calculateInstallationCents("pro_installer", totalSqm);
+  const proCost = calculateInstallationCents("pro_installer", totalSqm);
 
-  const setApplication = (next: ApplicationMethod) =>
-    setState((s) => ({ ...s, application: next }));
+  const OPTIONS: {
+    id:   ApplicationMethod;
+    label:string;
+    sub:  string;
+    body: string;
+    price: string;
+    priceSub?: string;
+  }[] = [
+    {
+      id:    "diy",
+      label: "Hang it yourself",
+      sub:   "DIY",
+      body:  "Step-by-step printed install guide ships with every roll.",
+      price: "Free",
+    },
+    {
+      id:    "pro_installer",
+      label: "Send a pro installer",
+      sub:   "We come to you",
+      body:  "Certified installer to your address. All materials included.",
+      price: totalSqm > 0 ? `+${formatZar(proCost)}` : "Quote on size",
+      priceSub: totalSqm > 0 ? `for ${totalSqm.toFixed(1)} m²` : undefined,
+    },
+  ];
+
+  // diy_kit was a previous option that's no longer offered. Coerce it to diy
+  // so the binary choice always renders cleanly.
+  const active: ApplicationMethod =
+    state.application === "pro_installer" ? "pro_installer" : "diy";
 
   return (
-    <div className="space-y-3">
-      {/* Pro install toggle (when on, the kit option is hidden — pro covers materials) */}
-      <button
-        type="button"
-        onClick={() => setApplication(isPro ? "diy" : "pro_installer")}
-        aria-pressed={isPro}
-        className={[
-          "flex w-full items-center gap-4 rounded-pw-card border p-5 text-left transition-colors touch-manipulation sm:p-6",
-          isPro ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink/15" : "border-pw-stone bg-pw-surface hover:border-pw-ink/40",
-        ].join(" ")}
-      >
-        <ToggleSwitch on={isPro} />
-        <div className="min-w-0 flex-1">
-          <p className="pw-body font-semibold text-pw-ink">Add a pro installer</p>
-          <p className="pw-small text-pw-muted">
-            Certified installer to your address. All materials included.
-          </p>
-        </div>
-        <span className="shrink-0 text-right">
-          <span className="pw-body block font-semibold text-pw-ink">
-            {totalSqm > 0 ? `+${formatZar(proCost)}` : "Quote on size"}
-          </span>
-          {totalSqm > 0 && (
-            <span className="pw-overline block text-pw-muted-light">
-              for {totalSqm.toFixed(1)} m²
-            </span>
-          )}
-        </span>
-      </button>
-
-      {/* DIY kit add-on — only when not Pro (pro brings their own materials) */}
-      {!isPro && (
-        <button
-          type="button"
-          onClick={() => setApplication(hasKit ? "diy" : "diy_kit")}
-          aria-pressed={hasKit}
-          className={[
-            "flex w-full items-center gap-4 rounded-pw-card border p-5 text-left transition-colors touch-manipulation sm:p-6",
-            hasKit ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink/15" : "border-pw-stone bg-pw-surface hover:border-pw-ink/40",
-          ].join(" ")}
-        >
-          <ToggleSwitch on={hasKit} />
-          <div className="min-w-0 flex-1">
-            <p className="pw-body font-semibold text-pw-ink">Add an install kit</p>
-            <p className="pw-small text-pw-muted">
-              Adhesive activator, smoothing squeegee, brush. Everything you need to hang it solo.
-            </p>
-          </div>
-          <span className="pw-body shrink-0 font-semibold text-pw-ink">
-            +{formatZar(KIT_CENTS)}
-          </span>
-        </button>
-      )}
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {OPTIONS.map((opt) => {
+        const isActive = opt.id === active;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => setState((s) => ({ ...s, application: opt.id }))}
+            aria-pressed={isActive}
+            className={[
+              "flex flex-col rounded-pw-card border p-5 text-left transition-colors touch-manipulation sm:p-6",
+              isActive
+                ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink/15"
+                : "border-pw-stone bg-pw-bg hover:border-pw-ink/40 hover:bg-pw-surface",
+            ].join(" ")}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="pw-overline text-pw-accent">{opt.sub}</p>
+                <p className="pw-h3 mt-1 text-pw-ink">{opt.label}</p>
+              </div>
+              <span
+                aria-hidden
+                className={[
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                  isActive ? "border-pw-ink bg-pw-ink" : "border-pw-stone-dark",
+                ].join(" ")}
+              >
+                {isActive && (
+                  <span className="h-2 w-2 rounded-full bg-white" />
+                )}
+              </span>
+            </div>
+            <p className="pw-small mt-3 text-pw-muted">{opt.body}</p>
+            <div className="mt-auto pt-4 border-t border-pw-stone mt-4">
+              <p className="pw-h3 text-pw-ink">{opt.price}</p>
+              {opt.priceSub && (
+                <p className="pw-overline text-pw-muted-light">{opt.priceSub}</p>
+              )}
+            </div>
+          </button>
+        );
+      })}
     </div>
-  );
-}
-
-function ToggleSwitch({ on }: { on: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={[
-        "relative flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-        on ? "bg-pw-ink" : "bg-pw-stone",
-      ].join(" ")}
-    >
-      <span
-        className={[
-          "absolute h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
-          on ? "translate-x-[22px]" : "translate-x-0.5",
-        ].join(" ")}
-      />
-    </span>
   );
 }
 

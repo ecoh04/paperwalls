@@ -31,13 +31,6 @@ const footerSections = [
   },
 ];
 
-const TRUST_CLAIMS = [
-  "Yours in 5 days",
-  "Free SA delivery",
-  "Made in Cape Town",
-  "Free reprints, no questions",
-];
-
 export function Footer() {
   return (
     <footer className="border-t border-pw-stone bg-pw-bg">
@@ -46,17 +39,8 @@ export function Footer() {
         {/* Email capture — top of footer, the lead-magnet for not-yet-ready buyers */}
         <EmailCaptureFooter />
 
-        {/* Closing trust strip — slim, single line */}
-        <div className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-pw-stone pb-10 sm:mt-16 sm:pb-12">
-          {TRUST_CLAIMS.map((claim) => (
-            <span key={claim} className="pw-small text-pw-ink/70">
-              {claim}
-            </span>
-          ))}
-        </div>
-
         {/* Brand + nav — single column on mobile, multi on desktop */}
-        <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-12 sm:gap-8 sm:mt-14">
+        <div className="mt-12 grid grid-cols-1 gap-10 border-t border-pw-stone pt-12 sm:grid-cols-12 sm:gap-8 sm:mt-16 sm:pt-14">
           <div className="sm:col-span-12 lg:col-span-4">
             <Link href="/" className="text-xl font-bold text-pw-ink">
               paper<span className="text-pw-accent">walls</span>

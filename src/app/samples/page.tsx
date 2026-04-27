@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/contexts/CartContext";
-import { useRouter } from "next/navigation";
 import { Section } from "@/components/ui/Section";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Eyebrow } from "@/components/ui/Eyebrow";
@@ -43,17 +42,19 @@ const INCLUDES = [
 ];
 
 export default function SamplesPage() {
-  const { addItem, items } = useCart();
-  const router = useRouter();
+  const { addItem, items, openCart } = useCart();
   const [added, setAdded] = useState(false);
 
   const alreadyInCart = items.some((i) => i.type === "sample_pack");
 
   function handleAddToCart() {
     if (alreadyInCart) {
-      router.push("/cart");
+      // Open the drawer instead of navigating, so the buyer sees what's
+      // already in the cart without leaving /samples.
+      openCart();
       return;
     }
+    // addItem auto-opens the drawer via CartContext.
     addItem({ type: "sample_pack", quantity: 1, subtotalCents: SAMPLE_PRICE_CENTS });
     setAdded(true);
   }
