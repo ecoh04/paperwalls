@@ -1,5 +1,6 @@
 "use client";
 
+import NextImage from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/contexts/CartContext";
@@ -530,25 +531,24 @@ function MaterialBlock({
     id: WallpaperMaterial;
     label: string;
     description: string;
-    textureClass: string;
+    image: string;
     badge?: string;
   }[] = [
     {
       id: "satin", label: "Satin",
       description: "Subtle sheen. Easy to clean.",
-      textureClass: "bg-gradient-to-br from-pw-stone via-pw-stone-dark to-pw-stone",
+      image: "/images/product/pdp-07-satin.jpg",
     },
     {
       id: "matte", label: "Matte",
       description: "Flat, non-reflective. Great in bright rooms.",
-      textureClass: "bg-pw-stone",
+      image: "/images/product/pdp-08-matte.jpg",
       badge: "Most ordered",
     },
     {
       id: "linen", label: "Linen",
       description: "Textured fabric feel. Adds depth.",
-      textureClass:
-        "bg-pw-stone [background-image:repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(0,0,0,.07)_3px,rgba(0,0,0,.07)_4px),repeating-linear-gradient(90deg,transparent,transparent_3px,rgba(0,0,0,.05)_3px,rgba(0,0,0,.05)_4px)]",
+      image: "/images/product/pdp-09-linen.jpg",
       badge: "Most premium",
     },
   ];
@@ -590,23 +590,32 @@ function MaterialBlock({
               onClick={() => setState((s) => ({ ...s, material: m.id }))}
               aria-pressed={active}
               className={[
-                "flex flex-col rounded-pw-card border p-4 text-left transition-colors touch-manipulation",
-                active ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink/15" : "border-pw-stone bg-pw-bg hover:border-pw-ink/40 hover:bg-pw-surface",
+                "flex flex-col overflow-hidden rounded-pw-card border text-left transition-colors touch-manipulation",
+                active ? "border-pw-ink ring-1 ring-pw-ink/15" : "border-pw-stone hover:border-pw-ink/40",
               ].join(" ")}
             >
-              <div className={["mb-3 h-14 w-full overflow-hidden rounded-pw border border-pw-stone", m.textureClass].join(" ")} aria-hidden />
-              <div className="mb-1 flex items-start justify-between gap-2">
-                <span className="pw-body font-semibold text-pw-ink">{m.label}</span>
+              {/* Real macro photo of the finish — same image used on the PDP */}
+              <div className="relative h-24 w-full overflow-hidden bg-pw-stone sm:h-28">
+                <NextImage
+                  src={m.image}
+                  alt={`${m.label} finish texture`}
+                  fill
+                  sizes="(min-width: 640px) 30vw, 100vw"
+                  className="object-cover"
+                />
                 {m.badge && (
-                  <span className="pw-overline rounded-full bg-pw-accent px-2 py-0.5 text-white">
+                  <span className="absolute right-2 top-2 pw-overline rounded-full bg-pw-accent px-2 py-0.5 text-white">
                     {m.badge}
                   </span>
                 )}
               </div>
-              <p className="pw-small mb-3 text-pw-muted">{m.description}</p>
-              <div className="mt-auto border-t border-pw-stone pt-3">
-                <p className="pw-overline text-pw-muted-light">{formatZar(perSqm)}/m²</p>
-                <p className="pw-h3 text-pw-ink">{formatZar(Math.round(subtotal))}</p>
+              <div className="flex flex-1 flex-col p-4">
+                <span className="pw-body font-semibold text-pw-ink">{m.label}</span>
+                <p className="pw-small mt-1 text-pw-muted">{m.description}</p>
+                <div className="mt-auto pt-3">
+                  <p className="pw-overline text-pw-muted-light">{formatZar(perSqm)}/m²</p>
+                  <p className="pw-h3 text-pw-ink">{formatZar(Math.round(subtotal))}</p>
+                </div>
               </div>
             </button>
           );
