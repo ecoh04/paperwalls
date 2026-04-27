@@ -22,9 +22,9 @@ const config: Config = {
         'pw-stone-dark':  '#D4C9BE',
       },
       fontFamily: {
-        // v2: Inter only. Hierarchy is weight + size, not font-swap.
-        sans:  ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Inter', 'system-ui', 'sans-serif'],
+        // v2: Satoshi only. Hierarchy is weight + size, not font-swap.
+        sans:  ['Satoshi', 'system-ui', 'sans-serif'],
+        serif: ['Satoshi', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         'pw':      '8px',
