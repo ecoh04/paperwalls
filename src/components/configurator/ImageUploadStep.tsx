@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { ConfigStep } from "./ConfigStep";
+import { ConfigAlert } from "./ConfigAlert";
 
 const MAX_SIZE_MB = 50;
-const ACCEPT = "image/jpeg,image/png,image/webp";
+const ACCEPT      = "image/jpeg,image/png,image/webp";
 
 function UploadIcon() {
   return (
@@ -15,29 +17,12 @@ function UploadIcon() {
   );
 }
 
-function ErrorBanner({ title, message }: { title: string; message: string }) {
-  return (
-    <div className="flex gap-3 rounded-pw border border-red-200 bg-red-50 p-4">
-      <svg className="mt-0.5 h-5 w-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-        />
-      </svg>
-      <div>
-        <p className="text-sm font-semibold text-red-800">{title}</p>
-        <p className="mt-0.5 text-sm text-red-700">{message}</p>
-      </div>
-    </div>
-  );
-}
-
 type SingleUploadProps = {
   imagePreviewUrl: string | null;
   imageWidthPx?:   number | null;
   imageHeightPx?:  number | null;
   onFileSelect:    (file: File | null) => void;
   uploadError?:    string | null;
-  /** Extra recommendation text shown under the dropzone (e.g. minimum px for the chosen wall size). */
   hint?:           string;
 };
 
@@ -68,10 +53,10 @@ function SingleUpload({
           onDragLeave={() => setDragActive(false)}
           onDrop={(e) => { e.preventDefault(); setDragActive(false); const f = e.dataTransfer.files[0]; if (f) validateAndSet(f); }}
           className={[
-            "flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-4 rounded-pw-card border-2 border-dashed transition-all touch-manipulation",
+            "flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-4 rounded-pw-card border-2 border-dashed transition-colors touch-manipulation",
             dragActive
-              ? "border-pw-ink bg-pw-accent-soft"
-              : "border-pw-stone hover:border-pw-stone-dark hover:bg-pw-accent-soft/40",
+              ? "border-pw-ink bg-pw-accent-soft/60"
+              : "border-pw-stone hover:border-pw-ink/40 hover:bg-pw-bg",
           ].join(" ")}
         >
           <input
@@ -80,76 +65,76 @@ function SingleUpload({
             onChange={(e) => validateAndSet(e.target.files?.[0] ?? null)}
             className="hidden"
           />
-          <div className="flex h-14 w-14 items-center justify-center rounded-pw-card bg-pw-surface shadow-pw-sm border border-pw-stone">
+          <div className="flex h-14 w-14 items-center justify-center rounded-pw-card border border-pw-stone bg-pw-surface">
             <UploadIcon />
           </div>
-          <div className="text-center px-6">
-            <p className="text-base font-medium text-pw-ink">
+          <div className="px-6 text-center">
+            <p className="pw-body font-medium text-pw-ink">
               {dragActive ? "Drop it here" : "Drag & drop, or tap to browse"}
             </p>
-            <p className="mt-1 text-sm text-pw-muted">JPG, PNG or WebP — up to 50MB</p>
+            <p className="pw-small mt-1 text-pw-muted">JPG, PNG or WebP — up to 50 MB</p>
           </div>
           {hint && (
-            <p className="text-xs text-pw-muted-light px-6 text-center max-w-md">{hint}</p>
+            <p className="pw-small max-w-md px-6 text-center text-pw-muted-light">{hint}</p>
           )}
         </label>
 
-        {sizeError && <ErrorBanner title="File too large" message={sizeError} />}
-        {uploadError && <ErrorBanner title="Image issue" message={uploadError} />}
+        {sizeError   && <ConfigAlert variant="error" title="File too large">{sizeError}</ConfigAlert>}
+        {uploadError && <ConfigAlert variant="error" title="Image issue">{uploadError}</ConfigAlert>}
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start gap-4 rounded-pw-card border border-[rgba(26,23,20,0.1)] bg-pw-bg p-4">
-        <div className="h-20 w-24 shrink-0 overflow-hidden rounded-pw border border-[rgba(26,23,20,0.1)] bg-pw-stone">
+      <div className="flex items-start gap-4 rounded-pw-card border border-pw-stone bg-pw-bg p-4">
+        <div className="h-20 w-24 shrink-0 overflow-hidden rounded-pw border border-pw-stone bg-pw-stone">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={imagePreviewUrl} alt="Preview" className="h-full w-full object-cover" />
         </div>
-        <div className="flex-1 min-w-0 py-1">
+        <div className="min-w-0 flex-1 py-1">
           <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500 shrink-0">
-              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 10 10">
-                <path d="M1.5 5L4 7.5L8.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-pw-accent">
+              <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 10 10">
+                <path d="M1.5 5L4 7.5L8.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </div>
-            <p className="text-sm font-semibold text-pw-ink">Image uploaded</p>
+            </span>
+            <p className="pw-small font-semibold text-pw-ink">Image uploaded</p>
             {imageWidthPx && imageHeightPx && (
-              <span className="text-xs text-pw-muted-light">
-                {imageWidthPx} × {imageHeightPx}px
+              <span className="pw-overline text-pw-muted-light">
+                {imageWidthPx} × {imageHeightPx} px
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-pw-muted">
+          <p className="pw-small mt-1 text-pw-muted">
             Position it inside the wall preview below.
           </p>
           <button
             type="button"
             onClick={() => onFileSelect(null)}
-            className="mt-2 text-sm font-medium text-pw-muted hover:text-pw-ink underline underline-offset-2 transition-colors"
+            className="mt-2 pw-small font-medium text-pw-muted underline underline-offset-[6px] decoration-pw-ink/20 hover:text-pw-ink hover:decoration-pw-ink/60 transition-colors"
           >
             Choose a different image
           </button>
         </div>
       </div>
 
-      {uploadError && <ErrorBanner title="Image issue" message={uploadError} />}
+      {uploadError && <ConfigAlert variant="error" title="Image issue">{uploadError}</ConfigAlert>}
     </div>
   );
 }
 
 type ImageUploadStepProps = {
-  stepNumber:       number;
-  imagePreviewUrl:  string | null;
-  imageWidthPx?:    number | null;
-  imageHeightPx?:   number | null;
-  onFileSelect:     (file: File | null) => void;
-  multiWallMode?:   "same" | "different";
-  walls?:           { imagePreviewUrl?: string | null }[];
+  stepNumber:        number;
+  imagePreviewUrl:   string | null;
+  imageWidthPx?:     number | null;
+  imageHeightPx?:    number | null;
+  onFileSelect:      (file: File | null) => void;
+  multiWallMode?:    "same" | "different";
+  walls?:            { imagePreviewUrl?: string | null }[];
   onWallFileSelect?: (wallIndex: number, file: File | null) => void;
-  uploadError?:     string | null;
-  /** Recommendation hint based on entered dimensions (e.g. "For 300×270 cm, use a 2490×2241 px image or larger"). */
-  resolutionHint?:  string;
+  uploadError?:      string | null;
+  resolutionHint?:   string;
 };
 
 export function ImageUploadStep({
@@ -167,23 +152,16 @@ export function ImageUploadStep({
   const isMultiDifferent = multiWallMode === "different" && walls.length > 0;
 
   return (
-    <section className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
-      <div className="flex items-start gap-4 mb-6">
-        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pw-accent bg-pw-accent-soft text-sm font-semibold text-pw-accent">
-          {stepNumber}
-        </span>
-        <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">
-            Your design{walls.length > 1 ? "s" : ""}
-          </h2>
-          <p className="mt-1 text-sm text-pw-muted">
-            {isMultiDifferent
-              ? "Upload one image for each wall — we'll print and cut each to its exact size."
-              : "Any photo, artwork or pattern. We'll print it to your wall dimensions."}
-          </p>
-        </div>
-      </div>
-
+    <ConfigStep
+      stepNumber={stepNumber}
+      eyebrow={isMultiDifferent ? "Your designs" : "Your design"}
+      title={isMultiDifferent ? "Upload one image per wall." : "Upload your image."}
+      subtitle={
+        isMultiDifferent
+          ? "We'll print and cut each design to its wall's exact size."
+          : "Any photo, artwork or pattern. We'll print it to your wall dimensions."
+      }
+    >
       {!isMultiDifferent ? (
         <SingleUpload
           imagePreviewUrl={imagePreviewUrl}
@@ -191,13 +169,13 @@ export function ImageUploadStep({
           imageHeightPx={imageHeightPx}
           onFileSelect={onFileSelect}
           uploadError={uploadError}
-          hint={resolutionHint ?? "Use the highest resolution file you have for the sharpest print."}
+          hint={resolutionHint ?? "Use the highest-resolution file you have for the sharpest print."}
         />
       ) : (
         <div className="space-y-4">
           {walls.map((wall, i) => (
-            <div key={i} className="rounded-pw border border-pw-stone bg-pw-bg p-4">
-              <p className="text-sm font-semibold text-pw-ink mb-3">Wall {i + 1}</p>
+            <div key={i} className="rounded-pw border border-pw-stone bg-pw-bg p-4 sm:p-5">
+              <p className="pw-small font-semibold text-pw-ink mb-3">Wall {i + 1}</p>
               <SingleUpload
                 imagePreviewUrl={wall.imagePreviewUrl ?? null}
                 onFileSelect={(file) => onWallFileSelect?.(i, file)}
@@ -206,6 +184,6 @@ export function ImageUploadStep({
           ))}
         </div>
       )}
-    </section>
+    </ConfigStep>
   );
 }

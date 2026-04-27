@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { WallpaperType, WallpaperMaterial } from "@/types/order";
 import { formatZar, getPricePerSqmCents, calculateWallpaperCents } from "@/lib/pricing";
+import { ConfigStep } from "./ConfigStep";
 
 const TYPES: {
   id: WallpaperType;
@@ -62,6 +63,15 @@ type StyleStepProps = {
   onMaterialChange: (m: WallpaperMaterial) => void;
 };
 
+function cardClasses(active: boolean) {
+  return [
+    "flex flex-col rounded-pw-card border p-4 text-left transition-colors touch-manipulation",
+    active
+      ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink/15"
+      : "border-pw-stone bg-pw-bg hover:border-pw-ink/40 hover:bg-pw-surface",
+  ].join(" ");
+}
+
 export function StyleStep({
   stepNumber, totalSqm, wallpaperType, material,
   onWallpaperTypeChange, onMaterialChange,
@@ -70,49 +80,36 @@ export function StyleStep({
   if (totalSqm <= 0) return null;
 
   return (
-    <section className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
-      <div className="flex items-start gap-4 mb-6">
-        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pw-accent bg-pw-accent-soft text-sm font-semibold text-pw-accent">
-          {stepNumber}
-        </span>
-        <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Material &amp; finish</h2>
-          <p className="mt-1 text-sm text-pw-muted">
-            Pick how it sticks to the wall and how it feels. Price updates live.
-          </p>
-        </div>
-      </div>
-
+    <ConfigStep
+      stepNumber={stepNumber}
+      eyebrow="Material & finish"
+      title="Pick how it sticks and how it feels."
+      subtitle="Price updates live as you choose."
+    >
       {/* ── Type toggle ── */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-pw-muted-light mb-3">
-          Application type
-        </p>
-        <div className="grid grid-cols-2 gap-3">
+        <p className="pw-overline text-pw-ink mb-3">Application type</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {TYPES.map((t) => {
-            const isSelected = wallpaperType === t.id;
+            const active = wallpaperType === t.id;
             return (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => onWallpaperTypeChange(t.id)}
-                className={[
-                  "flex flex-col gap-2 rounded-pw-card border p-4 text-left transition-all touch-manipulation min-h-[44px]",
-                  isSelected
-                    ? "border-pw-ink bg-pw-surface shadow-pw-sm ring-1 ring-pw-ink/20"
-                    : "border-[rgba(26,23,20,0.1)] bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface",
-                ].join(" ")}
+                aria-pressed={active}
+                className={[cardClasses(active), "gap-2"].join(" ")}
               >
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-base font-semibold text-pw-ink">{t.label}</span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="pw-body font-semibold text-pw-ink">{t.label}</span>
                   <span className={[
-                    "text-[10px] font-semibold rounded-full px-2 py-0.5 uppercase tracking-wide",
-                    isSelected ? "bg-pw-ink text-white" : "bg-pw-stone text-pw-muted",
+                    "pw-overline rounded-full px-2 py-0.5",
+                    active ? "bg-pw-ink text-white" : "bg-pw-stone text-pw-muted",
                   ].join(" ")}>
                     {t.tagline}
                   </span>
                 </div>
-                <p className="text-xs leading-snug text-pw-muted">{t.description}</p>
+                <p className="pw-small text-pw-muted">{t.description}</p>
               </button>
             );
           })}
@@ -121,12 +118,12 @@ export function StyleStep({
         <button
           type="button"
           onClick={() => setShowDifference((v) => !v)}
-          className="mt-3 text-xs font-medium text-pw-muted hover:text-pw-ink underline underline-offset-2 transition-colors"
+          className="mt-3 pw-small font-medium text-pw-muted underline underline-offset-[6px] decoration-pw-ink/20 hover:text-pw-ink hover:decoration-pw-ink/60 transition-colors"
         >
           {showDifference ? "Hide explanation" : "What's the difference?"}
         </button>
         {showDifference && (
-          <div className="mt-3 rounded-pw border border-pw-stone bg-pw-bg p-4 text-sm text-pw-muted leading-relaxed space-y-2">
+          <div className="mt-3 space-y-2 rounded-pw border border-pw-stone bg-pw-bg p-4 pw-small text-pw-muted leading-relaxed">
             <p>
               <strong className="text-pw-ink">Traditional</strong> uses adhesive paste applied to the wall before hanging. Industry standard — more permanent, cleaner seam lines.
             </p>
@@ -139,45 +136,39 @@ export function StyleStep({
 
       {/* ── Material selector ── */}
       <div className="mt-8">
-        <p className="text-xs font-semibold uppercase tracking-widest text-pw-muted-light mb-3">
-          Material finish
-        </p>
+        <p className="pw-overline text-pw-ink mb-3">Material finish</p>
         <div className="grid gap-3 sm:grid-cols-3">
           {MATERIALS.map((m) => {
             const pricePerSqm = getPricePerSqmCents(wallpaperType, m.id);
             const totalCents  = calculateWallpaperCents(totalSqm, wallpaperType, m.id);
-            const isSelected  = material === m.id;
+            const active      = material === m.id;
             return (
               <button
                 key={m.id}
                 type="button"
                 onClick={() => onMaterialChange(m.id)}
-                className={[
-                  "flex flex-col rounded-pw-card border p-4 text-left transition-all touch-manipulation min-h-[44px]",
-                  isSelected
-                    ? "border-pw-ink bg-pw-accent-soft shadow-pw-sm ring-1 ring-pw-ink/25"
-                    : "border-[rgba(26,23,20,0.1)] bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface hover:shadow-pw-sm",
-                ].join(" ")}
+                aria-pressed={active}
+                className={cardClasses(active)}
               >
-                <div className={["w-full h-14 rounded-pw border border-pw-stone overflow-hidden mb-3", m.textureClass].join(" ")} aria-hidden />
-                <div className="flex items-start justify-between gap-1 mb-1">
-                  <span className="text-base font-semibold text-pw-ink">{m.label}</span>
+                <div className={["mb-3 h-14 w-full overflow-hidden rounded-pw border border-pw-stone", m.textureClass].join(" ")} aria-hidden />
+                <div className="mb-1 flex items-start justify-between gap-2">
+                  <span className="pw-body font-semibold text-pw-ink">{m.label}</span>
                   {m.badge && (
-                    <span className="text-[9px] font-bold uppercase tracking-wide bg-pw-accent text-white rounded-full px-2 py-0.5 shrink-0">
+                    <span className="pw-overline rounded-full bg-pw-accent px-2 py-0.5 text-white">
                       {m.badge}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-pw-muted leading-snug mb-3">{m.description}</p>
+                <p className="pw-small mb-3 text-pw-muted">{m.description}</p>
                 <div className="mt-auto border-t border-pw-stone pt-3">
-                  <p className="text-xs text-pw-muted-light">{formatZar(pricePerSqm)}/m²</p>
-                  <p className="text-base font-bold text-pw-ink">{formatZar(totalCents)}</p>
+                  <p className="pw-overline text-pw-muted-light">{formatZar(pricePerSqm)}/m²</p>
+                  <p className="pw-h3 text-pw-ink">{formatZar(totalCents)}</p>
                 </div>
               </button>
             );
           })}
         </div>
       </div>
-    </section>
+    </ConfigStep>
   );
 }

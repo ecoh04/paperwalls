@@ -2,6 +2,7 @@
 
 import type { ApplicationMethod } from "@/types/order";
 import { formatZar, calculateInstallationCents } from "@/lib/pricing";
+import { ConfigStep } from "./ConfigStep";
 
 type InstallationStepProps = {
   stepNumber: number;
@@ -10,108 +11,101 @@ type InstallationStepProps = {
   onApplicationChange: (a: ApplicationMethod) => void;
 };
 
+function primaryClasses(active: boolean) {
+  return [
+    "flex w-full min-h-[64px] items-start justify-between gap-4 rounded-pw-card border p-5 text-left transition-colors touch-manipulation",
+    active
+      ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink/15"
+      : "border-pw-stone bg-pw-bg hover:border-pw-ink/40 hover:bg-pw-surface",
+  ].join(" ");
+}
+
 export function InstallationStep({ stepNumber, totalSqm, application, onApplicationChange }: InstallationStepProps) {
   if (totalSqm <= 0) return null;
 
-  const isDiy    = application === "diy" || application === "diy_kit";
-  const hasKit   = application === "diy_kit";
-  const proTotal = calculateInstallationCents("pro_installer", totalSqm);
+  const isDiy         = application === "diy" || application === "diy_kit";
+  const hasKit        = application === "diy_kit";
+  const proTotal      = calculateInstallationCents("pro_installer", totalSqm);
   const isProSelected = application === "pro_installer";
 
   const handlePrimary = (p: "diy" | "pro_installer") =>
     onApplicationChange(p === "diy" ? (hasKit ? "diy_kit" : "diy") : "pro_installer");
 
-  const primaryBtn = (active: boolean) =>
-    [
-      "flex w-full min-h-[52px] touch-manipulation items-start justify-between rounded-pw-card border p-5 text-left transition-all",
-      active
-        ? "border-pw-ink bg-pw-surface shadow-pw-sm ring-1 ring-pw-ink/20"
-        : "border-[rgba(26,23,20,0.1)] bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface",
-    ].join(" ");
-
   return (
-    <section className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
-      <div className="flex items-start gap-4 mb-6">
-        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pw-accent bg-pw-accent-soft text-sm font-semibold text-pw-accent">
-          {stepNumber}
-        </span>
-        <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">How will you put it up?</h2>
-          <p className="mt-1 text-sm text-pw-muted">
-            Hang it yourself or have us send a pro installer.
-          </p>
-        </div>
-      </div>
-
+    <ConfigStep
+      stepNumber={stepNumber}
+      eyebrow="Installation"
+      title="How will you put it up?"
+      subtitle="Hang it yourself with the printed install guide, or have us send a pro installer."
+    >
       <div className="space-y-3">
         {/* DIY */}
-        <button type="button" onClick={() => handlePrimary("diy")} className={primaryBtn(isDiy)}>
+        <button type="button" onClick={() => handlePrimary("diy")} className={primaryClasses(isDiy)} aria-pressed={isDiy}>
           <div>
-            <p className="text-base font-semibold text-pw-ink">DIY</p>
-            <p className="mt-0.5 text-sm text-pw-muted">
+            <p className="pw-body font-semibold text-pw-ink">DIY</p>
+            <p className="pw-small mt-0.5 text-pw-muted">
               You apply it yourself. Step-by-step guide included with every order.
             </p>
           </div>
-          <span className="ml-4 text-base font-bold shrink-0 text-pw-ink">Free</span>
+          <span className="pw-body shrink-0 font-semibold text-pw-ink">Free</span>
         </button>
 
         {/* Optional DIY kit add-on — visually nested under DIY */}
         {isDiy && (
-          <div className="flex gap-2 pl-4">
-            <div className="flex flex-col items-center shrink-0 pt-1">
-              <div className="w-px flex-1 bg-pw-stone-dark" />
-            </div>
+          <div className="flex gap-3 pl-4">
+            <div className="w-px shrink-0 bg-pw-stone-dark" />
             <button
               type="button"
               onClick={() => onApplicationChange(hasKit ? "diy" : "diy_kit")}
+              aria-pressed={hasKit}
               className={[
-                "flex w-full min-h-[44px] touch-manipulation items-start gap-3 rounded-pw border p-3.5 text-left transition-all",
+                "flex w-full min-h-[44px] items-start gap-3 rounded-pw border p-3.5 text-left transition-colors touch-manipulation",
                 hasKit
                   ? "border-pw-accent bg-pw-accent-soft"
-                  : "border-pw-stone bg-pw-bg hover:border-pw-stone-dark hover:bg-pw-surface",
+                  : "border-pw-stone bg-pw-bg hover:border-pw-ink/40 hover:bg-pw-surface",
               ].join(" ")}
             >
-              <div
+              <span
+                aria-hidden
                 className={[
                   "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors",
                   hasKit ? "border-pw-accent bg-pw-accent" : "border-pw-stone-dark",
                 ].join(" ")}
-                aria-hidden
               >
                 {hasKit && (
-                  <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10">
-                    <path d="M1.5 5L4 7.5L8.5 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 10 10">
+                    <path d="M1.5 5L4 7.5L8.5 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
-              </div>
+              </span>
               <div className="flex-1">
-                <p className="text-sm font-medium text-pw-ink">
+                <p className="pw-small font-medium text-pw-ink">
                   Add installation kit
-                  <span className="ml-1.5 text-xs font-normal text-pw-muted-light">optional</span>
+                  <span className="ml-1.5 pw-overline text-pw-muted-light">optional</span>
                 </p>
-                <p className="mt-0.5 text-xs text-pw-muted">
+                <p className="pw-small mt-0.5 text-pw-muted">
                   Paste or adhesive activator, squeegee &amp; smoothing brush.
                 </p>
               </div>
-              <span className="ml-2 text-sm font-semibold text-pw-ink shrink-0">+{formatZar(60000)}</span>
+              <span className="pw-small shrink-0 font-semibold text-pw-ink">+{formatZar(60000)}</span>
             </button>
           </div>
         )}
 
         {/* Pro installer */}
-        <button type="button" onClick={() => handlePrimary("pro_installer")} className={primaryBtn(isProSelected)}>
+        <button type="button" onClick={() => handlePrimary("pro_installer")} className={primaryClasses(isProSelected)} aria-pressed={isProSelected}>
           <div>
-            <p className="text-base font-semibold text-pw-ink">Pro installer</p>
-            <p className="mt-0.5 text-sm text-pw-muted">
+            <p className="pw-body font-semibold text-pw-ink">Pro installer</p>
+            <p className="pw-small mt-0.5 text-pw-muted">
               We send a certified installer to your address. All materials included.
             </p>
           </div>
-          <div className="ml-4 text-right shrink-0">
-            <p className="text-base font-bold text-pw-ink">{formatZar(proTotal)}</p>
-            <p className="text-xs text-pw-muted-light">for {totalSqm.toFixed(1)} m²</p>
+          <div className="shrink-0 text-right">
+            <p className="pw-body font-semibold text-pw-ink">{formatZar(proTotal)}</p>
+            <p className="pw-overline text-pw-muted-light">for {totalSqm.toFixed(1)} m²</p>
           </div>
         </button>
       </div>
-    </section>
+    </ConfigStep>
   );
 }

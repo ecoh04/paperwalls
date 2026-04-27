@@ -30,25 +30,22 @@ type Props = {
   widthM:          number;
   heightM:         number;
   wallCount:       number;
-  /** Per-wall dimensions when each wall is sized independently. */
   walls?:          { widthM: number; heightM: number }[];
-  /** When true, wallCount > 1 and each wall has its own dimensions. */
   isMultiDifferent?: boolean;
   totalSqm:        number;
   wallpaperType:   WallpaperType;
   material:        WallpaperMaterial;
   application:     ApplicationMethod;
   canAddToCart:    boolean;
-  /** Specific reason the cart action is blocked (for non-ready states). */
   blockedReason:   string | null;
   onAddToCart:     () => void;
 };
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-[rgba(26,23,20,0.06)] last:border-0">
-      <span className="text-sm text-pw-muted shrink-0">{label}</span>
-      <span className="text-sm text-pw-ink text-right">{value}</span>
+    <div className="flex items-start justify-between gap-3 border-b border-pw-stone py-2.5 last:border-0">
+      <span className="pw-small shrink-0 text-pw-muted">{label}</span>
+      <span className="pw-small text-right text-pw-ink">{value}</span>
     </div>
   );
 }
@@ -74,9 +71,8 @@ export function OrderSummaryPanel({
   const pricePerSqmCents  = getPricePerSqmCents(wallpaperType, material);
   const hasDetails        = totalSqm > 0;
 
-  // Build the "Size" line. In multi-wall "different" mode each wall has its
-  // own dimensions, so showing "200 × 100 × N" is misleading — display per-wall
-  // if it fits, else fall back to "N walls (varied)".
+  // Build the "Size" line. Multi-wall "different" mode shows per-wall when
+  // it fits; falls back to "N walls (varied)" otherwise.
   const widthCm  = widthM  > 0 ? Math.round(widthM  * 100) : 0;
   const heightCm = heightM > 0 ? Math.round(heightM * 100) : 0;
 
@@ -91,7 +87,6 @@ export function OrderSummaryPanel({
       const h0 = Math.round(walls[0].heightM * 100);
       dimText = `${w0} × ${h0} cm × ${walls.length} · ${totalSqm.toFixed(1)} m²`;
     } else if (walls.length <= 2) {
-      // Inline both walls when there's room
       dimText = walls
         .map((w) => `${Math.round(w.widthM * 100)} × ${Math.round(w.heightM * 100)} cm`)
         .join(" + ") + ` · ${totalSqm.toFixed(1)} m²`;
@@ -105,42 +100,43 @@ export function OrderSummaryPanel({
   }
 
   const installationLabel =
-    application === "diy"           ? "Free"
-    : application === "diy_kit"     ? formatZar(60000)
+    application === "diy"             ? "Free"
+    : application === "diy_kit"       ? formatZar(60000)
     : application === "pro_installer" ? formatZar(installationCents)
     : "—";
 
   return (
-    <div className="sticky top-6">
-      <div className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface shadow-pw-sm overflow-hidden">
-        {/* Image preview — only shown on desktop where space allows */}
-        <div className="hidden lg:block aspect-video bg-pw-bg relative">
+    <div className="lg:sticky lg:top-6">
+      <div className="overflow-hidden rounded-pw-card border border-pw-stone bg-pw-surface">
+        {/* Image preview — desktop only, less vertical real estate on mobile */}
+        <div className="relative hidden aspect-video bg-pw-bg lg:block">
           {imagePreviewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={imagePreviewUrl}
               alt="Your design"
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full items-center justify-center flex-col gap-2 px-6">
-              <div className="w-10 h-10 rounded-full bg-pw-stone flex items-center justify-center">
-                <svg className="w-5 h-5 text-pw-muted-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex h-full flex-col items-center justify-center gap-2 px-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-pw-stone">
+                <svg className="h-5 w-5 text-pw-muted-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                     d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5M3.75 3h16.5"
                   />
                 </svg>
               </div>
-              <p className="text-xs text-pw-muted-light text-center">Add an image to see it here</p>
+              <p className="pw-small text-center text-pw-muted-light">
+                Add an image to see it here
+              </p>
             </div>
           )}
         </div>
 
-        <div className="p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-pw-muted-light mb-3">
-            Your wallpaper
-          </p>
+        <div className="p-5 sm:p-6">
+          <p className="pw-overline text-pw-muted">Your wallpaper</p>
 
-          <div>
+          <div className="mt-3">
             <SummaryRow label="Size"         value={dimText} />
             <SummaryRow label="Type"         value={TYPE_LABELS[wallpaperType]} />
             <SummaryRow label="Material"     value={`${MATERIAL_LABELS[material]} · ${formatZar(pricePerSqmCents)}/m²`} />
@@ -148,35 +144,33 @@ export function OrderSummaryPanel({
           </div>
 
           {/* Price breakdown */}
-          <div className="mt-4 pt-4 border-t border-[rgba(26,23,20,0.06)] space-y-1.5">
+          <div className="mt-5 space-y-1.5 border-t border-pw-stone pt-5">
             {hasDetails ? (
               <>
-                <div className="flex justify-between text-sm text-pw-muted">
+                <div className="flex justify-between pw-small text-pw-muted">
                   <span>
                     Wallpaper
-                    <span className="ml-1 text-pw-muted-light">
-                      ({totalSqm.toFixed(1)} m²)
-                    </span>
+                    <span className="ml-1 text-pw-muted-light">({totalSqm.toFixed(1)} m²)</span>
                   </span>
                   <span>{formatZar(wallpaperCents)}</span>
                 </div>
                 {installationCents > 0 && (
-                  <div className="flex justify-between text-sm text-pw-muted">
+                  <div className="flex justify-between pw-small text-pw-muted">
                     <span>Installation</span>
                     <span>{formatZar(installationCents)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm text-pw-muted">
+                <div className="flex justify-between pw-small text-pw-muted">
                   <span>Shipping</span>
-                  <span className="text-green-700 font-medium">Free</span>
+                  <span className="font-medium text-pw-accent">Free</span>
                 </div>
-                <div className="flex items-baseline justify-between mt-3 pt-3 border-t border-[rgba(26,23,20,0.06)]">
-                  <span className="text-sm font-semibold text-pw-ink">Total</span>
-                  <span className="text-2xl font-bold text-pw-ink">{formatZar(subtotalCents)}</span>
+                <div className="mt-3 flex items-baseline justify-between border-t border-pw-stone pt-3">
+                  <span className="pw-small font-semibold text-pw-ink">Total</span>
+                  <span className="pw-h2 text-pw-ink">{formatZar(subtotalCents)}</span>
                 </div>
               </>
             ) : (
-              <p className="text-sm text-pw-muted">Enter your wall size to see pricing.</p>
+              <p className="pw-small text-pw-muted">Enter your wall size to see pricing.</p>
             )}
           </div>
 
@@ -185,16 +179,16 @@ export function OrderSummaryPanel({
             type="button"
             onClick={onAddToCart}
             disabled={!canAddToCart}
-            className="mt-5 w-full rounded-pw bg-pw-ink py-3.5 text-base font-medium text-white hover:bg-pw-ink-soft disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-pw bg-pw-ink pw-body font-semibold text-white transition-colors hover:bg-pw-ink-soft disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {canAddToCart ? "Add to cart →" : "Continue setting up"}
+            {canAddToCart ? "Add to cart" : "Continue setting up"}
           </button>
           {!canAddToCart && blockedReason && (
-            <p className="mt-2 text-center text-xs text-pw-muted">{blockedReason}</p>
+            <p className="mt-2 pw-small text-center text-pw-muted">{blockedReason}</p>
           )}
           {canAddToCart && (
-            <p className="mt-2 text-center text-xs text-pw-muted-light">
-              No payment yet — you'll review everything before paying.
+            <p className="mt-2 pw-small text-center text-pw-muted-light">
+              No payment yet — you&rsquo;ll review everything before paying.
             </p>
           )}
         </div>

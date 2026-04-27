@@ -8,6 +8,8 @@ import { PreviewEditStep } from "./PreviewEditStep";
 import { StyleStep } from "./StyleStep";
 import { InstallationStep } from "./InstallationStep";
 import { OrderSummaryPanel } from "./OrderSummaryPanel";
+import { ConfigStep } from "./ConfigStep";
+import { ConfigAlert } from "./ConfigAlert";
 import { useCart } from "@/contexts/CartContext";
 import { calculateSubtotalCents } from "@/lib/pricing";
 import { getQuality, MIN_PX_PER_MM } from "@/lib/quality";
@@ -328,7 +330,7 @@ export function Configurator() {
   return (
     <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start">
       {/* ── Left column: step cards ─────────────────────────────────────── */}
-      <div className="space-y-4 pb-8">
+      <div className="space-y-5 pb-10 sm:space-y-6">
         <DimensionsStep
           stepNumber={STEP_DIMENSIONS}
           widthM={state.widthM}
@@ -392,26 +394,20 @@ export function Configurator() {
         )}
 
         {isMultiDifferent && state.walls.some((w) => w.imagePreviewUrl && w.widthM > 0 && w.heightM > 0) && (
-          <section className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
-            <div className="flex items-start gap-4 mb-6">
-              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pw-accent bg-pw-accent-soft text-sm font-semibold text-pw-accent">
-                {STEP_PREVIEW}
-              </span>
-              <div>
-                <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">Place each design on its wall</h2>
-                <p className="mt-1 text-sm text-pw-muted">
-                  Drag each image to reframe. We'll print exactly what's inside each frame.
-                </p>
-              </div>
-            </div>
+          <ConfigStep
+            stepNumber={STEP_PREVIEW}
+            eyebrow="Position"
+            title="Place each design on its wall."
+            subtitle="Drag each image to reframe. We'll print exactly what's inside each frame."
+          >
             <div className="space-y-4">
               {state.walls.map((wall, i) => {
                 const hasContent = !!wall.imagePreviewUrl && wall.widthM > 0 && wall.heightM > 0;
                 if (!hasContent) {
                   return (
-                    <div key={i} className="rounded-pw border border-dashed border-pw-stone bg-pw-bg/40 p-4">
-                      <p className="text-sm font-semibold text-pw-ink mb-1">Wall {i + 1}</p>
-                      <p className="text-xs text-pw-muted">
+                    <div key={i} className="rounded-pw border border-dashed border-pw-stone bg-pw-bg p-4 sm:p-5">
+                      <p className="pw-small font-semibold text-pw-ink mb-1">Wall {i + 1}</p>
+                      <p className="pw-small text-pw-muted">
                         {wall.widthM > 0 && wall.heightM > 0
                           ? "Upload an image above to position your design."
                           : "Add dimensions and an image above to position your design."}
@@ -437,7 +433,7 @@ export function Configurator() {
                 );
               })}
             </div>
-          </section>
+          </ConfigStep>
         )}
 
         <StyleStep
@@ -457,28 +453,30 @@ export function Configurator() {
         />
 
         {submitError && (
-          <div className="rounded-pw border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <ConfigAlert variant="error" title="Something went wrong">
             {submitError}
-          </div>
+          </ConfigAlert>
         )}
       </div>
 
-      {/* ── Right column: sticky order summary ──────────────────────────── */}
-      <OrderSummaryPanel
-        imagePreviewUrl={summaryImageUrl}
-        widthM={state.widthM}
-        heightM={state.heightM}
-        wallCount={state.wallCount}
-        walls={isMultiDifferent ? state.walls.map((w) => ({ widthM: w.widthM, heightM: w.heightM })) : undefined}
-        isMultiDifferent={isMultiDifferent}
-        totalSqm={totalSqm}
-        wallpaperType={state.wallpaperType}
-        material={state.material}
-        application={state.application}
-        canAddToCart={canAddToCart && !submitting}
-        blockedReason={submitting ? "Preparing your print files…" : blockedReason}
-        onAddToCart={handleAddToCart}
-      />
+      {/* ── Right column: sticky order summary (below steps on mobile) ── */}
+      <div className="mt-5 sm:mt-6 lg:mt-0">
+        <OrderSummaryPanel
+          imagePreviewUrl={summaryImageUrl}
+          widthM={state.widthM}
+          heightM={state.heightM}
+          wallCount={state.wallCount}
+          walls={isMultiDifferent ? state.walls.map((w) => ({ widthM: w.widthM, heightM: w.heightM })) : undefined}
+          isMultiDifferent={isMultiDifferent}
+          totalSqm={totalSqm}
+          wallpaperType={state.wallpaperType}
+          material={state.material}
+          application={state.application}
+          canAddToCart={canAddToCart && !submitting}
+          blockedReason={submitting ? "Preparing your print files…" : blockedReason}
+          onAddToCart={handleAddToCart}
+        />
+      </div>
     </div>
   );
 }

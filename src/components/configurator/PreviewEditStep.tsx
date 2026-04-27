@@ -3,6 +3,8 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import { getQuality, formatMaxSizeCm } from "@/lib/quality";
 import { exportCroppedJpeg } from "@/lib/imageCrop";
+import { ConfigStep } from "./ConfigStep";
+import { ConfigAlert } from "./ConfigAlert";
 
 type PreviewEditStepProps = {
   /** Step chip label. Not shown when `compact` is true. */
@@ -317,7 +319,7 @@ export function PreviewEditStep({
 
         {/* Wall dimension chip — bottom of preview surface */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none">
-          <span className="rounded-full bg-white/10 backdrop-blur-sm px-3 py-1 text-[11px] font-medium text-white/85 tracking-wide">
+          <span className="rounded-full bg-white/10 backdrop-blur-sm px-3 py-1 pw-overline text-white/85">
             {widthCm.toFixed(0)} × {heightCm.toFixed(0)} cm
           </span>
         </div>
@@ -361,47 +363,32 @@ export function PreviewEditStep({
           <button
             type="button"
             onClick={handleReset}
-            className="text-xs font-medium text-pw-muted hover:text-pw-ink underline underline-offset-2 transition-colors"
+            className="pw-small font-medium text-pw-muted underline underline-offset-[6px] decoration-pw-ink/20 hover:text-pw-ink hover:decoration-pw-ink/60 transition-colors"
           >
             Reset
           </button>
         )}
       </div>
 
-      <p className="mt-2 text-xs text-pw-muted-light text-center">
+      <p className="pw-small mt-2 text-center text-pw-muted-light">
         Drag to choose what gets printed · Slide to zoom in for a tighter crop
       </p>
 
       {quality && quality.level !== "good" && (
-        <div
-          className={[
-            "mt-5 flex gap-3 rounded-xl border p-4",
-            quality.level === "too_low"
-              ? "border-amber-300 bg-amber-50"
-              : "border-amber-200 bg-amber-50/60",
-          ].join(" ")}
-        >
-          <svg
-            className="mt-0.5 h-5 w-5 shrink-0 text-amber-600"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-            />
-          </svg>
-          <div>
-            <p className="text-sm font-semibold text-amber-900">
-              {quality.level === "too_low"
+        <div className="mt-5">
+          <ConfigAlert
+            variant="warning"
+            title={
+              quality.level === "too_low"
                 ? "Image is a bit small for this crop"
-                : "Sharpness is on the edge"}
-            </p>
-            <p className="mt-0.5 text-sm text-amber-800">
-              {quality.level === "too_low"
-                ? "We can't print this sharply at the current crop. Use a higher-resolution image, zoom out a little, or reduce the wall."
-                : "It'll look fine from a normal viewing distance. For sharper results, zoom out slightly or use a higher-res image."}{" "}
-              Best up to: <strong>{formatMaxSizeCm(quality.maxWidthM, quality.maxHeightM)}</strong>.
-            </p>
-          </div>
+                : "Sharpness is on the edge"
+            }
+          >
+            {quality.level === "too_low"
+              ? "We can't print this sharply at the current crop. Use a higher-resolution image, zoom out a little, or reduce the wall."
+              : "It'll look fine from a normal viewing distance. For sharper results, zoom out slightly or use a higher-res image."}{" "}
+            Best up to: <strong className="text-pw-ink">{formatMaxSizeCm(quality.maxWidthM, quality.maxHeightM)}</strong>.
+          </ConfigAlert>
         </div>
       )}
     </>
@@ -409,9 +396,11 @@ export function PreviewEditStep({
 
   if (compact) {
     return (
-      <div className="rounded-pw border border-pw-stone bg-pw-bg/40 p-4">
+      <div className="rounded-pw border border-pw-stone bg-pw-bg p-4 sm:p-5">
         {wallLabel && (
-          <p className="text-sm font-semibold text-pw-ink mb-3">{wallLabel.replace(/^\s*·\s*/, "")}</p>
+          <p className="pw-small font-semibold text-pw-ink mb-3">
+            {wallLabel.replace(/^\s*·\s*/, "")}
+          </p>
         )}
         {previewBody}
       </div>
@@ -419,24 +408,13 @@ export function PreviewEditStep({
   }
 
   return (
-    <section className="rounded-pw-card border border-[rgba(26,23,20,0.08)] bg-pw-surface p-5 shadow-pw-sm sm:p-8">
-      <div className="flex items-start gap-4 mb-6">
-        {stepNumber !== undefined && (
-          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-pw-accent bg-pw-accent-soft text-sm font-semibold text-pw-accent">
-            {stepNumber}
-          </span>
-        )}
-        <div>
-          <h2 className="text-xl sm:text-2xl font-semibold text-pw-ink">
-            Place it on your wall{wallLabel ?? ""}
-          </h2>
-          <p className="mt-1 text-sm text-pw-muted">
-            Your whole image is shown — the bright rectangle is your wall. Drag to choose what's printed; zoom in for a tighter crop.
-          </p>
-        </div>
-      </div>
-
+    <ConfigStep
+      stepNumber={stepNumber ?? 3}
+      eyebrow="Position"
+      title={`Place it on your wall${wallLabel ?? ""}.`}
+      subtitle="Your whole image is shown — the bright rectangle is your wall. Drag to choose what's printed; zoom for a tighter crop."
+    >
       {previewBody}
-    </section>
+    </ConfigStep>
   );
 }

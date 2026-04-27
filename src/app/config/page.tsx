@@ -1,43 +1,29 @@
-import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { PageContainer } from "@/components/PageContainer";
 import { Configurator } from "@/components/configurator/Configurator";
-import { ConversionCtaCard } from "@/components/ConversionCtaCard";
-import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Design your wallpaper | PaperWalls",
-  description: "Configure your custom wallpaper. Upload your image, set dimensions, choose your material and finish.",
+  description: "Configure your custom wallpaper. Upload your image, set your wall size, choose your finish.",
 };
 
 export default function ConfigPage() {
   return (
-    <PageContainer>
-      <Breadcrumbs
-        items={[
-          { href: "/", label: "Home" },
-          { href: "/shop/custom-wallpaper", label: "Custom wallpaper" },
-          { label: "Design" },
-        ]}
-      />
+    <main className="bg-pw-bg pb-16 sm:pb-20">
+      <header className="mx-auto max-w-7xl px-5 pt-8 pb-6 sm:px-8 sm:pt-10 sm:pb-8 lg:px-12 lg:pt-14 lg:pb-12">
+        <div className="max-w-2xl">
+          <p className="pw-overline text-pw-muted">Design</p>
+          <h1 className="pw-display mt-3 text-pw-ink sm:mt-4">
+            Design your wallpaper.
+          </h1>
+          <p className="pw-body-lg mt-4 text-pw-ink/70 sm:mt-5">
+            Tell us your wall size, drop in any image, choose your finish — we&rsquo;ll
+            print it to fit and ship free across South Africa.
+          </p>
+        </div>
+      </header>
 
-      <div className="mb-8">
-        <ConversionPageIntro
-          eyebrow="Design"
-          title="Design your wallpaper"
-          description="Tell us your wall size, drop in any image, choose your finish — we'll print it to fit and ship free across South Africa."
-        />
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+        <Configurator />
       </div>
-
-      <Configurator />
-
-      <div className="mt-10">
-        <ConversionCtaCard
-          title="Not sure which material?"
-          body="Compare Satin, Matte, and Linen with practical guidance, or order an A5 sample pack of all three."
-          ctaLabel="See materials guide"
-          ctaHref="/materials"
-        />
-      </div>
-    </PageContainer>
+    </main>
   );
 }
