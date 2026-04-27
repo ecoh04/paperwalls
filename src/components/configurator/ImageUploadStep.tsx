@@ -53,7 +53,7 @@ function SingleUpload({
           onDragLeave={() => setDragActive(false)}
           onDrop={(e) => { e.preventDefault(); setDragActive(false); const f = e.dataTransfer.files[0]; if (f) validateAndSet(f); }}
           className={[
-            "flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-4 rounded-pw-card border-2 border-dashed transition-colors touch-manipulation",
+            "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-pw-card border-2 border-dashed px-5 py-7 transition-colors touch-manipulation sm:py-9",
             dragActive
               ? "border-pw-ink bg-pw-accent-soft/60"
               : "border-pw-stone hover:border-pw-ink/40 hover:bg-pw-bg",
@@ -65,17 +65,19 @@ function SingleUpload({
             onChange={(e) => validateAndSet(e.target.files?.[0] ?? null)}
             className="hidden"
           />
-          <div className="flex h-14 w-14 items-center justify-center rounded-pw-card border border-pw-stone bg-pw-surface">
+          <span className="flex h-11 w-11 items-center justify-center rounded-pw border border-pw-stone bg-pw-surface">
             <UploadIcon />
-          </div>
-          <div className="px-6 text-center">
+          </span>
+          <div className="text-center">
             <p className="pw-body font-medium text-pw-ink">
               {dragActive ? "Drop it here" : "Drag & drop, or tap to browse"}
             </p>
-            <p className="pw-small mt-1 text-pw-muted">JPG, PNG or WebP, up to 50 MB.</p>
+            <p className="pw-small mt-1 text-pw-muted">
+              JPG, PNG or WebP, up to 50 MB.
+            </p>
           </div>
           {hint && (
-            <p className="pw-small max-w-md px-6 text-center text-pw-muted-light">{hint}</p>
+            <p className="pw-small mx-auto max-w-sm text-center text-pw-muted-light">{hint}</p>
           )}
         </label>
 
@@ -169,7 +171,7 @@ export function ImageUploadStep({
           imageHeightPx={imageHeightPx}
           onFileSelect={onFileSelect}
           uploadError={uploadError}
-          hint={resolutionHint ?? "Use the highest-resolution file you have for the sharpest print."}
+          hint={resolutionHint}
         />
       ) : (
         <div className="space-y-4">
