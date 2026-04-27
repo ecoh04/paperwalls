@@ -10,7 +10,7 @@ import { AnnouncementBar } from "@/components/AnnouncementBar";
 export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin") ?? false;
-  const isFocused = pathname === "/config";
+  const isFocused = pathname === "/config" || pathname?.startsWith("/config/") === true;
   const isCheckoutFlow = pathname?.startsWith("/cart") || pathname?.startsWith("/checkout");
 
   if (isAdmin) {
