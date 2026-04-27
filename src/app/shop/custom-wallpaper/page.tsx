@@ -127,6 +127,8 @@ function BuyBox({
             <ImagePlaceholder
               src={BUY_BOX_IMAGES[activeImage].src}
               aspectRatio="1/1"
+              priority
+              sizes="(min-width: 1024px) 58vw, 100vw"
               prompt={BUY_BOX_IMAGES[activeImage].alt}
             />
             {/* Thumbnail row — 3 cols mobile (2 rows of 3), 6 cols desktop (1 row) */}

@@ -1,41 +1,31 @@
+import Image from "next/image";
+
 type ImagePlaceholderProps = {
-  /** Generation prompt — used both as alt text for the rendered image and as the
-   *  visible label on the placeholder while the asset is still being generated. */
+  /** Generation prompt — alt text on the rendered image, label on the placeholder. */
   prompt:           string;
-  /** CSS aspect-ratio value, e.g. "16/10" or "3/4". Applied as the base aspect on
-   *  the inner sized element. */
+  /** CSS aspect-ratio value, e.g. "16/10" or "3/4". */
   aspectRatio:      string;
-  /** Once the asset is ready, set this to its public path (e.g. "/images/home/hero.jpg")
-   *  and the component renders the image instead of the placeholder. */
+  /** Public path once the asset is ready, e.g. "/images/home/hero.jpg". */
   src?:             string;
-  /** Optional caption shown below the image. */
   caption?:         string;
-  /** Classes for the OUTER wrapper (layout, shadow, h-full, lg:col-span-N etc.). */
+  /** Classes for the OUTER wrapper. */
   className?:       string;
-  /** Classes for the INNER aspect-ratio element. Use `sm:!aspect-square` here to
-   *  override the base aspectRatio at a breakpoint — the `!` is required because
-   *  the base aspect is set via inline style. */
+  /** Classes for the INNER aspect element. Use `sm:!aspect-square` to override
+   *  the base aspect at a breakpoint — `!` is required because aspect is inline. */
   aspectClassName?: string;
-  /** Recommended generated dimensions, e.g. "1600×2000". */
   dimensions?:      string;
-  /** Override the placeholder gradient with a custom one. */
   gradient?:        string;
+  /** Mark above-the-fold images so Next preloads them and skips lazy-loading. */
+  priority?:        boolean;
+  /** Responsive `sizes` hint so the browser picks the right asset variant. */
+  sizes?:           string;
 };
 
 const DEFAULT_GRADIENT =
   "linear-gradient(135deg, #B5917A 0%, #8C6F58 38%, #4F3D31 70%, #C4622D 100%)";
 
-/**
- * Photography placeholder that becomes a real image once `src` is set.
- *
- * Until the asset is generated and dropped into /public, the placeholder shows
- * the prompt + recommended dimensions so it's obvious what still needs work.
- * The moment a file path is wired up, the component switches to rendering
- * the actual image with the prompt as the alt text.
- *
- * Layout split: `className` styles the outer wrapper, `aspectClassName` styles
- * the inner aspect-ratio element (use this for responsive aspect overrides).
- */
+const DEFAULT_SIZES = "(min-width: 1024px) 50vw, 100vw";
+
 export function ImagePlaceholder({
   prompt,
   aspectRatio,
@@ -45,6 +35,8 @@ export function ImagePlaceholder({
   aspectClassName = "",
   dimensions,
   gradient        = DEFAULT_GRADIENT,
+  priority        = false,
+  sizes           = DEFAULT_SIZES,
 }: ImagePlaceholderProps) {
   return (
     <div className={["relative w-full overflow-hidden rounded-pw-card", className].join(" ").trim()}>
@@ -53,13 +45,13 @@ export function ImagePlaceholder({
         style={{ aspectRatio }}
       >
         {src ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={src}
             alt={prompt}
-            className="absolute inset-0 h-full w-full object-cover"
-            loading="lazy"
-            decoding="async"
+            fill
+            className="object-cover"
+            sizes={sizes}
+            priority={priority}
           />
         ) : (
           <div className="absolute inset-0" style={{ background: gradient }}>

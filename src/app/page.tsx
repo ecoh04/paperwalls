@@ -58,6 +58,8 @@ function HeroSection() {
             aspectRatio="4/3"
             aspectClassName="lg:!aspect-[4/5]"
             dimensions="1600×2000"
+            priority
+            sizes="(min-width: 1024px) 58vw, 100vw"
             prompt="Editorial Cape Town living room with botanical custom-printed wallpaper as feature wall behind an oat-bouclé sofa, warm afternoon light from a tall window, brass floor lamp, travertine coffee table with linen books, oak herringbone floors, white-washed plaster walls. Apartmento × Aesop × Kinfolk warmth. Photorealistic, no people."
           />
         </div>
