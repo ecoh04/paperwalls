@@ -930,7 +930,7 @@ function InstallSection({
     state.application === "pro_installer" ? "pro_installer" : "diy";
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
       {OPTIONS.map((opt) => {
         const isActive = opt.id === active;
         return (
@@ -940,34 +940,30 @@ function InstallSection({
             onClick={() => setState((s) => ({ ...s, application: opt.id }))}
             aria-pressed={isActive}
             className={[
-              "flex flex-col rounded-pw-card border p-5 text-left transition-colors touch-manipulation sm:p-6",
+              "flex w-full items-start gap-3 rounded-pw-card border p-4 text-left transition-colors touch-manipulation",
               isActive
                 ? "border-pw-ink bg-pw-surface ring-1 ring-pw-ink/15"
                 : "border-pw-stone bg-pw-bg hover:border-pw-ink/40 hover:bg-pw-surface",
             ].join(" ")}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="pw-overline text-pw-accent">{opt.sub}</p>
-                <p className="pw-h3 mt-1 text-pw-ink">{opt.label}</p>
+            <span
+              aria-hidden
+              className={[
+                "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                isActive ? "border-pw-ink bg-pw-ink" : "border-pw-stone-dark",
+              ].join(" ")}
+            >
+              {isActive && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="pw-small font-semibold text-pw-ink">{opt.label}</p>
+                <p className="pw-small whitespace-nowrap font-semibold text-pw-ink">{opt.price}</p>
               </div>
-              <span
-                aria-hidden
-                className={[
-                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                  isActive ? "border-pw-ink bg-pw-ink" : "border-pw-stone-dark",
-                ].join(" ")}
-              >
-                {isActive && (
-                  <span className="h-2 w-2 rounded-full bg-white" />
-                )}
-              </span>
-            </div>
-            <p className="pw-small mt-3 text-pw-muted">{opt.body}</p>
-            <div className="mt-auto pt-4 border-t border-pw-stone mt-4">
-              <p className="pw-h3 text-pw-ink">{opt.price}</p>
+              <p className="pw-small mt-0.5 text-pw-muted">{opt.body}</p>
               {opt.priceSub && (
-                <p className="pw-overline text-pw-muted-light">{opt.priceSub}</p>
+                <p className="pw-overline mt-1 text-pw-muted-light">{opt.priceSub}</p>
               )}
             </div>
           </button>

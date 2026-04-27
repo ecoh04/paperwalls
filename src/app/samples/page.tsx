@@ -9,7 +9,7 @@ import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Button } from "@/components/ui/Button";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 
-const SAMPLE_PRICE_CENTS = 30_000; // R300
+const SAMPLE_PRICE_CENTS = 15_000; // R150
 
 const FINISHES = [
   {
