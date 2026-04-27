@@ -109,37 +109,7 @@ function BuyBox({
 }: BuyBoxProps) {
   return (
     <section id="buy-box" className="bg-pw-bg">
-      <div className="mx-auto max-w-7xl px-5 pt-3 pb-10 sm:px-8 sm:pt-4 sm:pb-14 lg:px-12 lg:pt-6 lg:pb-20">
-
-        {/* Trust strip — wraps naturally on small screens, rating leads */}
-        <div className="-mx-5 mb-3 border-b border-pw-stone bg-pw-bg/60 sm:-mx-8 sm:mb-4 lg:-mx-12">
-          <div className="mx-auto max-w-7xl px-5 py-2.5 sm:px-8 lg:px-12">
-            <ul className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pw-small text-pw-ink/65">
-              {[
-                "★★★★★ 4.9 from 847 reviews",
-                "5-day production",
-                "Free SA delivery",
-                "Free reprints",
-              ].map((item, i) => (
-                <li key={item} className="flex items-center gap-2">
-                  {i > 0 && (
-                    <span aria-hidden className="text-pw-muted-light">·</span>
-                  )}
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Breadcrumbs */}
-        <nav className="pw-small mb-4 flex flex-wrap items-center gap-x-2 text-pw-muted sm:mb-6">
-          <Link href="/" className="hover:text-pw-ink transition-colors">Home</Link>
-          <span className="text-pw-muted-light">/</span>
-          <Link href="/shop" className="hover:text-pw-ink transition-colors">Shop</Link>
-          <span className="text-pw-muted-light">/</span>
-          <span className="text-pw-ink">Custom wallpaper</span>
-        </nav>
+      <div className="mx-auto max-w-7xl px-5 pt-6 pb-10 sm:px-8 sm:pt-8 sm:pb-14 lg:px-12 lg:pt-12 lg:pb-20">
 
         {/* MOBILE-ONLY product header — sits above the gallery so cold traffic
             sees title + rating + price before the image fills the fold. */}
@@ -305,10 +275,6 @@ function ProductHeader({ price }: { price: number }) {
         <span className="pw-h2 text-pw-ink">R{price}</span>
         <span className="pw-body text-pw-muted">per m²</span>
       </div>
-      <p className="pw-small mt-1 text-pw-muted">
-        ≈ R{(price * 9).toLocaleString("en-US")} for a 3 × 3 m wall.
-        Free SA delivery, no payment until you approve the price.
-      </p>
     </>
   );
 }

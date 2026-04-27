@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { FocusedHeader } from "@/components/FocusedHeader";
 import { CartProvider } from "@/contexts/CartContext";
-import { TrustStrip } from "@/components/TrustStrip";
+import { AnnouncementBar } from "@/components/AnnouncementBar";
 
 export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -18,12 +18,10 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   }
 
   if (isFocused) {
-    // Configurator-only: focused header, slim trust strip beneath (it adds
-    // confidence right at the order moment).
     return (
       <CartProvider>
+        <AnnouncementBar />
         <FocusedHeader />
-        <TrustStrip />
         <main className="flex-1">{children}</main>
       </CartProvider>
     );
@@ -32,19 +30,19 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   if (isCheckoutFlow) {
     return (
       <CartProvider>
+        <AnnouncementBar />
         <FocusedHeader />
-        <TrustStrip />
         <main className="flex-1">{children}</main>
         <Footer />
       </CartProvider>
     );
   }
 
-  // Default marketing layout: NO TrustStrip below the header — every marketing
-  // page either has its own trust signals (homepage hero) or doesn't need them
-  // double-stacked. The footer carries the trust copy.
+  // Default marketing layout. AnnouncementBar sits above the sticky header so
+  // it scrolls away on long pages but is the first thing every cold visitor sees.
   return (
     <CartProvider>
+      <AnnouncementBar />
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
