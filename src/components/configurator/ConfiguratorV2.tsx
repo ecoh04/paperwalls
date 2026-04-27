@@ -62,7 +62,6 @@ export function ConfiguratorV2() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting,  setSubmitting]  = useState(false);
-  const [showCrop,    setShowCrop]    = useState(false);
   const [moreWalls,   setMoreWalls]   = useState(false);
 
   // ── Derived ────────────────────────────────────────────────────────────
@@ -197,9 +196,12 @@ export function ConfiguratorV2() {
   }, [canAddToCart, submitting, state, totalSqm, subtotalCents, addItem, router]);
 
   // ── Render ─────────────────────────────────────────────────────────────
+  // pb-28 on the outer wrapper reserves space for the fixed MobileSummaryBar.
+  // Putting it on the sections wrapper alone left dead space between the
+  // last section and the order summary panel.
   return (
-    <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start">
-      <div className="space-y-5 pb-28 sm:space-y-6 lg:pb-10">
+    <div className="pb-28 lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start lg:pb-10">
+      <div className="space-y-5 sm:space-y-6">
 
         {/* 1 — Image (the emotional hook) */}
         <FlowSection
@@ -216,32 +218,26 @@ export function ConfiguratorV2() {
             onFileSelect={handleFileSelect}
           />
 
-          {/* Crop expander — hidden by default, surfaced via a quiet text link */}
+          {/* Wall preview — always visible once both image and dimensions exist.
+              The user sees their image positioned on the wall by default; the
+              drag/zoom controls inside are the optional fine-tune. */}
           {imageUploaded && dimensionsValid && (
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setShowCrop((v) => !v)}
-                className="pw-small font-medium text-pw-muted underline underline-offset-[6px] decoration-pw-ink/20 hover:text-pw-ink hover:decoration-pw-ink/60 transition-colors"
-              >
-                {showCrop ? "Hide crop tool" : "Adjust crop"}
-              </button>
-              {showCrop && (
-                <div className="mt-4">
-                  <PreviewEditStep
-                    compact
-                    imageUrl={state.imagePreviewUrl}
-                    widthM={state.widthM}
-                    heightM={state.heightM}
-                    panX={state.panX}
-                    panY={state.panY}
-                    zoom={state.zoom}
-                    onPanChange={setPan}
-                    onZoomChange={setZoom}
-                    onCropDataReady={setCropReady}
-                  />
-                </div>
-              )}
+            <div className="mt-5 sm:mt-6">
+              <p className="pw-overline text-pw-ink mb-3">
+                On your wall
+              </p>
+              <PreviewEditStep
+                compact
+                imageUrl={state.imagePreviewUrl}
+                widthM={state.widthM}
+                heightM={state.heightM}
+                panX={state.panX}
+                panY={state.panY}
+                zoom={state.zoom}
+                onPanChange={setPan}
+                onZoomChange={setZoom}
+                onCropDataReady={setCropReady}
+              />
             </div>
           )}
         </FlowSection>
@@ -273,6 +269,13 @@ export function ConfiguratorV2() {
           setState={setState}
           totalSqm={totalSqm}
         />
+
+        {/* Soft escape hatch for hesitant cold traffic: only renders while
+            they haven't reached add-to-cart-ready. Once configured, it
+            disappears so it doesn't compete with the primary CTA. */}
+        {!canAddToCart && !submitting && (
+          <SampleNudge />
+        )}
 
         {submitError && (
           <ConfigAlert variant="error" title="Something went wrong">
@@ -539,6 +542,7 @@ function MaterialBlock({
       id: "matte", label: "Matte",
       description: "Flat, non-reflective. Great in bright rooms.",
       textureClass: "bg-pw-stone",
+      badge: "Most ordered",
     },
     {
       id: "linen", label: "Linen",
@@ -608,6 +612,28 @@ function MaterialBlock({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ── SampleNudge — low-commit alternative path for hesitant buyers ─── */
+function SampleNudge() {
+  return (
+    <div className="rounded-pw-card border border-pw-stone bg-pw-bg p-5 sm:p-6">
+      <p className="pw-overline text-pw-accent">Not ready?</p>
+      <p className="pw-body mt-2 text-pw-ink">
+        Order an A5 swatch of every finish. R150, credited to your wallpaper
+        order when you come back.
+      </p>
+      <a
+        href="/samples"
+        className="mt-3 inline-flex items-center gap-1.5 pw-small font-medium text-pw-ink underline underline-offset-[6px] decoration-pw-ink/20 hover:decoration-pw-ink/60 transition-colors"
+      >
+        Order samples
+        <svg aria-hidden className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
     </div>
   );
 }
