@@ -1,23 +1,26 @@
-import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { PageContainer } from "@/components/PageContainer";
 import { CartContent } from "@/components/CartContent";
-import { ConversionPageIntro } from "@/components/ConversionPageIntro";
 
 export const metadata = {
   title: "Cart | PaperWalls",
-  description: "Review your cart and proceed to checkout.",
+  description: "Review your order, then continue to secure checkout.",
 };
 
 export default function CartPage() {
   return (
-    <PageContainer>
-      <Breadcrumbs items={[{ href: "/", label: "Home" }, { label: "Cart" }]} />
-      <ConversionPageIntro
-        eyebrow="Order"
-        title="Your cart"
-        description="Review your order details, then continue to secure checkout."
-      />
-      <CartContent />
-    </PageContainer>
+    <main className="bg-pw-bg pb-16 sm:pb-20">
+      <header className="mx-auto max-w-7xl px-5 pt-6 pb-5 sm:px-8 sm:pt-10 sm:pb-8 lg:px-12 lg:pt-14 lg:pb-12">
+        <div className="max-w-2xl">
+          <p className="pw-overline text-pw-muted">Order</p>
+          <h1 className="pw-h1 mt-2 text-pw-ink sm:mt-3">Your cart.</h1>
+          <p className="pw-body mt-3 text-pw-ink/70 sm:pw-body-lg sm:mt-4">
+            Review your order. Free delivery, no payment until you approve the price.
+          </p>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+        <CartContent />
+      </div>
+    </main>
   );
 }
