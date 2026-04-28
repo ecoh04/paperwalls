@@ -1,108 +1,105 @@
-import { Section } from "@/components/ui/Section";
 import { Eyebrow } from "@/components/ui/Eyebrow";
-import { Button } from "@/components/ui/Button";
 
 export const metadata = {
   title: "Terms of service | PaperWalls",
-  description: "Terms governing use of PaperWalls and custom-print orders.",
+  description: "The terms that govern purchases, custom-print specifications, and use of paperwalls.co.za.",
 };
 
-const SECTIONS = [
+const SECTIONS: { h: string; body: string[] }[] = [
   {
-    title: "Using the site",
-    body:
-      "By browsing or placing an order, you agree to these terms. You must be 18 or over, provide accurate details, and only upload images you have the legal right to use. We reserve the right to refuse or cancel orders that breach these terms.",
+    h: "Acceptance",
+    body: [
+      "By using paperwalls.co.za and placing an order, you agree to these terms. If you do not agree, please do not use the site or place an order.",
+      "These terms work alongside our Privacy Policy, Shipping & delivery, and Returns & refunds pages — together they form the full agreement.",
+    ],
   },
   {
-    title: "Custom orders",
-    body:
-      "Every wallpaper is printed to order, to the dimensions and specifications you confirm at checkout. We print exactly what you confirm. We&rsquo;re not responsible for design choices once confirmed (resolution, cropping, colour from your screen). The configurator gives live feedback before you pay so you can adjust.",
+    h: "Your responsibilities",
+    body: [
+      "You must provide accurate contact and delivery details. We rely on these to ship your order and answer your support questions.",
+      "You must own the rights to any image you upload, or have permission from the rights-holder to print it. We will not produce copyrighted imagery without consent.",
+      "You must verify the dimensions and image you confirm at checkout. Once production starts, the order cannot be amended.",
+    ],
   },
   {
-    title: "Pricing and payment",
-    body:
-      "All prices are in South African rand and include VAT where applicable. Payment is processed by PayFast on a separate secure page. We never see or store your card details. Final price is whatever shows in the configurator at the moment you click Add to cart.",
+    h: "Pricing and payment",
+    body: [
+      "Prices are in South African Rand (ZAR) and include all amounts shown at checkout unless stated otherwise. Free delivery applies to all orders within South Africa.",
+      "Payment is processed by PayFast on a secure external page. We do not store card details ourselves. By submitting an order you authorise PayFast to debit your nominated card or bank account for the total displayed.",
+    ],
   },
   {
-    title: "Image rights",
-    body:
-      "You confirm you have the rights to print every image you upload. Don&rsquo;t upload copyrighted artwork or photography you don&rsquo;t own or licence. If we&rsquo;re notified of an infringement, we&rsquo;ll cancel the order and refund without deducting production costs.",
+    h: "Production and quality",
+    body: [
+      "Every order is custom-printed to the dimensions and image you confirm. We print at commercial-grade resolution on substrate appropriate to the finish you selected.",
+      "We are not responsible for design choices you make at checkout — including image resolution, cropping, or your final dimension entries — once you have confirmed the order.",
+      "If your order ships with a genuine production defect (cuts, banding, packaging damage), the Returns & refunds policy applies — free reprint or full refund, your choice.",
+    ],
   },
   {
-    title: "Returns and refunds",
-    body:
-      "Custom orders are non-returnable. We reprint or refund any genuine production defect within 7 days of delivery. Full policy on the Returns &amp; refunds page.",
+    h: "Delivery",
+    body: [
+      "Delivery is via tracked courier across South Africa. See the Shipping & delivery page for production lead time and transit windows.",
+      "Risk transfers to you on delivery. Damage that occurs after the courier has delivered is not covered.",
+    ],
   },
   {
-    title: "Updates",
-    body:
-      "We may update these terms. Continued use of the site after an update constitutes acceptance. Material changes affecting existing orders will be communicated by email.",
+    h: "Cancellations",
+    body: [
+      "We start preparing orders within hours of payment. If production has not yet started we will issue a full refund. If production has started, the order cannot be cancelled.",
+    ],
+  },
+  {
+    h: "Right to refuse",
+    body: [
+      "We may refuse or cancel any order at our discretion — for example, if the uploaded image appears to infringe third-party rights, contains illegal content, or if delivery to the supplied address is not possible.",
+    ],
+  },
+  {
+    h: "Updates to these terms",
+    body: [
+      "We may update these terms from time to time. The latest version is always on this page with the updated date below the title. Continued use of the site after changes constitutes acceptance.",
+    ],
   },
 ];
 
 export default function TermsPage() {
   return (
-    <main className="bg-pw-bg pb-16 sm:pb-20">
-      <header className="mx-auto max-w-7xl px-5 pt-6 pb-5 sm:px-8 sm:pt-10 sm:pb-8 lg:px-12 lg:pt-14 lg:pb-12">
-        <div className="max-w-2xl">
-          <p className="pw-overline text-pw-muted">Legal</p>
-          <h1 className="pw-h1 mt-2 text-pw-ink sm:mt-3">
-            Terms of service.
-          </h1>
-          <p className="pw-body mt-3 text-pw-ink/70 sm:pw-body-lg sm:mt-4">
-            What you agree to by using PaperWalls and placing an order.
-          </p>
-          <p className="pw-overline mt-4 text-pw-muted-light sm:mt-5">
-            Last updated: {new Date().toLocaleDateString("en-ZA", { year: "numeric", month: "long", day: "numeric" })}
-          </p>
-        </div>
+    <main className="bg-pw-bg pb-20 sm:pb-24">
+      <header className="mx-auto max-w-3xl px-5 pt-8 pb-6 sm:px-8 sm:pt-12 sm:pb-8 lg:px-12 lg:pt-16">
+        <Eyebrow variant="muted">Legal</Eyebrow>
+        <h1 className="pw-h1 mt-3 text-pw-ink sm:mt-4">Terms of service</h1>
+        <p className="pw-body-lg mt-4 text-pw-ink/70 sm:mt-5">
+          The key terms that govern purchases, custom-print specifications, and use of paperwalls.co.za.
+        </p>
+        <p className="pw-overline mt-5 text-pw-muted-light sm:mt-6">
+          Last updated: {new Date().toLocaleDateString("en-ZA", { year: "numeric", month: "long", day: "numeric" })}
+        </p>
       </header>
 
-      <Section tone="bg" id="summary">
-        <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8">
-          <Eyebrow>Plain English</Eyebrow>
-          <p className="pw-body-lg mt-3 text-pw-ink">
-            Provide accurate details, only upload images you have the right to use,
-            and we print exactly what you confirm at checkout.
-          </p>
-        </div>
-      </Section>
+      <article className="mx-auto max-w-3xl px-5 sm:px-8 lg:px-12">
+        {SECTIONS.map((s) => (
+          <section key={s.h} className="mt-10 first:mt-2 sm:mt-12">
+            <h2 className="pw-h3 text-pw-ink">{s.h}</h2>
+            <div className="mt-3 space-y-3 sm:mt-4">
+              {s.body.map((p, i) => (
+                <p key={i} className="pw-body text-pw-ink/80">{p}</p>
+              ))}
+            </div>
+          </section>
+        ))}
 
-      <Section tone="surface" id="details">
-        <div className="space-y-5 sm:space-y-6">
-          {SECTIONS.map((s) => (
-            <article
-              key={s.title}
-              className="rounded-pw-card border border-pw-stone bg-pw-bg p-6 sm:p-8"
-            >
-              <h2 className="pw-h3 text-pw-ink">{s.title}</h2>
-              <p
-                className="pw-body mt-4 text-pw-ink/70"
-                dangerouslySetInnerHTML={{ __html: s.body }}
-              />
-            </article>
-          ))}
-        </div>
-      </Section>
-
-      <Section tone="ink" id="closing">
-        <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-end lg:gap-16">
-          <div className="lg:col-span-7">
-            <Eyebrow className="text-pw-accent-mid">Question?</Eyebrow>
-            <h2 className="pw-display mt-3 text-white sm:mt-4">
-              Email is fastest.
-            </h2>
-            <p className="pw-body-lg mt-4 max-w-xl text-white/65 sm:mt-5">
-              Most replies within one business day, often sooner.
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 lg:col-span-5 lg:items-end">
-            <Button href="/contact" variant="light-on-ink" size="lg" className="w-full sm:w-auto">
-              Contact us
-            </Button>
-          </div>
-        </div>
-      </Section>
+        <p className="pw-small mt-12 border-t border-pw-stone pt-6 text-pw-muted sm:mt-16">
+          Questions? Email{" "}
+          <a
+            href="mailto:hello@paperwalls.co.za"
+            className="font-medium text-pw-ink underline underline-offset-[6px] decoration-pw-ink/20 hover:decoration-pw-ink/60 transition-colors"
+          >
+            hello@paperwalls.co.za
+          </a>
+          .
+        </p>
+      </article>
     </main>
   );
 }

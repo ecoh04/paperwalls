@@ -1,110 +1,85 @@
-import { Section } from "@/components/ui/Section";
 import { Eyebrow } from "@/components/ui/Eyebrow";
-import { Button } from "@/components/ui/Button";
 
 export const metadata = {
   title: "Shipping & delivery | PaperWalls",
   description: "Production lead times, courier delivery windows, and packaging across South Africa.",
 };
 
-const SECTIONS = [
+const SECTIONS: { h: string; body: string[] }[] = [
   {
-    title: "Production lead time",
+    h: "Production lead time",
     body: [
-      "Once payment is confirmed we review your file and start printing within 24 hours. Most orders dispatch within 72 hours.",
-      "If you picked the Pro installer option, we contact you within 24 hours of dispatch to schedule the install.",
+      "Once payment is confirmed we review your file and begin printing within 24 hours. Most orders dispatch within 72 hours of payment.",
+      "If you selected the Pro installer option, we contact you within 24 hours of dispatch to schedule the install.",
     ],
   },
   {
-    title: "Free SA shipping",
+    h: "Free delivery across South Africa",
     body: [
       "Free standard delivery on every order, anywhere in South Africa. No minimum.",
       "Typical transit is 2 to 4 business days after dispatch. Remote areas may add 1 to 2 days.",
     ],
   },
   {
-    title: "How your order is packed",
+    h: "How your order is packed",
     body: [
       "Cut to your exact dimensions, rolled onto a protective core, wrapped in heavy-duty film, and shipped in rigid cardboard tubes so nothing creases in transit.",
       "Multi-panel orders are rolled separately and labelled in hanging order so you know exactly which panel goes where.",
     ],
   },
   {
-    title: "Tracking",
+    h: "Tracking",
     body: [
-      "A tracking number lands in your inbox the moment your order leaves our facility. If you haven&rsquo;t received it within 4 business days of payment, email us and we&rsquo;ll investigate immediately.",
+      "A tracking number lands in your inbox the moment your order leaves our facility.",
+      "If you haven’t received the tracking email within 4 business days of payment, email us and we’ll investigate immediately.",
+    ],
+  },
+  {
+    h: "Damaged in transit",
+    body: [
+      "If your courier package arrives visibly damaged, photograph it before opening and email us within 48 hours of delivery. We will reprint and reship at no cost. The Returns & refunds page covers this in full.",
     ],
   },
 ];
 
 export default function ShippingPage() {
   return (
-    <main className="bg-pw-bg pb-16 sm:pb-20">
-      <header className="mx-auto max-w-7xl px-5 pt-6 pb-5 sm:px-8 sm:pt-10 sm:pb-8 lg:px-12 lg:pt-14 lg:pb-12">
-        <div className="max-w-2xl">
-          <p className="pw-overline text-pw-muted">Delivery</p>
-          <h1 className="pw-h1 mt-2 text-pw-ink sm:mt-3">
-            Shipping &amp; delivery.
-          </h1>
-          <p className="pw-body mt-3 text-pw-ink/70 sm:pw-body-lg sm:mt-4">
-            Printed to order in Cape Town. Shipped free, fully tracked, across all nine provinces.
-          </p>
-        </div>
+    <main className="bg-pw-bg pb-20 sm:pb-24">
+      <header className="mx-auto max-w-3xl px-5 pt-8 pb-6 sm:px-8 sm:pt-12 sm:pb-8 lg:px-12 lg:pt-16">
+        <Eyebrow variant="muted">Delivery</Eyebrow>
+        <h1 className="pw-h1 mt-3 text-pw-ink sm:mt-4">Shipping &amp; delivery</h1>
+        <p className="pw-body-lg mt-4 text-pw-ink/70 sm:mt-5">
+          Printed to order in Cape Town. Shipped free, fully tracked, across all nine provinces.
+          Yours in 5 days, door to door.
+        </p>
+        <p className="pw-overline mt-5 text-pw-muted-light sm:mt-6">
+          Last updated: {new Date().toLocaleDateString("en-ZA", { year: "numeric", month: "long", day: "numeric" })}
+        </p>
       </header>
 
-      <Section tone="bg" id="summary">
-        <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8">
-          <Eyebrow>Plain English</Eyebrow>
-          <p className="pw-body-lg mt-3 text-pw-ink">
-            We print in Cape Town, dispatch in 72 hours, and delivery usually takes another 2 to 4 business days.
-            Yours in 5 days, door to door.
-          </p>
-        </div>
-      </Section>
+      <article className="mx-auto max-w-3xl px-5 sm:px-8 lg:px-12">
+        {SECTIONS.map((s) => (
+          <section key={s.h} className="mt-10 first:mt-2 sm:mt-12">
+            <h2 className="pw-h3 text-pw-ink">{s.h}</h2>
+            <div className="mt-3 space-y-3 sm:mt-4">
+              {s.body.map((p, i) => (
+                <p key={i} className="pw-body text-pw-ink/80">{p}</p>
+              ))}
+            </div>
+          </section>
+        ))}
 
-      <Section tone="surface" id="details">
-        <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2">
-          {SECTIONS.map((s) => (
-            <article
-              key={s.title}
-              className="rounded-pw-card border border-pw-stone bg-pw-bg p-6 sm:p-8"
-            >
-              <h2 className="pw-h3 text-pw-ink">{s.title}</h2>
-              <div className="mt-4 space-y-3">
-                {s.body.map((p, i) => (
-                  <p
-                    key={i}
-                    className="pw-body text-pw-ink/70"
-                    dangerouslySetInnerHTML={{ __html: p }}
-                  />
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      </Section>
-
-      <Section tone="ink" id="closing">
-        <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-end lg:gap-16">
-          <div className="lg:col-span-7">
-            <Eyebrow className="text-pw-accent-mid">Question about an order?</Eyebrow>
-            <h2 className="pw-display mt-3 text-white sm:mt-4">
-              Reach out, we&rsquo;ll fix it.
-            </h2>
-            <p className="pw-body-lg mt-4 max-w-xl text-white/65 sm:mt-5">
-              Most replies within one business day, often sooner.
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 lg:col-span-5 lg:items-end">
-            <Button href="/contact" variant="light-on-ink" size="lg" className="w-full sm:w-auto">
-              Contact us
-            </Button>
-            <Button href="/faq" variant="ghost" size="md" className="text-white/85 hover:text-white">
-              Read the FAQ →
-            </Button>
-          </div>
-        </div>
-      </Section>
+        <p className="pw-small mt-12 border-t border-pw-stone pt-6 text-pw-muted sm:mt-16">
+          Question about your delivery? Email{" "}
+          <a
+            href="mailto:hello@paperwalls.co.za"
+            className="font-medium text-pw-ink underline underline-offset-[6px] decoration-pw-ink/20 hover:decoration-pw-ink/60 transition-colors"
+          >
+            hello@paperwalls.co.za
+          </a>
+          {" "}and we’ll respond within one business day.
+        </p>
+      </article>
     </main>
   );
 }
