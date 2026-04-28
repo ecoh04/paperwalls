@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
+import { sendEmail } from "@/lib/email/send";
+import { renderAdminNewOrder } from "@/lib/email/templates";
 import {
   formatPayfastAmount,
   generatePayfastSignature,
@@ -87,7 +89,9 @@ export async function POST(request: Request) {
     }
 
     if (!supabase) {
-      console.error("[PayFast ITN] Supabase not configured");
+      console.error(
+        "[PayFast ITN] Supabase service role not configured — set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in env"
+      );
       return NextResponse.json({ error: "Server misconfigured" }, { status: 200 });
     }
 
@@ -129,27 +133,33 @@ export async function POST(request: Request) {
     // ── All checks passed ─────────────────────────────────────────────────────
     if (paymentStatus === "COMPLETE") {
 
-      // Insert payment record — gateway_payment_id is now clearly visible
-      const { data: paymentRow, error: paymentInsertError } = await supabase
-        .from("payments")
-        .insert({
-          gateway:            "payfast",
-          gateway_payment_id: pfPaymentId,
-          status:             "paid",
-          amount_cents:       Math.round(amountGross * 100),
-          currency:           "ZAR",
-          order_numbers:      orderNumbers,
-          raw_payload:        pfData,
-        })
-        .select("id")
-        .single();
+      // Upsert payment record. PayFast sometimes redelivers ITN pings; the
+      // unique index on gateway_payment_id makes this idempotent.
+      let paymentId: string | null = null;
+      if (pfPaymentId) {
+        const { data: paymentRow, error: paymentUpsertError } = await supabase
+          .from("payments")
+          .upsert(
+            {
+              gateway:            "payfast",
+              gateway_payment_id: pfPaymentId,
+              status:             "paid",
+              amount_cents:       Math.round(amountGross * 100),
+              currency:           "ZAR",
+              order_numbers:      orderNumbers,
+              raw_payload:        pfData,
+              updated_at:         new Date().toISOString(),
+            },
+            { onConflict: "gateway_payment_id" }
+          )
+          .select("id")
+          .single();
 
-      if (paymentInsertError) {
-        console.error("[PayFast ITN] Payment insert error", paymentInsertError.message);
-        // Non-fatal — still mark orders paid below
+        if (paymentUpsertError) {
+          console.error("[PayFast ITN] Payment upsert error", paymentUpsertError.message);
+        }
+        paymentId = paymentRow?.id ?? null;
       }
-
-      const paymentId = paymentRow?.id ?? null;
 
       // Mark orders paid and link to the payments row
       const { error: updateError } = await supabase
@@ -166,33 +176,36 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Update failed" }, { status: 200 });
       }
 
-      // Queue shipped/confirmed notifications + update customer stats
-      const paidOrders = orders.filter((o) => orderNumbers.includes(o.order_number as string));
-      if (paidOrders.length > 0) {
-        // Fetch customer_id from the first order
-        const { data: fullOrder } = await supabase
-          .from("orders")
-          .select("customer_id, id")
-          .eq("order_number", paidOrders[0].order_number)
-          .maybeSingle();
+      // Queue order_confirmed email and update customer stats. Use the full
+      // (id, customer_id) row so we can attach order_id to the queued email.
+      const { data: paidRows } = await supabase
+        .from("orders")
+        .select("id, order_number, customer_id")
+        .in("order_number", orderNumbers);
 
-        const customerId = fullOrder?.customer_id ?? null;
+      const customerId = paidRows?.[0]?.customer_id ?? null;
 
-        if (customerId) {
-          // Queue order_confirmed email for each order
-          const emailRows = paidOrders.map((o) => ({
-            customer_id: customerId,
-            type:        "order_confirmed",
-            status:      "pending",
-            send_at:     new Date().toISOString(),
-            subject:     `Your PaperWalls order ${o.order_number} is confirmed`,
-            metadata:    { order_number: o.order_number, pf_payment_id: pfPaymentId },
-          }));
-          await supabase.from("scheduled_emails").insert(emailRows);
+      if (paidRows?.length && customerId) {
+        // Idempotency key per (order_id, type) so a redelivered ITN can't queue duplicates.
+        const emailRows = paidRows.map((o) => ({
+          customer_id:     customerId,
+          order_id:        o.id,
+          type:            "order_confirmed",
+          status:          "pending",
+          send_at:         new Date().toISOString(),
+          subject:         `Your PaperWalls order ${o.order_number} is confirmed`,
+          idempotency_key: `order_confirmed:${o.id}`,
+          metadata:        { order_number: o.order_number, pf_payment_id: pfPaymentId },
+        }));
 
-          // Update lifetime stats
-          void supabase.rpc("update_customer_stats", { p_customer_id: customerId });
+        const { error: emailError } = await supabase
+          .from("scheduled_emails")
+          .upsert(emailRows, { onConflict: "idempotency_key", ignoreDuplicates: true });
+        if (emailError) {
+          console.error("[PayFast ITN] Email queue error", emailError.message);
         }
+
+        void supabase.rpc("update_customer_stats", { p_customer_id: customerId });
       }
 
       // Log analytics event
@@ -205,6 +218,43 @@ export async function POST(request: Request) {
           order_numbers:      orderNumbers,
         },
       });
+
+      // Admin new-order alert. Fire synchronously (not via the cron queue) so
+      // the operator sees real orders within seconds, not 5 minutes. If Resend
+      // is down we log and move on; the order is already saved.
+      const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL?.trim()
+                      || process.env.EMAIL_REPLY_TO?.trim()
+                      || "";
+      if (adminEmail && paidRows?.length) {
+        const { data: firstOrder } = await supabase
+          .from("orders")
+          .select("customer_name, customer_email, customer_phone, city, province")
+          .eq("id", paidRows[0].id)
+          .maybeSingle();
+        if (firstOrder) {
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+          const adminUrl = baseUrl
+            ? `${baseUrl}/admin/orders/${paidRows[0].id}`
+            : `/admin/orders/${paidRows[0].id}`;
+          const rendered = renderAdminNewOrder({
+            order_numbers:  orderNumbers,
+            total_cents:    Math.round(amountGross * 100),
+            customer_name:  (firstOrder.customer_name as string)  ?? "",
+            customer_email: (firstOrder.customer_email as string) ?? "",
+            customer_phone: (firstOrder.customer_phone as string) ?? "",
+            city:           (firstOrder.city as string)           ?? "",
+            province:       (firstOrder.province as string)       ?? "",
+            pf_payment_id:  pfPaymentId,
+            admin_url:      adminUrl,
+          });
+          const result = await sendEmail({ to: adminEmail, subject: rendered.subject, html: rendered.html });
+          if ("ok" in result && !result.ok) {
+            console.error("[PayFast ITN] Admin alert failed:", result.error);
+          }
+        }
+      } else if (!adminEmail) {
+        console.warn("[PayFast ITN] ADMIN_NOTIFICATION_EMAIL not set — skipping admin alert");
+      }
 
       console.log(`[PayFast ITN] ✓ Payment ${pfPaymentId} confirmed for orders: ${orderNumbers.join(", ")}`);
     }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { signedPrintUrls } from "@/lib/storage";
 import { PrintTrigger } from "@/components/admin/PrintTrigger";
 import {
   MATERIAL_LABELS,
@@ -56,7 +57,8 @@ export default async function AdminOrderPrintPage({
   if (error || !order) notFound();
 
   const row = order as Row;
-  const urls = parseImageUrls(row.image_urls).length > 0 ? parseImageUrls(row.image_urls) : [row.image_url];
+  const paths = parseImageUrls(row.image_urls).length > 0 ? parseImageUrls(row.image_urls) : [row.image_url];
+  const urls = await signedPrintUrls(paths);
   const provinceLabel = PROVINCE_LABELS[(row.province as ShippingProvince) ?? "other"] ?? row.province;
 
   return (

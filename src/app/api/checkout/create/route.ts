@@ -3,7 +3,7 @@ import type { CheckoutAddress } from "@/types/checkout";
 import type { CartItem } from "@/types/cart";
 import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
 import { getShippingCents } from "@/lib/shipping";
-import { uploadPrintImage } from "@/lib/storage";
+import { uploadPrintImage, renamePrintFile } from "@/lib/storage";
 import { buildPayfastFormFields } from "@/lib/payfast";
 import type { ShippingProvince } from "@/types/order";
 
@@ -190,14 +190,14 @@ export async function POST(request: Request) {
         );
       }
 
-      // Use a temporary placeholder name — will be renamed to order_number after insert.
-      // For now we use a UUID path so uploads don't clash across concurrent checkouts.
+      // Upload to a tmp path keyed by a fresh UUID so concurrent checkouts can't collide.
+      // We rename to orders/PW-XXXX-N.jpg below, after the DB hands back order_number.
       const uploadId = crypto.randomUUID();
       const urls: string[] = [];
       for (let j = 0; j < images.length; j++) {
-        const path = `tmp-${uploadId}-${j}.jpg`;
-        const url = await uploadPrintImage(images[j], path);
-        urls.push(url);
+        const path = `tmp/${uploadId}-${j}.jpg`;
+        const stored = await uploadPrintImage(images[j], path);
+        urls.push(stored);
       }
 
       const wallWidth  = item.walls?.[0]?.widthM  ?? item.widthM;
@@ -307,6 +307,38 @@ export async function POST(request: Request) {
       (s, o) => s + (o.total_cents as number), 0
     );
 
+    // ── Rename tmp uploads to orders/PW-XXXX-N.jpg ────────────────────────────
+    // Stable, traceable paths so the print team / admin search can find files
+    // by order number alone. Failure here is non-fatal — the row still has the
+    // tmp path and the file is reachable via signedPrintUrl().
+    if (insertedOrders?.length) {
+      for (let i = 0; i < insertedOrders.length; i++) {
+        const o = insertedOrders[i];
+        const row = orderRows[i];
+        if (row.product_type !== "wallpaper" || !row.image_urls?.length) continue;
+
+        const renamed: string[] = [];
+        for (let j = 0; j < row.image_urls.length; j++) {
+          const fromPath = row.image_urls[j];
+          const toPath   = `orders/${o.order_number}-${j}.jpg`;
+          try {
+            renamed.push(await renamePrintFile(fromPath, toPath));
+          } catch {
+            renamed.push(fromPath);
+          }
+        }
+
+        try {
+          await supabase
+            .from("orders")
+            .update({ image_url: renamed[0], image_urls: renamed })
+            .eq("id", o.id);
+        } catch {
+          // Non-fatal: the tmp path still works
+        }
+      }
+    }
+
     // ── Insert order_items ────────────────────────────────────────────────────
     if (insertedOrders?.length) {
       try {
@@ -339,23 +371,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // ── Queue order_confirmed email for each order ────────────────────────────
-    if (insertedOrders?.length && customerId) {
-      try {
-        const emailRows = insertedOrders.map((o) => ({
-          customer_id: customerId,
-          order_id:    o.id,
-          type:        "order_confirmed",
-          status:      "pending",
-          send_at:     new Date().toISOString(),
-          subject:     `Your PaperWalls order ${o.order_number} is confirmed`,
-          metadata:    { order_number: o.order_number },
-        }));
-        await supabase.from("scheduled_emails").insert(emailRows);
-      } catch {
-        // Non-fatal
-      }
-    }
+    // order_confirmed email is queued by the PayFast webhook after payment is
+    // confirmed. Don't queue here — sending "your order is confirmed" before
+    // the customer actually paid would be wrong.
 
     // ── Fire-and-forget side effects ──────────────────────────────────────────
     if (cartId) {
