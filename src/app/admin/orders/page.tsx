@@ -5,6 +5,7 @@ import { OrdersStatusTabs } from "@/components/admin/OrdersStatusTabs";
 import { OrdersToolbar } from "@/components/admin/OrdersToolbar";
 import { OrdersActiveFilters } from "@/components/admin/OrdersActiveFilters";
 import { OrdersAdvancedFilters } from "@/components/admin/OrdersAdvancedFilters";
+import { signedPrintUrls } from "@/lib/storage";
 
 // Note: factory routing is removed — orders are manually assigned externally.
 
@@ -89,7 +90,7 @@ export default async function AdminOrdersPage({
     let query = supabase
       .from("orders")
       .select(
-        "id, order_number, customer_name, customer_email, status, product_type, application_method, total_cents, created_at, updated_at, shipped_at, delivered_at, wall_count, wall_width_m, wall_height_m, total_sqm, quantity, wallpaper_style, last_activity_at, last_activity_preview, refunded_at, deleted_at, utm_source"
+        "id, order_number, customer_name, customer_email, status, product_type, application_method, total_cents, created_at, updated_at, shipped_at, delivered_at, wall_count, wall_width_m, wall_height_m, total_sqm, quantity, wallpaper_style, last_activity_at, last_activity_preview, refunded_at, deleted_at, utm_source, image_url, image_urls"
       );
 
     if (!showArchived) {
@@ -145,6 +146,48 @@ export default async function AdminOrdersPage({
     }
 
     const list = (orders ?? []) as Record<string, unknown>[];
+
+    // ── Sign thumbnail URLs in one batch and pull note counts. ──────────
+    // Sample-pack rows skip signing (use the static flat-lay). Wallpaper
+    // rows take the first image. Failures fall through to a placeholder
+    // in the OrderThumbnail component.
+    const wallpaperPaths: { id: string; path: string }[] = [];
+    for (const r of list) {
+      if (r.product_type !== "wallpaper") continue;
+      const urls = Array.isArray(r.image_urls) ? (r.image_urls as string[]) : [];
+      const path = urls[0] ?? (r.image_url as string | null) ?? null;
+      if (path) wallpaperPaths.push({ id: r.id as string, path });
+    }
+    const signed = wallpaperPaths.length > 0
+      ? await signedPrintUrls(wallpaperPaths.map((p) => p.path))
+      : [];
+    const thumbsByOrder = new Map<string, string>();
+    wallpaperPaths.forEach((p, i) => {
+      const url = signed[i];
+      if (url) thumbsByOrder.set(p.id, url);
+    });
+
+    // Note counts so the row can show a small icon when there are notes.
+    const orderIds = list.map((r) => r.id as string);
+    const noteCountByOrder = new Map<string, number>();
+    if (orderIds.length > 0) {
+      const { data: notes } = await supabase
+        .from("order_activity")
+        .select("order_id")
+        .eq("action", "note")
+        .in("order_id", orderIds);
+      for (const r of (notes ?? []) as { order_id: string }[]) {
+        noteCountByOrder.set(r.order_id, (noteCountByOrder.get(r.order_id) ?? 0) + 1);
+      }
+    }
+
+    // Decorate each row so the table component doesn't need to know how
+    // to sign URLs or count notes.
+    const decoratedList = list.map((r) => ({
+      ...r,
+      thumb_url:  thumbsByOrder.get(r.id as string) ?? "",
+      note_count: noteCountByOrder.get(r.id as string) ?? 0,
+    }));
 
     const buildHref = (overrides: Partial<SearchParams>) => {
       const q = new URLSearchParams();
@@ -230,7 +273,7 @@ export default async function AdminOrdersPage({
         />
 
         <OrdersTableWithBulk
-          orders={list as Parameters<typeof OrdersTableWithBulk>[0]["orders"]}
+          orders={decoratedList as Parameters<typeof OrdersTableWithBulk>[0]["orders"]}
           isAdmin={!!isAdmin}
         />
       </div>

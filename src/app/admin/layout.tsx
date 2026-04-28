@@ -22,7 +22,7 @@ export default async function AdminLayout({
 
   return (
     <div className="min-h-screen bg-stone-50">
-      <header className="sticky top-0 z-10 border-b border-stone-200 bg-white shadow-sm">
+      <header className="sticky top-0 z-10 border-b border-stone-200 bg-white shadow-sm print:hidden">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-6">
             <Link

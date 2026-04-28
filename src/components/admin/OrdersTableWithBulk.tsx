@@ -8,6 +8,7 @@ import { OrderRowActions } from "./OrderRowActions";
 import { OrdersBulkBar } from "./OrdersBulkBar";
 import { OrderTypeBadge } from "./OrderTypeBadge";
 import { AgeChip } from "./AgeChip";
+import { OrderThumbnail } from "./OrderThumbnail";
 import {
   updateOrderStatus,
   bulkUpdateStatus,
@@ -36,6 +37,10 @@ type OrderRow = {
   last_activity_at: string | null;
   last_activity_preview: string | null;
   refunded_at: string | null;
+  /** Pre-signed thumbnail URL of the customer's print file. Server-side. */
+  thumb_url?: string;
+  /** Count of operator notes attached to the order. */
+  note_count?: number;
 };
 
 const FINISH_LABEL: Record<string, string> = {
@@ -114,6 +119,7 @@ export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
                     />
                   </th>
                 )}
+                <th className="w-12 px-3 py-3" aria-label="Preview" />
                 <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500">
                   Type
                 </th>
@@ -177,11 +183,28 @@ export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
                         )}
                       </td>
                     )}
+                    <td className="px-3 py-3">
+                      <OrderThumbnail
+                        productType={row.product_type}
+                        imageUrl={row.thumb_url || undefined}
+                        size="sm"
+                      />
+                    </td>
                     <td className="whitespace-nowrap px-3 py-3">
                       <OrderTypeBadge type={row.product_type} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-sm font-medium text-stone-900 sm:px-6">
-                      {row.order_number}
+                      <div className="inline-flex items-center gap-1.5">
+                        {row.order_number}
+                        {row.note_count != null && row.note_count > 0 && (
+                          <span
+                            title={`${row.note_count} note${row.note_count === 1 ? "" : "s"} on this order`}
+                            className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-100 px-1 text-[10px] font-semibold text-amber-800 ring-1 ring-amber-200"
+                          >
+                            {row.note_count}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="max-w-[160px] truncate px-4 py-3 text-sm text-stone-600 sm:px-6">
                       {row.customer_name}

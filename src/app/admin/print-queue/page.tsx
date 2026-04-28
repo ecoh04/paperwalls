@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { signedPrintUrls } from "@/lib/storage";
+import { signedPrintUrl } from "@/lib/storage";
 import { MATERIAL_LABELS, APPLICATION_LABELS, PROVINCE_LABELS, formatZarCents } from "@/lib/admin-labels";
 import type { WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 import { MoveToProductionButton } from "@/components/admin/MoveToProductionButton";
 import { RefreshButton } from "@/components/admin/RefreshButton";
+import { CopyButton } from "@/components/admin/CopyButton";
+import { OrderThumbnail } from "@/components/admin/OrderThumbnail";
 
 export const dynamic = "force-dynamic";
 
@@ -73,22 +75,30 @@ export default async function PrintQueuePage() {
 
   const list = (orders ?? []) as Row[];
 
-  // Sign all paths in one pass (24h TTL — operator can re-sign by reloading).
-  const flatPaths = list.flatMap((r) => {
-    const paths = parsePaths(r.image_urls);
-    return paths.length > 0 ? paths : r.image_url ? [r.image_url] : [];
-  });
-  const signed = await signedPrintUrls(flatPaths);
+  // Sign per-wall URLs with explicit download filenames so the operator
+  // gets 'PW-1042-wall-1.jpg' instead of a random Supabase filename when
+  // clicking the link. Saves manual rename + sort time at print volume.
+  const TTL = 60 * 60 * 24 * 7; // 7 days, matches storage helper default
 
-  // Map signed URLs back to each order in original order
-  let signedIdx = 0;
-  const ordersWithSigned = list.map((r) => {
-    const paths = parsePaths(r.image_urls);
-    const count = paths.length > 0 ? paths.length : r.image_url ? 1 : 0;
-    const urls  = signed.slice(signedIdx, signedIdx + count);
-    signedIdx += count;
-    return { row: r, urls };
-  });
+  const ordersWithSigned = await Promise.all(
+    list.map(async (r) => {
+      const paths = parsePaths(r.image_urls);
+      const allPaths = paths.length > 0 ? paths : r.image_url ? [r.image_url] : [];
+      const urls = await Promise.all(
+        allPaths.map(async (p, i) => {
+          const filename = allPaths.length === 1
+            ? `${r.order_number}.jpg`
+            : `${r.order_number}-wall-${i + 1}.jpg`;
+          try {
+            return await signedPrintUrl(p, TTL, { download: filename });
+          } catch {
+            return "";
+          }
+        })
+      );
+      return { row: r, urls: urls.filter(Boolean) };
+    })
+  );
 
   const newCount = list.filter((r) => r.status === "new").length;
   const inProductionCount = list.filter((r) => r.status === "in_production").length;
@@ -131,7 +141,22 @@ export default async function PrintQueuePage() {
               </span>
             )}
           </div>
-          <RefreshButton initialLoadedAt={loadedAt} />
+          <div className="flex items-center gap-2">
+            {list.length > 0 && (
+              <a
+                href="/admin/print-queue/manifest"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 14H5a2 2 0 00-2 2v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 00-2-2zM7 10V5a2 2 0 012-2h6a2 2 0 012 2v5M9 18h6" />
+                </svg>
+                Pull sheet
+              </a>
+            )}
+            <RefreshButton initialLoadedAt={loadedAt} />
+          </div>
         </div>
       </header>
 
@@ -194,22 +219,31 @@ export default async function PrintQueuePage() {
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 pb-3">
                   <div className="flex items-center gap-3">
-                    <Link
-                      href={`/admin/orders/${row.id}`}
-                      className="font-mono text-base font-bold text-stone-900 hover:text-amber-700"
-                    >
-                      {row.order_number}
-                    </Link>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        isNew ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {isNew ? "New" : "In production"}
-                    </span>
-                    <span className="text-sm text-stone-500">
-                      Paid {new Date(row.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
-                    </span>
+                    <OrderThumbnail
+                      productType="wallpaper"
+                      imageUrl={urls[0]}
+                      size="md"
+                    />
+                    <div>
+                      <Link
+                        href={`/admin/orders/${row.id}`}
+                        className="font-mono text-base font-bold text-stone-900 hover:text-amber-700"
+                      >
+                        {row.order_number}
+                      </Link>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                            isNew ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {isNew ? "New" : "In production"}
+                        </span>
+                        <span className="text-xs text-stone-500">
+                          Paid {new Date(row.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {isNew && <MoveToProductionButton orderId={row.id} />}
@@ -249,6 +283,13 @@ export default async function PrintQueuePage() {
                     <p className="mt-2 text-xs text-stone-500">
                       {row.city}, {provinceLabel} {row.postal_code}
                     </p>
+                    <div className="mt-2">
+                      <CopyButton
+                        small
+                        label="Copy address"
+                        value={`${row.customer_name}\n${row.city}, ${provinceLabel} ${row.postal_code}\n${row.customer_phone}`}
+                      />
+                    </div>
                   </div>
 
                   <div>

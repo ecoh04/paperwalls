@@ -112,6 +112,14 @@
   }
 }
 
+/* Print: hide anything tagged .no-print and prevent page-break inside
+   .keep-together blocks. Used by /admin/orders/[id]/print and the new
+   /admin/print-queue/manifest pull sheet. */
+@media print {
+  .no-print { display: none !important; }
+  .keep-together { break-inside: avoid; page-break-inside: avoid; }
+}
+
 /* Design system from provided CSS (trimmed to core tokens and layout classes) */
 
 :root {

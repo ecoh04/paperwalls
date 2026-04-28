@@ -48,17 +48,24 @@ export async function renamePrintFile(fromPath: string, toPath: string): Promise
  * Mint a short-lived signed URL for a stored print file. Accepts either a
  * bare path or an already-signed/public URL (legacy rows) and passes the
  * URL through unchanged so old data keeps rendering.
+ *
+ * Pass a `download` name to set Content-Disposition so the browser saves
+ * the file under a sane name (e.g. 'PW-1042-wall-1.jpg') instead of
+ * whatever Supabase chose. Saves operator rename + sort time at scale.
  */
 export async function signedPrintUrl(
   pathOrUrl: string,
   ttlSeconds: number = DEFAULT_TTL_SECONDS,
+  options?: { download?: string },
 ): Promise<string> {
   if (!pathOrUrl) return "";
   if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
     return pathOrUrl;
   }
   const supabase = requireAdmin();
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(pathOrUrl, ttlSeconds);
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(pathOrUrl, ttlSeconds, options?.download ? { download: options.download } : undefined);
   if (error || !data?.signedUrl) {
     throw new Error(`Signed URL failed: ${error?.message ?? "unknown"}`);
   }
