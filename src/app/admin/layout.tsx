@@ -26,36 +26,30 @@ export default async function AdminLayout({
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-6">
             <Link
-              href="/admin"
+              href="/admin/orders"
               className="text-lg font-semibold text-stone-900 hover:text-stone-700"
             >
-              PaperWalls Factory
+              PaperWalls
             </Link>
-            <nav className="flex gap-4">
-              <Link
-                href="/admin"
-                className="text-sm font-medium text-stone-600 hover:text-stone-900"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/admin/orders"
-                className="text-sm font-medium text-stone-600 hover:text-stone-900"
-              >
-                Orders
-              </Link>
-              <Link
-                href="/admin/print-queue"
-                className="text-sm font-medium text-stone-600 hover:text-stone-900"
-              >
-                Print queue
-              </Link>
-              <Link
-                href="/admin/customers"
-                className="text-sm font-medium text-stone-600 hover:text-stone-900"
-              >
-                Customers
-              </Link>
+
+            {/* Two distinct groups: Factory ops (left, default) and
+                Analytics (right, separated by a hairline divider). The
+                operator's daily work and the marketing/decision-making
+                view are intentionally not mixed. */}
+            <nav className="flex items-center gap-4">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                Factory
+              </span>
+              <Link href="/admin/orders"      className="text-sm font-medium text-stone-600 hover:text-stone-900">Orders</Link>
+              <Link href="/admin/print-queue" className="text-sm font-medium text-stone-600 hover:text-stone-900">Print queue</Link>
+              <Link href="/admin/customers"   className="text-sm font-medium text-stone-600 hover:text-stone-900">Customers</Link>
+
+              <span aria-hidden className="mx-2 h-5 w-px bg-stone-200" />
+
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                Insights
+              </span>
+              <Link href="/admin/analytics"   className="text-sm font-medium text-stone-600 hover:text-stone-900">Analytics</Link>
             </nav>
           </div>
           <div className="flex items-center gap-3">
