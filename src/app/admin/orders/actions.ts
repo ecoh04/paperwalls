@@ -254,8 +254,6 @@ export async function markOrderDelivered(orderId: string): Promise<{ ok?: true; 
   return { ok: true };
 }
 
-export const ADMIN_COURIERS = COURIERS;
-
 /**
  * Re-send a customer email on demand. Inserts a fresh queue row with a
  * timestamped idempotency key so it always sends, even if a previous one
