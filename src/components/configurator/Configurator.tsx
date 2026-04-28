@@ -16,6 +16,7 @@ import { PreviewEditStep } from "./PreviewEditStep";
 import { OrderSummaryPanel } from "./OrderSummaryPanel";
 import { MobileSummaryBar } from "./MobileSummaryBar";
 import { ConfigAlert } from "./ConfigAlert";
+import { track } from "@/lib/analytics";
 
 const MAX_SIZE_MB = 50;
 const ACCEPT      = "image/jpeg,image/png,image/webp";
@@ -55,6 +56,11 @@ export function Configurator() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting,  setSubmitting]  = useState(false);
   const [moreWalls,   setMoreWalls]   = useState(false);
+
+  // Funnel: configurator entered.
+  useEffect(() => {
+    track("config.viewed");
+  }, []);
 
   // ── Derived ────────────────────────────────────────────────────────────
   const isMultiDifferent =
@@ -307,6 +313,13 @@ export function Configurator() {
       }
       // Cart drawer auto-opens via CartContext.addItem so the buyer sees
       // their new item without losing their place on the configurator.
+      track("config.added_to_cart", {
+        wall_count:    state.wallCount,
+        total_sqm:     totalSqm,
+        material:      state.material,
+        application:   state.application,
+        subtotal_cents: subtotalCents,
+      });
     } catch (err) {
       console.error("Add-to-cart failed:", err);
       setSubmitError("Something went wrong while preparing your order. Please try again.");

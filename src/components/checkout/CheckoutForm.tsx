@@ -7,6 +7,7 @@ import type { ShippingProvince } from "@/types/order";
 import { PROVINCES } from "@/lib/shipping";
 import { useCart } from "@/contexts/CartContext";
 import { Eyebrow } from "@/components/ui/Eyebrow";
+import { track, flushNow } from "@/lib/analytics";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_NAME    = 2;
@@ -68,6 +69,11 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
         return;
       }
       setSubmitting(true);
+      track("checkout.submitted", {
+        item_count:  items.length,
+        total_cents: items.reduce((s, i) => s + i.subtotalCents, 0),
+      });
+      flushNow();
       try {
         const res = await fetch("/api/checkout/create", {
           method: "POST",

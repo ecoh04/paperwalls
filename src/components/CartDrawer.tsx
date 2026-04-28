@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { formatZar } from "@/lib/pricing";
 import { Button } from "@/components/ui/Button";
+import { track } from "@/lib/analytics";
 import type { WallpaperCartItem, SamplePackCartItem } from "@/types/cart";
 
 function fmtCm(m: number) {
@@ -111,10 +112,19 @@ export function CartDrawer() {
       if (e.key === "Escape") closeCart();
     };
     window.addEventListener("keydown", onKey);
+
+    // Funnel: cart drawer surfaced. Fire once per open. Includes item count
+    // so we can see "viewed empty cart" vs "viewed cart with items".
+    track("cart.viewed", {
+      item_count:  items.length,
+      total_cents: items.reduce((s, i) => s + i.subtotalCents, 0),
+    });
+
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCartOpen, closeCart]);
 
   const totalCents = items.reduce((sum, i) => sum + i.subtotalCents, 0);
@@ -226,7 +236,14 @@ export function CartDrawer() {
               variant="primary"
               size="lg"
               className="w-full"
-              onClick={closeCart}
+              onClick={() => {
+                track("checkout.started", {
+                  item_count:  items.length,
+                  total_cents: totalCents,
+                  source:      "cart_drawer",
+                });
+                closeCart();
+              }}
             >
               Checkout · {formatZar(totalCents)}
             </Button>

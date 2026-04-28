@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -7,6 +8,7 @@ import { FocusedHeader } from "@/components/FocusedHeader";
 import { CartProvider } from "@/contexts/CartContext";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
 import { CartDrawer } from "@/components/CartDrawer";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 
 export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -15,6 +17,14 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const isCart     = pathname?.startsWith("/cart") ?? false;
   const isCheckout = pathname?.startsWith("/checkout") ?? false;
 
+  // Mount analytics on every customer-facing route. /admin is excluded so the
+  // operator's own clicks don't pollute funnel data.
+  const tracker = isAdmin ? null : (
+    <Suspense fallback={null}>
+      <AnalyticsTracker />
+    </Suspense>
+  );
+
   if (isAdmin) {
     return <>{children}</>;
   }
@@ -22,6 +32,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   if (isFocused) {
     return (
       <CartProvider>
+        {tracker}
         <AnnouncementBar />
         <FocusedHeader />
         <main className="flex-1">{children}</main>
@@ -35,6 +46,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   if (isCheckout) {
     return (
       <CartProvider>
+        {tracker}
         <AnnouncementBar />
         <FocusedHeader />
         <main className="flex-1">{children}</main>
@@ -47,6 +59,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   if (isCart) {
     return (
       <CartProvider>
+        {tracker}
         <AnnouncementBar />
         <FocusedHeader />
         <main className="flex-1">{children}</main>
