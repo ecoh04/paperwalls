@@ -42,6 +42,20 @@ type SessionInit = {
   user_agent?:   string | null;
 };
 
+// Vercel exposes the visitor's coarse geo for free in request headers.
+// We grab country / city / region and persist them on the session row.
+function readGeo(req: Request): { country: string | null; city: string | null; region: string | null } {
+  const country = req.headers.get("x-vercel-ip-country");
+  const cityRaw = req.headers.get("x-vercel-ip-city");
+  const region  = req.headers.get("x-vercel-ip-country-region");
+  // Vercel encodes city names (e.g. "Cape%20Town") — decode for storage.
+  let city: string | null = null;
+  if (cityRaw) {
+    try { city = decodeURIComponent(cityRaw); } catch { city = cityRaw; }
+  }
+  return { country: country || null, city, region: region || null };
+}
+
 const MAX_EVENTS_PER_BATCH = 50;
 const VALID_TYPE = /^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/;
 
@@ -67,6 +81,8 @@ export async function POST(req: Request) {
     const sessionId = body.session_id;
     const eventsRaw = body.events.slice(0, MAX_EVENTS_PER_BATCH) as EventIn[];
 
+    const geo = readGeo(req);
+
     // Lazy session upsert. Only on the first batch from a session — client
     // signals this by including a session block. Subsequent batches omit it.
     if (body.session && typeof body.session === "object") {
@@ -85,6 +101,9 @@ export async function POST(req: Request) {
             landing_page:  s.landing_page ?? null,
             referrer:      s.referrer     ?? null,
             user_agent:    s.user_agent   ?? null,
+            country:       geo.country,
+            city:          geo.city,
+            region:        geo.region,
             last_seen_at:  new Date().toISOString(),
           },
           { onConflict: "id", ignoreDuplicates: false },
