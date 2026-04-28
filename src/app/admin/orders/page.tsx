@@ -1,9 +1,10 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { ORDER_STATUS_LABELS } from "@/lib/admin-labels";
 import type { OrderStatus } from "@/types/order";
 import { OrdersTableWithBulk } from "@/components/admin/OrdersTableWithBulk";
-import { OrdersFiltersCollapse } from "@/components/admin/OrdersFiltersCollapse";
+import { OrdersStatusTabs } from "@/components/admin/OrdersStatusTabs";
+import { OrdersToolbar } from "@/components/admin/OrdersToolbar";
+import { OrdersActiveFilters } from "@/components/admin/OrdersActiveFilters";
+import { OrdersAdvancedFilters } from "@/components/admin/OrdersAdvancedFilters";
 
 // Note: factory routing is removed — orders are manually assigned externally.
 
@@ -174,144 +175,58 @@ export default async function AdminOrdersPage({
       ...(refundedOnly && { refunded: "1" }),
     }).toString()}`;
 
+    const buildHrefForChips = (overrides: Record<string, string | undefined>) =>
+      buildHref(overrides as Partial<SearchParams>);
+
     return (
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-5">
+        <header className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold text-stone-900">Orders</h1>
-        </div>
+          <p className="text-sm text-stone-500">
+            {list.length} order{list.length === 1 ? "" : "s"} match the current view
+          </p>
+        </header>
 
-        {/* Summary cards – Shopify-style */}
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {STATUSES.map((status) => (
-            <Link
-              key={status}
-              href={
-                status === "pending"
-                  ? "/admin/orders"
-                  : `/admin/orders?status=${status}`
-              }
-              className={`rounded-lg border p-4 transition ${
-                validStatus === status
-                  ? "border-stone-900 bg-stone-900 text-white"
-                  : "border-stone-200 bg-white text-stone-900 hover:border-stone-300 hover:shadow-sm"
-              }`}
-            >
-              <p className="text-xs font-medium opacity-80">
-                {ORDER_STATUS_LABELS[status]}
-              </p>
-              <p className="mt-1 text-2xl font-bold">{counts[status] ?? 0}</p>
-            </Link>
-          ))}
-        </section>
+        {/* Status tabs — primary navigation. Replaces the old 6-card grid
+            and the standalone status chip row. */}
+        <OrdersStatusTabs
+          current={validStatus}
+          counts={counts}
+          buildHref={buildHrefForChips}
+        />
 
-        {/* Type filter — separate from status because the workflow differs.
-            Wallpaper orders need print + dispatch; sample-pack orders only
-            need pick + pack + dispatch. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Type</span>
-          <Link
-            href={buildHref({ type: undefined })}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-              !typeFilter ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-            }`}
-          >
-            All
-          </Link>
-          <Link
-            href={buildHref({ type: "wallpaper" })}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
-              typeFilter === "wallpaper"
-                ? "bg-amber-500 text-white"
-                : "bg-amber-50 text-amber-900 ring-1 ring-amber-200 hover:bg-amber-100"
-            }`}
-          >
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            Wallpaper
-          </Link>
-          <Link
-            href={buildHref({ type: "sample_pack" })}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
-              typeFilter === "sample_pack"
-                ? "bg-sky-600 text-white"
-                : "bg-sky-50 text-sky-800 ring-1 ring-sky-200 hover:bg-sky-100"
-            }`}
-          >
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-sky-500" />
-            Sample packs
-          </Link>
-        </div>
+        {/* Compact toolbar — search + Type / Install / Sort selects + Export. */}
+        <OrdersToolbar
+          searchQ={searchQ}
+          type={typeFilter}
+          install={installFilter}
+          sort={sortBy}
+          isWallpaperContext={typeFilter !== "sample_pack"}
+          exportHref={exportHref}
+          isAdmin={!!isAdmin}
+        />
 
-        {/* Install filter — only meaningful when not viewing sample packs.
-            Pro install is high-LTV and needs a different fulfilment flow,
-            so it's worth being one click away. */}
-        {typeFilter !== "sample_pack" && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Install</span>
-            <Link
-              href={buildHref({ install: undefined })}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                !installFilter ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-              }`}
-            >
-              All
-            </Link>
-            <Link
-              href={buildHref({ install: "diy" })}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                installFilter === "diy" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-              }`}
-            >
-              DIY
-            </Link>
-            <Link
-              href={buildHref({ install: "pro_installer" })}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
-                installFilter === "pro_installer"
-                  ? "bg-purple-700 text-white"
-                  : "bg-purple-50 text-purple-800 ring-1 ring-purple-200 hover:bg-purple-100"
-              }`}
-            >
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-purple-500" />
-              Pro install
-            </Link>
-          </div>
-        )}
-
-        {/* Status filter — independent of type. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Status</span>
-          <Link
-            href={buildHref({ status: undefined })}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-              !validStatus ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-            }`}
-          >
-            All
-          </Link>
-          {STATUSES.map((s) => (
-            <Link
-              key={s}
-              href={buildHref({ status: s })}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                validStatus === s ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-              }`}
-            >
-              {ORDER_STATUS_LABELS[s]}
-            </Link>
-          ))}
-        </div>
-
-        <OrdersFiltersCollapse
-          validStatus={validStatus}
-          statusFilter={statusFilter}
+        {/* Active filter chips — only render when something is filtered.
+            Each chip has an X to clear just that one filter. */}
+        <OrdersActiveFilters
+          searchQ={searchQ}
+          type={typeFilter}
+          install={installFilter}
           fromDate={fromDate}
           toDate={toDate}
-          searchQ={searchQ}
-          sortBy={sortBy}
+          showArchived={showArchived}
+          refundedOnly={refundedOnly}
+          buildHref={buildHrefForChips}
+        />
+
+        {/* Advanced (date / archived / refunded) — collapsed by default
+            unless one of those filters is currently active. */}
+        <OrdersAdvancedFilters
+          fromDate={fromDate}
+          toDate={toDate}
           showArchived={showArchived}
           refundedOnly={refundedOnly}
           isAdmin={!!isAdmin}
-          exportHref={exportHref}
         />
 
         <OrdersTableWithBulk
