@@ -21,6 +21,7 @@ import { ShipOrderForm } from "@/components/admin/ShipOrderForm";
 import { MarkDeliveredButton } from "@/components/admin/MarkDeliveredButton";
 import { PreflightChecks } from "@/components/admin/PreflightChecks";
 import { ResendEmailButtons } from "@/components/admin/ResendEmailButtons";
+import { OrderTypeBadge } from "@/components/admin/OrderTypeBadge";
 import { EmailHistoryPanel } from "@/components/admin/EmailHistoryPanel";
 import { CopyButton } from "@/components/admin/CopyButton";
 import type { OrderStatus, WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
@@ -178,9 +179,17 @@ export default async function AdminOrderDetailPage({
           >
             ← Orders
           </Link>
-          <h1 className="mt-1 font-mono text-2xl font-bold text-stone-900">
-            {row.order_number}
-          </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <h1 className="font-mono text-2xl font-bold text-stone-900">
+              {row.order_number}
+            </h1>
+            <OrderTypeBadge type={row.product_type} size="md" />
+          </div>
+          <p className="mt-1 text-sm text-stone-500">
+            {row.product_type === "sample_pack"
+              ? `Sample pack · qty ${row.quantity}`
+              : `Custom wallpaper · ${row.wall_count} wall${row.wall_count === 1 ? "" : "s"}${row.total_sqm ? ` · ${Number(row.total_sqm).toFixed(2)} m²` : ""}`}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           {needsInstaller && (
@@ -224,10 +233,13 @@ export default async function AdminOrderDetailPage({
         />
       </div>
 
-      {/* Pre-flight production readiness — surfaced for any non-cancelled
-          wallpaper order so the operator catches gaps before printing. */}
-      {row.product_type === "wallpaper" && status !== "cancelled" && !row.deleted_at && (
+      {/* Pre-flight readiness — surfaced for every non-cancelled order.
+          The component itself swaps its checklist based on product_type,
+          so wallpaper looks for print files / dimensions / finish, while
+          sample packs only validate quantity + address + phone. */}
+      {status !== "cancelled" && !row.deleted_at && (
         <PreflightChecks
+          productType={(row.product_type === "sample_pack" ? "sample_pack" : "wallpaper") as "sample_pack" | "wallpaper"}
           imagesPresent={paths.length > 0}
           imageCount={paths.length}
           wallCount={row.wall_count}
@@ -238,6 +250,7 @@ export default async function AdminOrderDetailPage({
           customerPhone={row.customer_phone}
           wallpaperStyle={row.wallpaper_style}
           applicationMethod={row.application_method}
+          quantity={row.quantity}
         />
       )}
 

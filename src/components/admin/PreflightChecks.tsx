@@ -9,6 +9,7 @@ type Check = {
 };
 
 type Props = {
+  productType:      "wallpaper" | "sample_pack";
   imagesPresent:    boolean;
   imageCount:       number;
   wallCount:        number;
@@ -19,10 +20,16 @@ type Props = {
   customerPhone:    string | null;
   wallpaperStyle:   string | null;
   applicationMethod: string | null;
+  quantity?:        number;
 };
 
 export function PreflightChecks(p: Props) {
-  const checks: Check[] = [
+  const isSample = p.productType === "sample_pack";
+
+  // Wallpaper orders need print files + dimensions + finish + application.
+  // Sample-pack orders only need address + phone — none of the print/finish
+  // checks apply.
+  const wallpaperChecks: Check[] = [
     {
       ok:    p.imagesPresent && p.imageCount === p.wallCount,
       label: `Print files: ${p.imageCount}/${p.wallCount}`,
@@ -47,6 +54,17 @@ export function PreflightChecks(p: Props) {
       label: "Application method set",
       detail: !p.applicationMethod ? "DIY vs Pro install not chosen. Affects packing." : undefined,
     },
+  ];
+
+  const sampleChecks: Check[] = [
+    {
+      ok:    !!(p.quantity && p.quantity > 0),
+      label: `Quantity: ${p.quantity ?? "—"}`,
+      detail: !p.quantity ? "Order quantity missing." : undefined,
+    },
+  ];
+
+  const sharedShippingChecks: Check[] = [
     {
       ok:    !!(p.addressLine1 && p.postalCode && p.province),
       label: "Shipping address complete",
@@ -68,6 +86,10 @@ export function PreflightChecks(p: Props) {
     },
   ];
 
+  const checks: Check[] = isSample
+    ? [...sampleChecks, ...sharedShippingChecks]
+    : [...wallpaperChecks, ...sharedShippingChecks];
+
   const failing = checks.filter((c) => !c.ok);
   const allGreen = failing.length === 0;
 
@@ -83,8 +105,10 @@ export function PreflightChecks(p: Props) {
         </span>
         <h2 className="text-base font-semibold text-stone-900">
           {allGreen
-            ? "Pre-flight clean — ready for production."
-            : `${failing.length} pre-flight issue${failing.length === 1 ? "" : "s"} — review before printing.`}
+            ? isSample
+              ? "Pre-flight clean — ready to pack."
+              : "Pre-flight clean — ready for production."
+            : `${failing.length} pre-flight issue${failing.length === 1 ? "" : "s"} — review before ${isSample ? "shipping" : "printing"}.`}
         </h2>
       </div>
 

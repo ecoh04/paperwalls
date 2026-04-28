@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = {
   status?: string;
+  type?: string;
   from?: string;
   to?: string;
   q?: string;
@@ -36,6 +37,7 @@ export default async function AdminOrdersPage({
   try {
     const params = await searchParams;
     const statusFilter = params.status;
+    const typeFilter   = params.type === "wallpaper" || params.type === "sample_pack" ? params.type : null;
     const fromDate = params.from;
     const toDate = params.to;
     const searchQ = (params.q ?? "").trim();
@@ -95,6 +97,9 @@ export default async function AdminOrdersPage({
     } else if (validStatus) {
       query = query.eq("status", validStatus);
     }
+    if (typeFilter) {
+      query = query.eq("product_type", typeFilter);
+    }
     if (searchQ) {
       const term = `%${searchQ.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
       query = query.or(`order_number.ilike.${term},customer_name.ilike.${term},customer_email.ilike.${term}`);
@@ -138,6 +143,7 @@ export default async function AdminOrdersPage({
     const buildHref = (overrides: Partial<SearchParams>) => {
       const q = new URLSearchParams();
       if (validStatus) q.set("status", validStatus);
+      if (typeFilter)  q.set("type",   typeFilter);
       if (fromDate) q.set("from", fromDate);
       if (toDate) q.set("to", toDate);
       if (searchQ) q.set("q", searchQ);
@@ -154,6 +160,7 @@ export default async function AdminOrdersPage({
 
     const exportHref = `/api/admin/orders/export?${new URLSearchParams({
       ...(validStatus && { status: validStatus }),
+      ...(typeFilter  && { type:   typeFilter }),
       ...(fromDate && { from: fromDate }),
       ...(toDate && { to: toDate }),
       ...(searchQ && { q: searchQ }),
@@ -191,8 +198,46 @@ export default async function AdminOrdersPage({
           ))}
         </section>
 
-        {/* Filters bar */}
+        {/* Type filter — separate from status because the workflow differs.
+            Wallpaper orders need print + dispatch; sample-pack orders only
+            need pick + pack + dispatch. */}
         <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Type</span>
+          <Link
+            href={buildHref({ type: undefined })}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+              !typeFilter ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+            }`}
+          >
+            All
+          </Link>
+          <Link
+            href={buildHref({ type: "wallpaper" })}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+              typeFilter === "wallpaper"
+                ? "bg-amber-500 text-white"
+                : "bg-amber-50 text-amber-900 ring-1 ring-amber-200 hover:bg-amber-100"
+            }`}
+          >
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            Wallpaper
+          </Link>
+          <Link
+            href={buildHref({ type: "sample_pack" })}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+              typeFilter === "sample_pack"
+                ? "bg-sky-600 text-white"
+                : "bg-sky-50 text-sky-800 ring-1 ring-sky-200 hover:bg-sky-100"
+            }`}
+          >
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+            Sample packs
+          </Link>
+        </div>
+
+        {/* Status filter — independent of type. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Status</span>
           <Link
             href={buildHref({ status: undefined })}
             className={`rounded-full px-3 py-1.5 text-xs font-medium ${

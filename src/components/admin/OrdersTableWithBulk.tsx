@@ -6,6 +6,7 @@ import { formatZarCents } from "@/lib/admin-labels";
 import type { OrderStatus } from "@/types/order";
 import { OrderRowActions } from "./OrderRowActions";
 import { OrdersBulkBar } from "./OrdersBulkBar";
+import { OrderTypeBadge } from "./OrderTypeBadge";
 import {
   updateOrderStatus,
   bulkUpdateStatus,
@@ -91,6 +92,9 @@ export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
                     />
                   </th>
                 )}
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500">
+                  Type
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500 sm:px-6">
                   Order
                 </th>
@@ -116,11 +120,17 @@ export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
             </thead>
             <tbody className="divide-y divide-stone-200">
               {orders.map((row) => {
-                const status = (row.status ?? "pending") as OrderStatus;
+                const status   = (row.status ?? "pending") as OrderStatus;
+                const isSample = row.product_type === "sample_pack";
+                // Left-edge accent so even a glance at the table separates
+                // sample-pack orders (sky) from wallpaper orders (amber).
+                const accentClass = isSample
+                  ? "border-l-4 border-l-sky-400"
+                  : "border-l-4 border-l-amber-400";
                 return (
                   <tr
                     key={row.id}
-                    className={`bg-white transition hover:bg-stone-50/80 ${
+                    className={`bg-white transition hover:bg-stone-50/80 ${accentClass} ${
                       row.refunded_at ? "opacity-75" : ""
                     }`}
                   >
@@ -136,6 +146,9 @@ export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
                         )}
                       </td>
                     )}
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <OrderTypeBadge type={row.product_type} />
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-sm font-medium text-stone-900 sm:px-6">
                       {row.order_number}
                     </td>
