@@ -1,7 +1,7 @@
 import { Section } from "@/components/ui/Section";
-import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Button } from "@/components/ui/Button";
+import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 
 export const metadata = {
   title: "How it works | PaperWalls",
@@ -10,28 +10,36 @@ export const metadata = {
 
 const STEPS = [
   {
-    num:  "01",
-    title:"Add your image",
-    body: "Drop in any photo, artwork, or pattern. JPG, PNG, or WebP up to 50 MB. We give you live feedback on whether it'll print sharply at your wall size.",
-    tag:  "Quality checked",
+    num:   "01",
+    title: "Add your image",
+    body:  "Drop in any photo, artwork, or pattern. JPG, PNG, or WebP up to 50 MB. We give you live feedback on whether it'll print sharply at your wall size.",
+    tag:   "Quality checked",
+    image: "/images/how-it-works/step-1-upload.jpg",
+    alt:   "A hand holding a phone with a photo ready to upload, on a soft linen sofa",
   },
   {
-    num:  "02",
-    title:"Set your wall size",
-    body: "Width and height in centimetres, edge to edge. Configure one wall or up to four. We update the price the moment your numbers are valid.",
-    tag:  "Live pricing",
+    num:   "02",
+    title: "Set your wall size",
+    body:  "Width and height in centimetres, edge to edge. Configure one wall or up to four. We update the price the moment your numbers are valid.",
+    tag:   "Live pricing",
+    image: "/images/how-it-works/step-2-measure.jpg",
+    alt:   "A hand pulling a tape measure across a plain off-white wall, marking it lightly",
   },
   {
-    num:  "03",
-    title:"Pick finish and install",
-    body: "Satin, Matte, or Linen on traditional paste-the-wall or peel-and-stick. DIY with optional kit, or add a pro installer. The price updates as you choose.",
-    tag:  "Three finishes",
+    num:   "03",
+    title: "We print and finish",
+    body:  "Satin, Matte, or Linen on traditional paste-the-wall or peel-and-stick. Every order goes through the same commercial press in Cape Town, cut to the millimetre.",
+    tag:   "Three finishes",
+    image: "/images/how-it-works/step-3-print.jpg",
+    alt:   "Wide-format print press in mid-run, custom wallpaper emerging from the rollers",
   },
   {
-    num:  "04",
-    title:"We print and ship",
-    body: "Printed in Cape Town on commercial-grade substrate, cut to the millimetre, packed in kraft. Free SA delivery. Yours in five days.",
-    tag:  "5-day production",
+    num:   "04",
+    title: "Yours in 5 days",
+    body:  "Packed in kraft paper with cotton ribbon, dispatched within 72 hours, free tracked courier across SA. Hang it yourself with the printed install guide, or add a pro installer.",
+    tag:   "Free SA delivery",
+    image: "/images/how-it-works/step-4-deliver.jpg",
+    alt:   "Editorial flat-lay of a PaperWalls package — rolled wallpaper, kraft sleeve, care card",
   },
 ];
 
@@ -52,37 +60,70 @@ const AFTER = [
 export default function HowItWorksPage() {
   return (
     <main className="bg-pw-bg pb-16 sm:pb-20">
-      <header className="mx-auto max-w-7xl px-5 pt-6 pb-5 sm:px-8 sm:pt-10 sm:pb-8 lg:px-12 lg:pt-14 lg:pb-12">
-        <div className="max-w-2xl">
-          <p className="pw-overline text-pw-muted">The process</p>
-          <h1 className="pw-h1 mt-2 text-pw-ink sm:mt-3">
-            From upload to wall.
-          </h1>
-          <p className="pw-body mt-3 text-pw-ink/70 sm:pw-body-lg sm:mt-4">
-            Four steps. Live pricing throughout. No payment until you approve everything.
-          </p>
+      {/* Hero — split: header copy left, anchor image right */}
+      <section className="bg-pw-bg">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-5 pt-6 pb-10 sm:gap-10 sm:px-8 sm:pt-10 sm:pb-14 lg:grid-cols-12 lg:items-center lg:gap-16 lg:px-12 lg:pt-14 lg:pb-20">
+          <div className="lg:col-span-5">
+            <p className="pw-overline text-pw-muted">The process</p>
+            <h1 className="pw-display mt-3 text-pw-ink sm:mt-4">
+              From upload to wall.
+            </h1>
+            <p className="pw-body-lg mt-4 max-w-md text-pw-ink/70 sm:mt-5">
+              Four steps. Live pricing throughout. No payment until you approve everything.
+            </p>
+            <div className="mt-7 flex flex-col items-stretch gap-3 sm:mt-8 sm:flex-row sm:items-center">
+              <Button href="/config" variant="primary" size="lg">
+                Start designing
+              </Button>
+              <Button href="/samples" variant="ghost" size="md">
+                Or order a sample first →
+              </Button>
+            </div>
+          </div>
+          <div className="lg:col-span-7">
+            <ImagePlaceholder
+              src="/images/how-it-works/hero.jpg"
+              aspectRatio="4/3"
+              priority
+              sizes="(min-width: 1024px) 58vw, 100vw"
+              prompt="Editorial photograph of a finished feature wall with custom wallpaper, person standing back admiring it"
+            />
+          </div>
         </div>
-      </header>
+      </section>
 
-      <Section tone="bg" id="steps">
-        <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2">
+      {/* The four steps — image-led */}
+      <Section tone="surface" id="steps">
+        <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2">
           {STEPS.map((s) => (
             <article
               key={s.num}
-              className="flex flex-col rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8"
+              className="flex flex-col overflow-hidden rounded-pw-card border border-pw-stone bg-pw-bg"
             >
-              <span className="pw-display text-pw-ink/15">{s.num}</span>
-              <h2 className="pw-h3 mt-4 text-pw-ink">{s.title}</h2>
-              <p className="pw-body mt-3 text-pw-ink/70">{s.body}</p>
-              <p className="pw-overline mt-5 text-pw-accent">{s.tag}</p>
+              <ImagePlaceholder
+                src={s.image}
+                aspectRatio="4/3"
+                sizes="(min-width: 768px) 50vw, 100vw"
+                prompt={s.alt}
+                className="rounded-none"
+              />
+              <div className="flex flex-1 flex-col p-6 sm:p-8">
+                <div className="flex items-baseline gap-3">
+                  <span className="pw-overline text-pw-muted-light">{s.num}</span>
+                  <span className="pw-overline text-pw-accent">{s.tag}</span>
+                </div>
+                <h2 className="pw-h3 mt-3 text-pw-ink">{s.title}</h2>
+                <p className="pw-body mt-3 text-pw-ink/70">{s.body}</p>
+              </div>
             </article>
           ))}
         </div>
       </Section>
 
-      <Section tone="surface" id="prep">
+      {/* Prep + after — supporting context, kept compact */}
+      <Section tone="bg" id="prep">
         <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2">
-          <div className="rounded-pw-card border border-pw-stone bg-pw-bg p-6 sm:p-8">
+          <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8">
             <Eyebrow>Before you start</Eyebrow>
             <h2 className="pw-h3 mt-3 text-pw-ink">Quick checklist.</h2>
             <ul className="mt-5 space-y-3">
@@ -95,7 +136,7 @@ export default function HowItWorksPage() {
             </ul>
           </div>
 
-          <div className="rounded-pw-card border border-pw-stone bg-pw-bg p-6 sm:p-8">
+          <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8">
             <Eyebrow>After checkout</Eyebrow>
             <h2 className="pw-h3 mt-3 text-pw-ink">What happens next.</h2>
             <ul className="mt-5 space-y-3">
@@ -103,7 +144,7 @@ export default function HowItWorksPage() {
                 <li key={item} className="flex items-start gap-3">
                   <span
                     aria-hidden
-                    className="pw-overline mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-pw-ink/20 bg-pw-surface text-pw-ink"
+                    className="pw-overline mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-pw-ink/20 bg-pw-bg text-pw-ink"
                   >
                     {i + 1}
                   </span>
@@ -115,6 +156,7 @@ export default function HowItWorksPage() {
         </div>
       </Section>
 
+      {/* Closing CTA */}
       <Section tone="ink" id="closing">
         <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-end lg:gap-16">
           <div className="lg:col-span-7">
