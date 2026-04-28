@@ -14,7 +14,6 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
-  const factory = searchParams.get("factory");
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const q = (searchParams.get("q") ?? "").trim();
@@ -24,14 +23,12 @@ export async function GET(request: Request) {
   let query = supabase
     .from("orders")
     .select(
-      "order_number, customer_name, customer_email, customer_phone, status, total_cents, created_at, updated_at, shipped_at, assigned_factory_id, factories(name)"
+      "order_number, customer_name, customer_email, customer_phone, status, total_cents, created_at, updated_at, shipped_at, tracking_number, courier_name"
     );
 
   if (!showArchived) query = query.is("deleted_at", null);
   if (refunded) query = query.not("refunded_at", "is", null);
   else if (status) query = query.eq("status", status);
-  if (factory === "unassigned") query = query.is("assigned_factory_id", null);
-  else if (factory) query = query.eq("assigned_factory_id", factory);
   if (q) {
     const term = `%${q.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
     query = query.or(`order_number.ilike.${term},customer_name.ilike.${term}`);
@@ -56,7 +53,8 @@ export async function GET(request: Request) {
     "Created",
     "Updated",
     "Shipped",
-    "Factory",
+    "Courier",
+    "Tracking",
   ];
   const escape = (v: unknown): string => {
     const s = v == null ? "" : String(v);
@@ -78,7 +76,8 @@ export async function GET(request: Request) {
         r.created_at ? new Date(r.created_at as string).toISOString().slice(0, 10) : "",
         r.updated_at ? new Date(r.updated_at as string).toISOString().slice(0, 10) : "",
         r.shipped_at ? new Date(r.shipped_at as string).toISOString().slice(0, 10) : "",
-        (r.factories as { name?: string } | null)?.name ?? "",
+        r.courier_name ?? "",
+        r.tracking_number ?? "",
       ].map(escape).join(",")
     ),
   ];

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { signedPrintUrls } from "@/lib/storage";
 import {
   ORDER_STATUS_LABELS,
   MATERIAL_LABELS,
@@ -16,6 +17,10 @@ import {
 } from "@/app/admin/orders/actions";
 import { OrderEditForm } from "@/components/admin/OrderEditForm";
 import { OrderActionButtons } from "@/components/admin/OrderActionButtons";
+import { ShipOrderForm } from "@/components/admin/ShipOrderForm";
+import { MarkDeliveredButton } from "@/components/admin/MarkDeliveredButton";
+import { PreflightChecks } from "@/components/admin/PreflightChecks";
+import { ResendEmailButtons } from "@/components/admin/ResendEmailButtons";
 import type { OrderStatus, WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +48,10 @@ type Row = {
   walls_spec: { widthM: number; heightM: number }[] | null;
   wallpaper_style: string | null;
   application_method: string | null;
+  tracking_number: string | null;
+  courier_name: string | null;
+  tracking_url: string | null;
+  dispatched_at: string | null;
   subtotal_cents: number;
   shipping_cents: number;
   discount_cents: number;
@@ -119,6 +128,9 @@ export default async function AdminOrderDetailPage({
     .eq("id", id)
     .single();
 
+  // (`select *` already returns the new tracking_* / dispatched_at columns
+  // — Row type was extended above so TS sees them.)
+
   if (error || !order) {
     notFound();
   }
@@ -134,7 +146,8 @@ export default async function AdminOrderDetailPage({
 
   const row = order as Row;
   const imageUrls = parseImageUrls(row.image_urls);
-  const urls = imageUrls.length > 0 ? imageUrls : row.image_url ? [row.image_url] : [];
+  const paths = imageUrls.length > 0 ? imageUrls : row.image_url ? [row.image_url] : [];
+  const urls = await signedPrintUrls(paths);
   const status = (row.status ?? "new") as OrderStatus;
   const provinceLabel = PROVINCE_LABELS[(row.province as ShippingProvince) ?? "other"] ?? row.province;
   const activityList = ((activity ?? []) as unknown) as ActivityRow[];
@@ -195,6 +208,63 @@ export default async function AdminOrderDetailPage({
           isAdmin={!!isAdmin}
         />
       </div>
+
+      {/* Pre-flight production readiness — surfaced for any non-cancelled
+          wallpaper order so the operator catches gaps before printing. */}
+      {row.product_type === "wallpaper" && status !== "cancelled" && !row.deleted_at && (
+        <PreflightChecks
+          imagesPresent={paths.length > 0}
+          imageCount={paths.length}
+          wallCount={row.wall_count}
+          totalSqm={row.total_sqm ? Number(row.total_sqm) : null}
+          province={row.province}
+          postalCode={row.postal_code}
+          addressLine1={row.address_line1}
+          customerPhone={row.customer_phone}
+          wallpaperStyle={row.wallpaper_style}
+          applicationMethod={row.application_method}
+        />
+      )}
+
+      {/* Fulfilment: ship + notify, then mark delivered. Only for paid orders
+          on the customer-fulfilment path (skip pending / cancelled / refunded). */}
+      {isAdmin
+        && !row.deleted_at
+        && row.refunded_at == null
+        && (status === "in_production" || status === "new" || status === "shipped") && (
+        <ShipOrderForm
+          orderId={id}
+          initialCourier={row.courier_name}
+          initialTracking={row.tracking_number}
+          initialTrackingUrl={row.tracking_url}
+          alreadyShipped={status === "shipped"}
+        />
+      )}
+
+      {isAdmin && status === "shipped" && !row.deleted_at && (
+        <MarkDeliveredButton orderId={id} />
+      )}
+
+      {isAdmin
+        && !row.deleted_at
+        && row.refunded_at == null
+        && status !== "pending"
+        && status !== "cancelled"
+        && row.customer_email && (
+        <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-stone-500">Resend customer email</p>
+          <p className="mt-1 text-xs text-stone-500">
+            Use when the customer says they didn't get one. Each click queues a fresh send.
+          </p>
+          <div className="mt-3">
+            <ResendEmailButtons
+              orderId={id}
+              status={status}
+              hasTracking={!!row.tracking_number}
+            />
+          </div>
+        </div>
+      )}
 
       {isAdmin && row.product_type === "wallpaper" && (
         <OrderEditForm
@@ -376,6 +446,27 @@ export default async function AdminOrderDetailPage({
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {(row.tracking_number || row.courier_name) && (
+          <div className="mt-4 grid gap-2 border-t border-stone-200 pt-4 sm:grid-cols-2">
+            <div>
+              <span className="text-xs font-medium text-stone-500">Courier</span>
+              <p className="mt-0.5 text-sm text-stone-900">{row.courier_name ?? "—"}</p>
+            </div>
+            <div>
+              <span className="text-xs font-medium text-stone-500">Tracking number</span>
+              <p className="mt-0.5 font-mono text-sm text-stone-900">
+                {row.tracking_url ? (
+                  <a href={row.tracking_url} target="_blank" rel="noopener noreferrer" className="text-amber-700 underline">
+                    {row.tracking_number}
+                  </a>
+                ) : (
+                  row.tracking_number ?? "—"
+                )}
+              </p>
+            </div>
           </div>
         )}
         <div className="mt-4 grid gap-2 border-t border-stone-200 pt-4 text-sm sm:grid-cols-2 lg:grid-cols-4">

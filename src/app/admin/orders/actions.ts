@@ -5,6 +5,50 @@ import { createClient } from "@/lib/supabase/server";
 
 const VALID_STATUSES = ["new", "in_production", "shipped", "delivered"] as const;
 
+const COURIERS = [
+  "Pargo",
+  "The Courier Guy",
+  "Aramex",
+  "Dawn Wing",
+  "RAM",
+  "PostNet",
+  "Other",
+] as const;
+
+type Courier = (typeof COURIERS)[number];
+
+/**
+ * Queue a transactional email idempotently. Uses the (idempotency_key) unique
+ * index so re-clicking "mark shipped" never sends a duplicate.
+ */
+async function queueCustomerEmail(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  args: {
+    orderId:    string;
+    customerId: string | null;
+    type:       "order_confirmed" | "order_shipped" | "order_delivered";
+    subject:    string;
+  },
+) {
+  if (!args.customerId) return;
+  const { error } = await supabase.from("scheduled_emails").upsert(
+    {
+      customer_id:     args.customerId,
+      order_id:        args.orderId,
+      type:            args.type,
+      status:          "pending",
+      send_at:         new Date().toISOString(),
+      subject:         args.subject,
+      idempotency_key: `${args.type}:${args.orderId}`,
+      attempts:        0,
+    },
+    { onConflict: "idempotency_key", ignoreDuplicates: true },
+  );
+  if (error) {
+    console.error(`[queueCustomerEmail] ${args.type} for ${args.orderId}:`, error.message);
+  }
+}
+
 async function setLastActivity(
   supabase: Awaited<ReturnType<typeof createClient>>,
   orderId: string,
@@ -45,14 +89,15 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
   const { data: order } = await supabase
     .from("orders")
-    .select("status")
+    .select("id, status, customer_id, customer_email, tracking_number")
     .eq("id", orderId)
     .single();
   if (!order) return { error: "Order not found" };
 
   const updates: Record<string, unknown> = { status };
   if (status === "shipped") {
-    updates.shipped_at = new Date().toISOString();
+    updates.shipped_at   = new Date().toISOString();
+    updates.dispatched_at = new Date().toISOString();
   }
   if (status === "delivered") {
     updates.delivered_at = new Date().toISOString();
@@ -74,51 +119,184 @@ export async function updateOrderStatus(orderId: string, status: string) {
   });
   await setLastActivity(supabase, orderId, `Status → ${status}`);
 
+  // Queue customer notifications. Shipped only gets queued if tracking is set
+  // (otherwise the operator is parking the status; the proper path is the
+  // dedicated "ship + notify" form). Delivered always sends — there's no
+  // tracking dependency.
+  if (status === "shipped" && order.tracking_number) {
+    await queueCustomerEmail(supabase, {
+      orderId,
+      customerId: order.customer_id as string | null,
+      type:       "order_shipped",
+      subject:    "",
+    });
+  }
+  if (status === "delivered") {
+    await queueCustomerEmail(supabase, {
+      orderId,
+      customerId: order.customer_id as string | null,
+      type:       "order_delivered",
+      subject:    "",
+    });
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${orderId}`);
+  return {
+    ok:   true,
+    note: status === "shipped" && !order.tracking_number
+      ? "Status set. No tracking captured — customer not emailed. Use the Ship form to send tracking."
+      : undefined,
+  };
+}
+
+/**
+ * Capture tracking + mark shipped + email the customer in one action.
+ * The canonical "ship it" path. Idempotent on the email side.
+ */
+export async function markOrderShipped(
+  orderId: string,
+  args: { courier: string; trackingNumber: string; trackingUrl?: string },
+): Promise<{ ok?: true; error?: string }> {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  const courier = (args.courier ?? "").trim() as Courier;
+  const trackingNumber = (args.trackingNumber ?? "").trim();
+  const trackingUrl = (args.trackingUrl ?? "").trim() || null;
+  if (!COURIERS.includes(courier)) return { error: "Pick a courier" };
+  if (!trackingNumber)             return { error: "Tracking number is required" };
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id, status, customer_id")
+    .eq("id", orderId)
+    .single();
+  if (!order) return { error: "Order not found" };
+
+  const wasShipped = order.status === "shipped";
+  const now = new Date().toISOString();
+
+  const { error: updateError } = await supabase
+    .from("orders")
+    .update({
+      status:          "shipped",
+      courier_name:    courier,
+      tracking_number: trackingNumber,
+      tracking_url:    trackingUrl,
+      shipped_at:      wasShipped ? undefined : now,
+      dispatched_at:   wasShipped ? undefined : now,
+    })
+    .eq("id", orderId);
+  if (updateError) return { error: updateError.message };
+
+  await supabase.from("order_activity").insert({
+    order_id:  orderId,
+    user_id:   userId,
+    action:    wasShipped ? "note" : "shipped",
+    new_value: `${courier} · ${trackingNumber}`,
+  });
+  await setLastActivity(supabase, orderId, `Shipped via ${courier} · ${trackingNumber}`);
+
+  await queueCustomerEmail(supabase, {
+    orderId,
+    customerId: order.customer_id as string | null,
+    type:       "order_shipped",
+    subject:    "",
+  });
+
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
   return { ok: true };
 }
 
-export async function assignOrderFactory(orderId: string, factoryId: string | null) {
+/**
+ * Mark delivered + queue the delivered email. Separate from the dropdown
+ * so operators can use either path.
+ */
+export async function markOrderDelivered(orderId: string): Promise<{ ok?: true; error?: string }> {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
   const { data: order } = await supabase
     .from("orders")
-    .select("assigned_factory_id")
+    .select("id, status, customer_id")
     .eq("id", orderId)
     .single();
   if (!order) return { error: "Order not found" };
 
-  let oldName = "Unassigned";
-  if (order.assigned_factory_id) {
-    const { data: f } = await supabase.from("factories").select("name").eq("id", order.assigned_factory_id).single();
-    oldName = f?.name ?? "Unknown";
-  }
-  let newName = "Unassigned";
-  if (factoryId) {
-    const { data: f } = await supabase.from("factories").select("name").eq("id", factoryId).single();
-    newName = f?.name ?? factoryId;
-  }
-
   const { error: updateError } = await supabase
     .from("orders")
-    .update({ assigned_factory_id: factoryId })
+    .update({ status: "delivered", delivered_at: new Date().toISOString() })
     .eq("id", orderId);
-
   if (updateError) return { error: updateError.message };
 
   await supabase.from("order_activity").insert({
-    order_id: orderId,
-    user_id: userId,
-    action: "assigned",
-    old_value: oldName,
-    new_value: newName,
+    order_id:  orderId,
+    user_id:   userId,
+    action:    "status_change",
+    old_value: order.status,
+    new_value: "delivered",
   });
-  await setLastActivity(supabase, orderId, `Factory → ${newName}`);
+  await setLastActivity(supabase, orderId, "Delivered");
+
+  await queueCustomerEmail(supabase, {
+    orderId,
+    customerId: order.customer_id as string | null,
+    type:       "order_delivered",
+    subject:    "",
+  });
 
   revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${orderId}`);
+  return { ok: true };
+}
+
+export const ADMIN_COURIERS = COURIERS;
+
+/**
+ * Re-send a customer email on demand. Inserts a fresh queue row with a
+ * timestamped idempotency key so it always sends, even if a previous one
+ * already went out.
+ */
+export async function resendCustomerEmail(
+  orderId: string,
+  type: "order_confirmed" | "order_shipped" | "order_delivered",
+): Promise<{ ok?: true; error?: string }> {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  const { data: order } = await supabase
+    .from("orders")
+    .select("id, customer_id")
+    .eq("id", orderId)
+    .single();
+  if (!order) return { error: "Order not found" };
+  if (!order.customer_id) return { error: "No customer attached to this order" };
+
+  const { error } = await supabase.from("scheduled_emails").insert({
+    customer_id:     order.customer_id,
+    order_id:        orderId,
+    type,
+    status:          "pending",
+    send_at:         new Date().toISOString(),
+    subject:         "",
+    idempotency_key: `${type}:${orderId}:resend:${Date.now()}`,
+    attempts:        0,
+  });
+  if (error) return { error: error.message };
+
+  await supabase.from("order_activity").insert({
+    order_id:  orderId,
+    user_id:   userId,
+    action:    "note",
+    new_value: `Resent ${type.replace("_", " ")} email`,
+  });
+  await setLastActivity(supabase, orderId, `Resent ${type.replace("_", " ")} email`);
+
   revalidatePath(`/admin/orders/${orderId}`);
   return { ok: true };
 }
@@ -385,12 +563,3 @@ export async function bulkUpdateStatus(orderIds: string[], status: string) {
   return { ok: true };
 }
 
-export async function bulkAssignFactory(orderIds: string[], factoryId: string | null) {
-  const auth = await requireAdmin();
-  if ("error" in auth) return { error: auth.error };
-  for (const id of orderIds) {
-    await assignOrderFactory(id, factoryId);
-  }
-  revalidatePath("/admin/orders");
-  return { ok: true };
-}

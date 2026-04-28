@@ -9,7 +9,6 @@ import { OrdersBulkBar } from "./OrdersBulkBar";
 import {
   updateOrderStatus,
   bulkUpdateStatus,
-  bulkAssignFactory,
 } from "@/app/admin/orders/actions";
 
 type OrderRow = {

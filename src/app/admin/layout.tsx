@@ -38,6 +38,18 @@ export default async function AdminLayout({
               >
                 Orders
               </Link>
+              <Link
+                href="/admin/print-queue"
+                className="text-sm font-medium text-stone-600 hover:text-stone-900"
+              >
+                Print queue
+              </Link>
+              <Link
+                href="/admin/customers"
+                className="text-sm font-medium text-stone-600 hover:text-stone-900"
+              >
+                Customers
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-3">
