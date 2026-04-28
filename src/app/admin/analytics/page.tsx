@@ -510,73 +510,101 @@ export default async function AnalyticsPage({
         </div>
       </header>
 
-      {/* ── System health ──────────────────────────────────────────────
-          Independent of the window — these are always 'right now'. Aimed
-          at catching silent failures (webhook stopped, drainer broken,
-          Resend key missing) before customers notice. */}
-      <Section title="System health" note="window-independent · catches silent failures">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <HealthTile
-            label="Last paid order"
-            value={lastPaymentEvt.data ? agoString(lastPaymentEvt.data.created_at) : "Never"}
-            tone={!lastPaymentEvt.data ? "neutral"
-              : ageHours(lastPaymentEvt.data.created_at) > 72 ? "neutral"
-              : "ok"}
-            sub={lastPaymentEvt.data
-              ? `Webhook fired ${new Date(lastPaymentEvt.data.created_at).toLocaleString("en-ZA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
-              : "No PayFast ITN received yet"}
-          />
-          <HealthTile
-            label="Email drainer"
-            value={lastDrainEvt.data ? `Last ran ${agoString(lastDrainEvt.data.created_at)}` : "Never run"}
-            tone={!lastDrainEvt.data ? "warn"
-              : ageHours(lastDrainEvt.data.created_at) > 1 ? "warn"
-              : "ok"}
-            sub={!resendKeySetCheck.set ? "RESEND_API_KEY not set" : "Should run every 5 min"}
-          />
-          <HealthTile
-            label="Email queue"
-            value={`${pendingEmails.count ?? 0} pending`}
-            tone={(pendingEmails.count ?? 0) > 20 ? "warn" : "ok"}
-            sub={(failedEmailsRecent.data?.length ?? 0) > 0
-              ? `${failedEmailsRecent.data?.length} failed in last 24h`
-              : "No failures in last 24h"}
-          />
-          <HealthTile
-            label="Reconciliation"
-            value={lastReconcileEvt.data ? `Last ran ${agoString(lastReconcileEvt.data.created_at)}` : "Never run"}
-            tone={!lastReconcileEvt.data ? "warn"
-              : ageHours(lastReconcileEvt.data.created_at) > 36 ? "warn"
-              : "ok"}
-            sub="Cron should hit /api/cron/reconcile-payments daily"
-          />
-          <HealthTile
-            label="Traffic in last hour"
-            value={`${(eventsLastHour.count ?? 0).toLocaleString()} events`}
-            tone={(eventsLastHour.count ?? 0) > 0 ? "ok" : "neutral"}
-            sub={(eventsLastHour.count ?? 0) > 0
-              ? "Tracker pipeline is alive"
-              : "No traffic yet — pre-launch"}
-          />
-        </div>
-        {(failedEmailsRecent.data?.length ?? 0) > 0 && (
-          <details className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <summary className="cursor-pointer text-sm font-medium text-amber-900">
-              Recent email failures ({failedEmailsRecent.data?.length})
+      {/* ── System health (collapsed by default) ────────────────────────
+          Operator doesn't need to see every tile every visit. A top-level
+          dot summary tells them whether to expand: green = all good, amber =
+          something needs attention. Click to expand into the full grid. */}
+      {(() => {
+        // Pre-compute tones once so the summary dot reflects them.
+        const tones: ("ok" | "warn" | "neutral")[] = [
+          !lastPaymentEvt.data ? "neutral"
+            : ageHours(lastPaymentEvt.data.created_at) > 72 ? "neutral"
+            : "ok",
+          !lastDrainEvt.data ? "warn"
+            : ageHours(lastDrainEvt.data.created_at) > 1 ? "warn"
+            : "ok",
+          (pendingEmails.count ?? 0) > 20 ? "warn" : "ok",
+          !lastReconcileEvt.data ? "warn"
+            : ageHours(lastReconcileEvt.data.created_at) > 36 ? "warn"
+            : "ok",
+          (eventsLastHour.count ?? 0) > 0 ? "ok" : "neutral",
+        ];
+        const anyWarn   = tones.some((t) => t === "warn");
+        const summaryDot = anyWarn ? "bg-amber-500"   : "bg-green-500";
+        const summaryTxt = anyWarn ? "Needs attention" : "All systems nominal";
+
+        return (
+          <details className="group rounded-xl border border-stone-200 bg-white">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-stone-50">
+              <div className="flex items-center gap-3">
+                <span aria-hidden className={`h-2 w-2 rounded-full ${summaryDot}`} />
+                <span className="text-sm font-semibold text-stone-900">System health</span>
+                <span className="text-xs text-stone-500">{summaryTxt}</span>
+              </div>
+              <span aria-hidden className="text-xs text-stone-400 transition-transform group-open:rotate-90">›</span>
             </summary>
-            <ul className="mt-3 space-y-2">
-              {(failedEmailsRecent.data ?? []).map((r) => (
-                <li key={r.id} className="text-xs text-amber-900/80">
-                  <span className="font-mono">{r.type}</span>
-                  {" · "}
-                  {r.last_attempt_at && new Date(r.last_attempt_at).toLocaleString("en-ZA")}
-                  {r.error && <p className="mt-0.5 font-mono text-[11px] text-amber-900/70">{r.error}</p>}
-                </li>
-              ))}
-            </ul>
+
+            <div className="border-t border-stone-200 p-5">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <HealthTile
+                  label="Last paid order"
+                  value={lastPaymentEvt.data ? agoString(lastPaymentEvt.data.created_at) : "Never"}
+                  tone={tones[0]}
+                  sub={lastPaymentEvt.data
+                    ? `Webhook fired ${new Date(lastPaymentEvt.data.created_at).toLocaleString("en-ZA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                    : "No PayFast ITN received yet"}
+                />
+                <HealthTile
+                  label="Email drainer"
+                  value={lastDrainEvt.data ? `Last ran ${agoString(lastDrainEvt.data.created_at)}` : "Never run"}
+                  tone={tones[1]}
+                  sub={!resendKeySetCheck.set ? "RESEND_API_KEY not set" : "Should run every 5 min"}
+                />
+                <HealthTile
+                  label="Email queue"
+                  value={`${pendingEmails.count ?? 0} pending`}
+                  tone={tones[2]}
+                  sub={(failedEmailsRecent.data?.length ?? 0) > 0
+                    ? `${failedEmailsRecent.data?.length} failed in last 24h`
+                    : "No failures in last 24h"}
+                />
+                <HealthTile
+                  label="Reconciliation"
+                  value={lastReconcileEvt.data ? `Last ran ${agoString(lastReconcileEvt.data.created_at)}` : "Never run"}
+                  tone={tones[3]}
+                  sub="Cron should hit /api/cron/reconcile-payments daily"
+                />
+                <HealthTile
+                  label="Traffic in last hour"
+                  value={`${(eventsLastHour.count ?? 0).toLocaleString()} events`}
+                  tone={tones[4]}
+                  sub={(eventsLastHour.count ?? 0) > 0
+                    ? "Tracker pipeline is alive"
+                    : "No traffic yet — pre-launch"}
+                />
+              </div>
+
+              {(failedEmailsRecent.data?.length ?? 0) > 0 && (
+                <details className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <summary className="cursor-pointer text-sm font-medium text-amber-900">
+                    Recent email failures ({failedEmailsRecent.data?.length})
+                  </summary>
+                  <ul className="mt-3 space-y-2">
+                    {(failedEmailsRecent.data ?? []).map((r) => (
+                      <li key={r.id} className="text-xs text-amber-900/80">
+                        <span className="font-mono">{r.type}</span>
+                        {" · "}
+                        {r.last_attempt_at && new Date(r.last_attempt_at).toLocaleString("en-ZA")}
+                        {r.error && <p className="mt-0.5 font-mono text-[11px] text-amber-900/70">{r.error}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
           </details>
-        )}
-      </Section>
+        );
+      })()}
 
       {/* ── At a glance ──────────────────────────────────────────────── */}
       <Section title={win.label} note="All values in SAST">
