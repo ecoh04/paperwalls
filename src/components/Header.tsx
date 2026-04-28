@@ -102,7 +102,7 @@ export function Header() {
             </nav>
             <div className="flex items-center gap-2">
               <Link
-                href="/config"
+                href="/shop/custom-wallpaper"
                 className="pw-small inline-flex h-10 items-center rounded-pw bg-pw-ink px-4 font-semibold text-white hover:bg-pw-ink-soft transition-colors"
               >
                 Design yours
@@ -152,7 +152,7 @@ export function Header() {
               </Link>
             ))}
             <Link
-              href="/config"
+              href="/shop/custom-wallpaper"
               onClick={() => setOpen(false)}
               className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-pw bg-pw-ink text-base font-semibold text-white hover:bg-pw-ink-soft transition-colors"
             >

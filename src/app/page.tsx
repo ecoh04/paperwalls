@@ -78,7 +78,7 @@ function HeroSection() {
 
           {/* CTAs — primary full-width on mobile, secondary as text link below */}
           <div className="mt-6 flex flex-col items-center gap-4 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6">
-            <Button href="/config" variant="primary" size="lg" className="w-full sm:w-auto">
+            <Button href="/shop/custom-wallpaper" variant="primary" size="lg" className="w-full sm:w-auto">
               Design your wallpaper
             </Button>
             <TextLink href="/samples">Order samples first</TextLink>

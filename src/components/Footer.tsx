@@ -68,7 +68,7 @@ export function Footer() {
           <div className="hidden lg:col-span-2 lg:block">
             <p className="pw-overline text-pw-ink">Get started</p>
             <Link
-              href="/config"
+              href="/shop/custom-wallpaper"
               className="pw-small mt-4 inline-flex h-10 items-center rounded-pw bg-pw-ink px-4 font-semibold text-white hover:bg-pw-ink-soft transition-colors"
             >
               Design yours
