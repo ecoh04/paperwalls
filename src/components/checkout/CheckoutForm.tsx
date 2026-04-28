@@ -263,7 +263,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
       </button>
 
       <p className="pw-small text-center text-pw-muted">
-        You&rsquo;ll complete payment securely with PayFast on the next screen. We never store card details.
+        You&rsquo;ll complete payment securely with PayFast on the next screen.
       </p>
     </form>
   );
