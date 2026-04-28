@@ -93,6 +93,19 @@ export default async function PrintQueuePage() {
   const newCount = list.filter((r) => r.status === "new").length;
   const inProductionCount = list.filter((r) => r.status === "in_production").length;
   const totalSqm = list.reduce((s, r) => s + Number(r.total_sqm ?? 0), 0);
+
+  // Production load: m² waiting per finish + oldest unstarted order.
+  const sqmByFinish = list.reduce<Record<string, number>>((acc, r) => {
+    const f = r.wallpaper_style ?? "unknown";
+    acc[f] = (acc[f] ?? 0) + Number(r.total_sqm ?? 0);
+    return acc;
+  }, {});
+  const oldestNew = list.filter((r) => r.status === "new")
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+  const oldestNewHours = oldestNew
+    ? Math.floor((Date.now() - new Date(oldestNew.created_at).getTime()) / (60 * 60 * 1000))
+    : null;
+
   const loadedAt = Date.now();
 
   return (
@@ -121,6 +134,49 @@ export default async function PrintQueuePage() {
           <RefreshButton initialLoadedAt={loadedAt} />
         </div>
       </header>
+
+      {list.length > 0 && (
+        <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-stone-500">Total m² to print</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-stone-900">{totalSqm.toFixed(1)}</p>
+              <p className="mt-0.5 text-xs text-stone-500">{list.length} order{list.length === 1 ? "" : "s"} across all stages</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-stone-500">By finish</p>
+              <div className="mt-1 space-y-0.5">
+                {Object.entries(sqmByFinish)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([finish, sqm]) => (
+                    <div key={finish} className="flex justify-between text-sm">
+                      <span className="capitalize text-stone-700">{finish}</span>
+                      <span className="tabular-nums text-stone-900">{sqm.toFixed(1)} m²</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-stone-500">Oldest unstarted</p>
+              {oldestNew && oldestNewHours != null ? (
+                <>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums text-stone-900">
+                    {oldestNewHours < 24 ? `${oldestNewHours}h` : `${Math.floor(oldestNewHours / 24)}d`}
+                  </p>
+                  <p className="mt-0.5 text-xs text-stone-500">
+                    <Link href={`/admin/orders/${oldestNew.id}`} className="font-mono hover:text-amber-700">
+                      {oldestNew.order_number}
+                    </Link>{" — "}
+                    paid {new Date(oldestNew.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-stone-500">No new orders waiting.</p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {list.length === 0 ? (
         <div className="rounded-xl border border-stone-200 bg-white p-12 text-center text-stone-500">

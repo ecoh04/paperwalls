@@ -7,6 +7,7 @@ import type { OrderStatus } from "@/types/order";
 import { OrderRowActions } from "./OrderRowActions";
 import { OrdersBulkBar } from "./OrdersBulkBar";
 import { OrderTypeBadge } from "./OrderTypeBadge";
+import { AgeChip } from "./AgeChip";
 import {
   updateOrderStatus,
   bulkUpdateStatus,
@@ -131,6 +132,9 @@ export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-stone-500 sm:px-6">
                   Total
                 </th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500">
+                  Age
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500 sm:px-6">
                   Created
                 </th>
@@ -210,6 +214,14 @@ export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
                     />
                     <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-stone-900 sm:px-6">
                       {formatZarCents(Number(row.total_cents))}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <AgeChip
+                        status={status}
+                        lastActivityAt={row.last_activity_at}
+                        updatedAt={row.updated_at}
+                        createdAt={row.created_at}
+                      />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-stone-500 sm:px-6">
                       {row.created_at

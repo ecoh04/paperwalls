@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendEmail } from "@/lib/email/send";
+import { notifyOps } from "@/lib/alerts";
 import {
   renderOrderConfirmed,
   renderOrderShipped,
@@ -49,9 +50,30 @@ export async function GET(req: Request) {
 
   if (error) {
     console.error("[cron drain-emails] fetch failed", error.message);
+    await notifyOps({
+      severity: "fatal",
+      title:    "Email drainer failed to fetch queue",
+      detail:   error.message,
+    });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Run the abandoned-cart marker on every drain so the function actually
+  // gets called. Cheap, idempotent, no harm if called more often than
+  // strictly needed.
+  try {
+    await supabaseAdmin.rpc("mark_abandoned_carts");
+  } catch (err) {
+    console.error("[cron drain-emails] mark_abandoned_carts failed:", err);
+  }
+
   if (!rows || rows.length === 0) {
+    // Heartbeat even when the queue was empty so the System Health panel
+    // can show 'last drained X min ago' regardless of volume.
+    await supabaseAdmin.from("events").insert({
+      type:    "cron.drain_emails",
+      payload: { drained: 0, sent: 0, failed: 0, skipped: 0 },
+    });
     return NextResponse.json({ ok: true, drained: 0 });
   }
 
@@ -164,6 +186,19 @@ export async function GET(req: Request) {
         .eq("id", rowId);
       failed++;
     }
+  }
+
+  // Heartbeat + alert if too many failed at once (drainer is borked).
+  await supabaseAdmin.from("events").insert({
+    type:    "cron.drain_emails",
+    payload: { drained: rows.length, sent, failed, skipped },
+  });
+  if (failed >= 3 && failed >= rows.length / 2) {
+    await notifyOps({
+      severity: "fatal",
+      title:    "Email drainer: most attempts failed",
+      fields: { batch: rows.length, sent, failed, skipped },
+    });
   }
 
   return NextResponse.json({ ok: true, drained: rows.length, sent, failed, skipped });

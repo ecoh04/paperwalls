@@ -129,6 +129,35 @@ export default async function AnalyticsPage({
   const previousAov     = previousOrders > 0 ? Math.round(previousRevenue / previousOrders) : 0;
   const currentRefunds  = sumRef(currentRows);
 
+  // ── System health (window-independent — always 'right now')
+  const HOUR = 60 * 60 * 1000;
+  const [
+    lastPaymentEvt,
+    lastDrainEvt,
+    lastReconcileEvt,
+    eventsLastHour,
+    pendingEmails,
+    failedEmailsRecent,
+    resendKeySetCheck,
+  ] = await Promise.all([
+    supabase.from("events").select("created_at, payload").eq("type", "payment.completed")
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("events").select("created_at, payload").eq("type", "cron.drain_emails")
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("events").select("created_at, payload").eq("type", "cron.reconcile_payments")
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("events").select("id", { count: "exact", head: true })
+      .gte("created_at", new Date(Date.now() - HOUR).toISOString()),
+    supabase.from("scheduled_emails").select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+    supabase.from("scheduled_emails").select("id, error, type, last_attempt_at")
+      .eq("status", "failed")
+      .gte("last_attempt_at", new Date(Date.now() - 24 * HOUR).toISOString())
+      .order("last_attempt_at", { ascending: false })
+      .limit(5),
+    Promise.resolve({ set: !!process.env.RESEND_API_KEY }),
+  ]);
+
   // ── Many queries in parallel ────────────────────────────────────────────
   const liveCutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
@@ -480,6 +509,74 @@ export default async function AnalyticsPage({
           <RefreshButton initialLoadedAt={loadedAt} />
         </div>
       </header>
+
+      {/* ── System health ──────────────────────────────────────────────
+          Independent of the window — these are always 'right now'. Aimed
+          at catching silent failures (webhook stopped, drainer broken,
+          Resend key missing) before customers notice. */}
+      <Section title="System health" note="window-independent · catches silent failures">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <HealthTile
+            label="Last paid order"
+            value={lastPaymentEvt.data ? agoString(lastPaymentEvt.data.created_at) : "Never"}
+            tone={!lastPaymentEvt.data ? "neutral"
+              : ageHours(lastPaymentEvt.data.created_at) > 72 ? "neutral"
+              : "ok"}
+            sub={lastPaymentEvt.data
+              ? `Webhook fired ${new Date(lastPaymentEvt.data.created_at).toLocaleString("en-ZA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
+              : "No PayFast ITN received yet"}
+          />
+          <HealthTile
+            label="Email drainer"
+            value={lastDrainEvt.data ? `Last ran ${agoString(lastDrainEvt.data.created_at)}` : "Never run"}
+            tone={!lastDrainEvt.data ? "warn"
+              : ageHours(lastDrainEvt.data.created_at) > 1 ? "warn"
+              : "ok"}
+            sub={!resendKeySetCheck.set ? "RESEND_API_KEY not set" : "Should run every 5 min"}
+          />
+          <HealthTile
+            label="Email queue"
+            value={`${pendingEmails.count ?? 0} pending`}
+            tone={(pendingEmails.count ?? 0) > 20 ? "warn" : "ok"}
+            sub={(failedEmailsRecent.data?.length ?? 0) > 0
+              ? `${failedEmailsRecent.data?.length} failed in last 24h`
+              : "No failures in last 24h"}
+          />
+          <HealthTile
+            label="Reconciliation"
+            value={lastReconcileEvt.data ? `Last ran ${agoString(lastReconcileEvt.data.created_at)}` : "Never run"}
+            tone={!lastReconcileEvt.data ? "warn"
+              : ageHours(lastReconcileEvt.data.created_at) > 36 ? "warn"
+              : "ok"}
+            sub="Cron should hit /api/cron/reconcile-payments daily"
+          />
+          <HealthTile
+            label="Traffic in last hour"
+            value={`${(eventsLastHour.count ?? 0).toLocaleString()} events`}
+            tone={(eventsLastHour.count ?? 0) > 0 ? "ok" : "neutral"}
+            sub={(eventsLastHour.count ?? 0) > 0
+              ? "Tracker pipeline is alive"
+              : "No traffic yet — pre-launch"}
+          />
+        </div>
+        {(failedEmailsRecent.data?.length ?? 0) > 0 && (
+          <details className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <summary className="cursor-pointer text-sm font-medium text-amber-900">
+              Recent email failures ({failedEmailsRecent.data?.length})
+            </summary>
+            <ul className="mt-3 space-y-2">
+              {(failedEmailsRecent.data ?? []).map((r) => (
+                <li key={r.id} className="text-xs text-amber-900/80">
+                  <span className="font-mono">{r.type}</span>
+                  {" · "}
+                  {r.last_attempt_at && new Date(r.last_attempt_at).toLocaleString("en-ZA")}
+                  {r.error && <p className="mt-0.5 font-mono text-[11px] text-amber-900/70">{r.error}</p>}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </Section>
 
       {/* ── At a glance ──────────────────────────────────────────────── */}
       <Section title={win.label} note="All values in SAST">
@@ -994,4 +1091,30 @@ function SmallStat({ label, value, sub }: { label: string; value: string; sub?: 
       {sub && <p className="mt-0.5 text-xs text-stone-500">{sub}</p>}
     </div>
   );
+}
+
+function HealthTile({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone: "ok" | "warn" | "neutral" }) {
+  const ringCls = tone === "warn" ? "ring-amber-300" : tone === "ok" ? "ring-green-200" : "ring-stone-200";
+  const dotCls  = tone === "warn" ? "bg-amber-500"   : tone === "ok" ? "bg-green-500"   : "bg-stone-400";
+  return (
+    <div className={`rounded-xl bg-white p-4 ring-1 ${ringCls}`}>
+      <div className="flex items-center gap-2">
+        <span aria-hidden className={`h-2 w-2 rounded-full ${dotCls}`} />
+        <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{label}</p>
+      </div>
+      <p className="mt-1.5 text-base font-semibold text-stone-900">{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-stone-500">{sub}</p>}
+    </div>
+  );
+}
+
+function ageHours(iso: string): number {
+  return (Date.now() - new Date(iso).getTime()) / (60 * 60 * 1000);
+}
+
+function agoString(iso: string): string {
+  const h = ageHours(iso);
+  if (h < 1)  return `${Math.max(1, Math.floor(h * 60))} min ago`;
+  if (h < 24) return `${Math.floor(h)}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
