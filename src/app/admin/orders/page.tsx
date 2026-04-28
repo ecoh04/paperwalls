@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 type SearchParams = {
   status?: string;
   type?: string;
+  install?: string;
   from?: string;
   to?: string;
   q?: string;
@@ -37,7 +38,8 @@ export default async function AdminOrdersPage({
   try {
     const params = await searchParams;
     const statusFilter = params.status;
-    const typeFilter   = params.type === "wallpaper" || params.type === "sample_pack" ? params.type : null;
+    const typeFilter    = params.type === "wallpaper" || params.type === "sample_pack" ? params.type : null;
+    const installFilter = params.install === "diy" || params.install === "pro_installer" ? params.install : null;
     const fromDate = params.from;
     const toDate = params.to;
     const searchQ = (params.q ?? "").trim();
@@ -86,7 +88,7 @@ export default async function AdminOrdersPage({
     let query = supabase
       .from("orders")
       .select(
-        "id, order_number, customer_name, customer_email, status, product_type, application_method, total_cents, created_at, updated_at, shipped_at, delivered_at, wall_count, wall_width_m, wall_height_m, wallpaper_style, last_activity_at, last_activity_preview, refunded_at, deleted_at, utm_source"
+        "id, order_number, customer_name, customer_email, status, product_type, application_method, total_cents, created_at, updated_at, shipped_at, delivered_at, wall_count, wall_width_m, wall_height_m, total_sqm, quantity, wallpaper_style, last_activity_at, last_activity_preview, refunded_at, deleted_at, utm_source"
       );
 
     if (!showArchived) {
@@ -99,6 +101,9 @@ export default async function AdminOrdersPage({
     }
     if (typeFilter) {
       query = query.eq("product_type", typeFilter);
+    }
+    if (installFilter) {
+      query = query.eq("application_method", installFilter);
     }
     if (searchQ) {
       const term = `%${searchQ.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
@@ -144,6 +149,7 @@ export default async function AdminOrdersPage({
       const q = new URLSearchParams();
       if (validStatus) q.set("status", validStatus);
       if (typeFilter)  q.set("type",   typeFilter);
+      if (installFilter) q.set("install", installFilter);
       if (fromDate) q.set("from", fromDate);
       if (toDate) q.set("to", toDate);
       if (searchQ) q.set("q", searchQ);
@@ -234,6 +240,42 @@ export default async function AdminOrdersPage({
             Sample packs
           </Link>
         </div>
+
+        {/* Install filter — only meaningful when not viewing sample packs.
+            Pro install is high-LTV and needs a different fulfilment flow,
+            so it's worth being one click away. */}
+        {typeFilter !== "sample_pack" && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Install</span>
+            <Link
+              href={buildHref({ install: undefined })}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                !installFilter ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+              }`}
+            >
+              All
+            </Link>
+            <Link
+              href={buildHref({ install: "diy" })}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                installFilter === "diy" ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+              }`}
+            >
+              DIY
+            </Link>
+            <Link
+              href={buildHref({ install: "pro_installer" })}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
+                installFilter === "pro_installer"
+                  ? "bg-purple-700 text-white"
+                  : "bg-purple-50 text-purple-800 ring-1 ring-purple-200 hover:bg-purple-100"
+              }`}
+            >
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+              Pro install
+            </Link>
+          </div>
+        )}
 
         {/* Status filter — independent of type. */}
         <div className="flex flex-wrap items-center gap-2">

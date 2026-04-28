@@ -25,6 +25,8 @@ type OrderRow = {
   wall_count: number;
   wall_width_m: number | null;
   wall_height_m: number | null;
+  total_sqm?: number | null;
+  quantity?: number;
   wallpaper_style: string | null;
   application_method?: string | null;
   product_type?: string;
@@ -34,6 +36,25 @@ type OrderRow = {
   last_activity_preview: string | null;
   refunded_at: string | null;
 };
+
+const FINISH_LABEL: Record<string, string> = {
+  satin:    "Satin",
+  matte:    "Matte",
+  linen:    "Linen",
+  textured: "Textured",
+  premium:  "Premium",
+};
+
+function describeOrderSpec(row: OrderRow): string {
+  if (row.product_type === "sample_pack") {
+    return `Sample pack · qty ${row.quantity ?? 1}`;
+  }
+  const parts: string[] = [];
+  if (row.wall_count) parts.push(`${row.wall_count} wall${row.wall_count === 1 ? "" : "s"}`);
+  if (row.total_sqm)  parts.push(`${Number(row.total_sqm).toFixed(1)} m²`);
+  if (row.wallpaper_style) parts.push(FINISH_LABEL[row.wallpaper_style] ?? row.wallpaper_style);
+  return parts.join(" · ") || "—";
+}
 
 type Props = {
   orders: OrderRow[];
@@ -102,7 +123,7 @@ export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
                   Customer
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500 sm:px-6">
-                  Source
+                  Spec
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-stone-500 sm:px-6">
                   Status
@@ -127,11 +148,17 @@ export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
                 const accentClass = isSample
                   ? "border-l-4 border-l-sky-400"
                   : "border-l-4 border-l-amber-400";
+                // Status-driven row tint. Pending = amber (urgent: why
+                // hasn't this paid?). Delivered = stone (done, fade back).
+                const tint =
+                  status === "pending"   ? "bg-amber-50/60"
+                  : status === "delivered" ? "bg-stone-50/40"
+                  : "bg-white";
                 return (
                   <tr
                     key={row.id}
-                    className={`bg-white transition hover:bg-stone-50/80 ${accentClass} ${
-                      row.refunded_at ? "opacity-75" : ""
+                    className={`${tint} transition hover:bg-stone-50 ${accentClass} ${
+                      row.refunded_at ? "opacity-60" : ""
                     }`}
                   >
                     {isAdmin && (
@@ -155,8 +182,24 @@ export function OrdersTableWithBulk({ orders, isAdmin }: Props) {
                     <td className="max-w-[160px] truncate px-4 py-3 text-sm text-stone-600 sm:px-6">
                       {row.customer_name}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-stone-400 sm:px-6">
-                      {row.utm_source ?? "—"}
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-stone-700 sm:px-6">
+                      <div className="flex items-center gap-1.5">
+                        <span>{describeOrderSpec(row)}</span>
+                        {row.application_method === "pro_installer" && (
+                          <span
+                            title="Pro installer required — arrange externally; we may ship to the installer or they collect"
+                            className="inline-flex items-center gap-0.5 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-purple-800 ring-1 ring-purple-200"
+                          >
+                            <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M11.49 3.17a.75.75 0 011.06 0l4.28 4.28a.75.75 0 010 1.06l-9.42 9.42a.75.75 0 01-.32.19l-4.28 1.21a.75.75 0 01-.92-.92l1.21-4.28a.75.75 0 01.19-.32l9.42-9.64z" />
+                            </svg>
+                            Pro
+                          </span>
+                        )}
+                        {row.product_type === "wallpaper" && row.application_method === "diy" && (
+                          <span className="text-[10px] font-medium text-stone-400">DIY</span>
+                        )}
+                      </div>
                     </td>
                     <OrderRowActions
                       orderId={row.id}

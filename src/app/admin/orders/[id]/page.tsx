@@ -167,7 +167,9 @@ export default async function AdminOrderDetailPage({
   const status = (row.status ?? "new") as OrderStatus;
   const provinceLabel = PROVINCE_LABELS[(row.province as ShippingProvince) ?? "other"] ?? row.province;
   const activityList = ((activity ?? []) as unknown) as ActivityRow[];
-  const needsInstaller = row.application_method === "installer";
+  // 'pro_installer' is the canonical token in the orders schema; legacy
+  // rows used 'installer'. Match both so the banner surfaces correctly.
+  const needsInstaller = row.application_method === "pro_installer" || row.application_method === "installer";
 
   return (
     <div className="space-y-8">
@@ -192,11 +194,6 @@ export default async function AdminOrderDetailPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          {needsInstaller && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
-              <span>🔧</span> Installer required — arrange externally
-            </span>
-          )}
           <div className="flex items-center gap-2">
             <span className="text-sm text-stone-500">Status</span>
             {status === "pending" || status === "cancelled" || !isAdmin ? (
@@ -221,6 +218,30 @@ export default async function AdminOrderDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Pro install banner — fulfilment is genuinely different (the
+          installer collects or we ship to them), so surface it loudly. */}
+      {needsInstaller && status !== "cancelled" && !row.deleted_at && (
+        <section className="rounded-xl border-2 border-purple-300 bg-purple-50 p-5">
+          <div className="flex items-start gap-3">
+            <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-purple-700" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M11.49 3.17a.75.75 0 011.06 0l4.28 4.28a.75.75 0 010 1.06l-9.42 9.42a.75.75 0 01-.32.19l-4.28 1.21a.75.75 0 01-.92-.92l1.21-4.28a.75.75 0 01.19-.32l9.42-9.64z" />
+            </svg>
+            <div>
+              <h2 className="text-base font-semibold text-purple-900">Pro installer required</h2>
+              <p className="mt-1 text-sm text-purple-900/80">
+                The customer paid for professional installation. <strong>Coordinate with your
+                installer before dispatching</strong> — they may collect the rolls from the
+                press or you may need to ship to a different (installer&rsquo;s) address.
+                Don&rsquo;t default-ship to the customer&rsquo;s address.
+              </p>
+              <p className="mt-2 text-xs text-purple-900/70">
+                Tracking should reflect whichever leg the customer actually receives.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <OrderActionButtons

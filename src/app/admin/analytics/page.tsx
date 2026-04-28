@@ -400,6 +400,19 @@ export default async function AnalyticsPage({
   const wallpaperOrders = (productRows.data ?? []).length;
   const avgOrderSqm = wallpaperOrders > 0 ? (totalSqm / wallpaperOrders) : 0;
 
+  // ── Install-method split (DIY vs Pro), wallpaper only ──────────────────
+  const diyOrders = product.filter((p) => p.application === "diy")
+    .reduce((s, r) => s + r.orders, 0);
+  const diyRevenue = product.filter((p) => p.application === "diy")
+    .reduce((s, r) => s + r.revenue_cents, 0);
+  const proOrders = product.filter((p) => p.application === "pro_installer" || p.application === "installer")
+    .reduce((s, r) => s + r.orders, 0);
+  const proRevenue = product.filter((p) => p.application === "pro_installer" || p.application === "installer")
+    .reduce((s, r) => s + r.revenue_cents, 0);
+  const totalInstallOrders = diyOrders + proOrders;
+  const proAovCents = proOrders > 0 ? Math.round(proRevenue / proOrders) : 0;
+  const diyAovCents = diyOrders > 0 ? Math.round(diyRevenue / diyOrders) : 0;
+
   // ── Customers: new vs returning by orders this window ──────────────────
   const customerIds = ((productRows.data ?? []) as ProductRow[]).map((r) => r.customer_id).filter(Boolean) as string[];
   let newCustomers = 0, returningCustomers = 0;
@@ -671,6 +684,30 @@ export default async function AnalyticsPage({
         </div>
       </Section>
 
+      {/* ── Install split — primary insight ─────────────────────────── */}
+      <Section title="Install method" note="Pro install drives the highest AOV — track its share">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <PanelCard title="DIY vs Pro" subtitle={`Wallpaper orders · ${win.label.toLowerCase()}`}>
+            {totalInstallOrders === 0 ? <Empty msg="No wallpaper orders in this window." /> : (
+              <SplitBar
+                a={{ label: "DIY",         value: diyOrders, color: "bg-stone-700" }}
+                b={{ label: "Pro install", value: proOrders, color: "bg-purple-600" }}
+              />
+            )}
+          </PanelCard>
+          <SmallStat
+            label="DIY orders"
+            value={fmtInt(diyOrders)}
+            sub={diyOrders > 0 ? `AOV ${formatZarCents(diyAovCents)}` : "in this window"}
+          />
+          <SmallStat
+            label="Pro install orders"
+            value={fmtInt(proOrders)}
+            sub={proOrders > 0 ? `AOV ${formatZarCents(proAovCents)} · ${formatZarCents(proRevenue)} total` : "in this window"}
+          />
+        </div>
+      </Section>
+
       {/* ── Products ─────────────────────────────────────────────────── */}
       <Section title="Product mix" note={`wallpaper only · ${win.label.toLowerCase()}`}>
         <div className="grid gap-6 lg:grid-cols-3">
@@ -681,7 +718,11 @@ export default async function AnalyticsPage({
                   head={["Finish", "Install", "Orders", "m²", "Revenue"]}
                   rows={product.map((r) => [
                     <span key="f" className="capitalize">{r.finish}</span>,
-                    r.application === "diy" ? "DIY" : r.application === "pro_installer" ? "Pro" : r.application,
+                    r.application === "diy"
+                      ? <span className="text-stone-700">DIY</span>
+                      : r.application === "pro_installer" || r.application === "installer"
+                        ? <span className="font-medium text-purple-700">Pro</span>
+                        : r.application,
                     fmtInt(r.orders),
                     r.total_sqm.toFixed(1),
                     formatZarCents(r.revenue_cents),
