@@ -10,9 +10,10 @@ import { CartDrawer } from "@/components/CartDrawer";
 
 export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAdmin = pathname?.startsWith("/admin") ?? false;
-  const isFocused = pathname === "/config" || pathname?.startsWith("/config/") === true;
-  const isCheckoutFlow = pathname?.startsWith("/cart") || pathname?.startsWith("/checkout");
+  const isAdmin    = pathname?.startsWith("/admin") ?? false;
+  const isFocused  = pathname === "/config" || pathname?.startsWith("/config/") === true;
+  const isCart     = pathname?.startsWith("/cart") ?? false;
+  const isCheckout = pathname?.startsWith("/checkout") ?? false;
 
   if (isAdmin) {
     return <>{children}</>;
@@ -29,7 +30,21 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (isCheckoutFlow) {
+  // /checkout + /checkout/success: zero-friction tunnel. No footer, no email
+  // capture, no nav. Trust + reassurance come from in-page conversion blocks.
+  if (isCheckout) {
+    return (
+      <CartProvider>
+        <AnnouncementBar />
+        <FocusedHeader />
+        <main className="flex-1">{children}</main>
+        <CartDrawer />
+      </CartProvider>
+    );
+  }
+
+  // /cart: keep the footer (buyer can still browse before committing).
+  if (isCart) {
     return (
       <CartProvider>
         <AnnouncementBar />

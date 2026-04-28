@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NextImage from "next/image";
 import { useEffect } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { formatZar } from "@/lib/pricing";
@@ -68,13 +69,14 @@ function SamplePackRow({
 }) {
   return (
     <div className="flex gap-3 py-4">
-      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-pw border border-pw-stone bg-pw-bg">
-        <svg width="36" height="36" viewBox="0 0 32 32" fill="none" aria-hidden>
-          <rect x="3"  y="3"  width="12" height="12" rx="2.5" fill="#C4622D" />
-          <rect x="17" y="3"  width="12" height="12" rx="2.5" fill="#C4622D" opacity="0.45" />
-          <rect x="3"  y="17" width="12" height="12" rx="2.5" fill="#C4622D" opacity="0.25" />
-          <rect x="17" y="17" width="12" height="12" rx="2.5" fill="#C4622D" opacity="0.12" />
-        </svg>
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-pw border border-pw-stone bg-pw-bg">
+        <NextImage
+          src="/images/product/pdp-14-sample.jpg"
+          alt="Sample pack"
+          fill
+          sizes="80px"
+          className="object-cover"
+        />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
