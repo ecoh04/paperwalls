@@ -520,7 +520,7 @@ export default async function AnalyticsPage({
               height={180}
               color="#3F7CAA"
               fill="rgba(63,124,170,0.12)"
-              formatY={(n) => fmtInt(n)}
+              format="int"
               label="visitors"
             />
           </ChartTile>
@@ -530,7 +530,7 @@ export default async function AnalyticsPage({
               height={180}
               color="#1A1714"
               fill="rgba(26,23,20,0.08)"
-              formatY={(n) => fmtInt(n)}
+              format="int"
               label="orders"
             />
           </ChartTile>
@@ -540,7 +540,7 @@ export default async function AnalyticsPage({
               height={180}
               color="#C4622D"
               fill="rgba(196,98,45,0.10)"
-              formatY={(n) => formatZarCents(n)}
+              format="zar_cents"
               label="revenue"
             />
           </ChartTile>

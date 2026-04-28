@@ -16,6 +16,12 @@ export type LinePoint = {
   value: number;
 };
 
+// Format discriminator. Server components cannot pass functions to client
+// components (Next.js complains: "Functions cannot be passed directly to
+// Client Components unless you explicitly expose it..."). So instead of a
+// formatY function prop, accept a string and format internally.
+export type ChartFormat = "zar_cents" | "int" | "decimal";
+
 type Props = {
   data:           LinePoint[];
   height?:        number;
@@ -23,23 +29,38 @@ type Props = {
   color?:         string;
   /** Soft fill below the line. */
   fill?:          string;
-  /** Format a Y value for axis labels and the tooltip. */
-  formatY:        (n: number) => string;
+  /** How to format Y-axis labels and tooltip values. */
+  format?:        ChartFormat;
   /** Label shown next to the value in the tooltip. */
   label?:         string;
   /** Render compact (no tooltip, smaller text) — for small mini-charts. */
   compact?:       boolean;
 };
 
+function formatValue(n: number, format: ChartFormat): string {
+  switch (format) {
+    case "zar_cents":
+      return new Intl.NumberFormat("en-ZA", {
+        style: "currency", currency: "ZAR", minimumFractionDigits: 0,
+      }).format(n / 100);
+    case "decimal":
+      return n.toFixed(2);
+    case "int":
+    default:
+      return Math.round(n).toLocaleString("en-ZA");
+  }
+}
+
 export function LineChart({
   data,
   height  = 220,
   color   = "#1A1714",
   fill    = "rgba(196, 98, 45, 0.10)",
-  formatY,
+  format  = "int",
   label   = "",
   compact = false,
 }: Props) {
+  const formatY = (n: number) => formatValue(n, format);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState<number>(0);
   const [hover, setHover] = useState<number | null>(null);
