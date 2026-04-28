@@ -4,7 +4,8 @@ import { RevenueChart } from "@/components/admin/charts/RevenueChart";
 import { FunnelChart } from "@/components/admin/charts/FunnelChart";
 import { SparklineChart } from "@/components/admin/charts/SparklineChart";
 import { RefreshButton } from "@/components/admin/RefreshButton";
-import { WindowToggle, type WindowValue, WINDOW_OPTIONS } from "@/components/admin/WindowToggle";
+import { WindowToggle } from "@/components/admin/WindowToggle";
+import { WINDOW_OPTIONS, type WindowValue } from "@/components/admin/window-options";
 import { DeltaIndicator } from "@/components/admin/DeltaIndicator";
 
 export const dynamic = "force-dynamic";
