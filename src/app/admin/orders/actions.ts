@@ -5,17 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 
 const VALID_STATUSES = ["new", "in_production", "shipped", "delivered"] as const;
 
-const COURIERS = [
-  "Pargo",
-  "The Courier Guy",
-  "Aramex",
-  "Dawn Wing",
-  "RAM",
-  "PostNet",
-  "Other",
-] as const;
-
-type Courier = (typeof COURIERS)[number];
+// Courier name is free-text on the wire — the dropdown is just a UI helper.
+// We only enforce non-empty + a sane length cap so a typo can't blow up
+// activity-log columns or email subjects.
+const MAX_COURIER_LEN = 60;
 
 /**
  * Queue a transactional email idempotently. Uses the (idempotency_key) unique
@@ -89,10 +82,28 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, status, customer_id, customer_email, tracking_number")
+    .select("id, status, customer_id, customer_email, tracking_number, product_type, image_url, image_urls, address_line1, city, province, postal_code, customer_phone")
     .eq("id", orderId)
     .single();
   if (!order) return { error: "Order not found" };
+
+  // Hard block: only let an order leave 'new' for 'in_production' if the
+  // print team has everything they need. Resolution stays warn-only because
+  // a buyer can knowingly accept a soft image; address/phone/files cannot
+  // be a judgement call — printing without them ALWAYS fails downstream.
+  if (status === "in_production" && order.product_type === "wallpaper") {
+    const imgs = Array.isArray(order.image_urls) ? order.image_urls : [];
+    const hasImage = imgs.length > 0 || !!order.image_url;
+    const hasAddress = !!(order.address_line1 && order.city && order.province && order.postal_code);
+    const hasPhone   = !!order.customer_phone;
+    const missing: string[] = [];
+    if (!hasImage)   missing.push("print file");
+    if (!hasAddress) missing.push("complete shipping address");
+    if (!hasPhone)   missing.push("phone number");
+    if (missing.length) {
+      return { error: `Cannot move to production: missing ${missing.join(", ")}. Edit the order first.` };
+    }
+  }
 
   const updates: Record<string, unknown> = { status };
   if (status === "shipped") {
@@ -162,11 +173,11 @@ export async function markOrderShipped(
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
-  const courier = (args.courier ?? "").trim() as Courier;
+  const courier        = (args.courier ?? "").trim().slice(0, MAX_COURIER_LEN);
   const trackingNumber = (args.trackingNumber ?? "").trim();
-  const trackingUrl = (args.trackingUrl ?? "").trim() || null;
-  if (!COURIERS.includes(courier)) return { error: "Pick a courier" };
-  if (!trackingNumber)             return { error: "Tracking number is required" };
+  const trackingUrl    = (args.trackingUrl ?? "").trim() || null;
+  if (!courier)        return { error: "Pick a courier" };
+  if (!trackingNumber) return { error: "Tracking number is required" };
 
   const { data: order } = await supabase
     .from("orders")

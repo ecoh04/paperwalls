@@ -4,14 +4,13 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { markOrderShipped } from "@/app/admin/orders/actions";
 
-const COURIERS = [
+const KNOWN_COURIERS = [
   "Pargo",
   "The Courier Guy",
   "Aramex",
   "Dawn Wing",
   "RAM",
   "PostNet",
-  "Other",
 ] as const;
 
 type Props = {
@@ -31,16 +30,34 @@ export function ShipOrderForm({
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [courier, setCourier]   = useState(initialCourier ?? "Pargo");
+
+  // If the saved courier name isn't in our known list, treat it as a custom
+  // entry — operator can edit the text directly. Otherwise show the dropdown.
+  const initialIsCustom = !!initialCourier
+    && !(KNOWN_COURIERS as readonly string[]).includes(initialCourier);
+
+  const [courierMode, setCourierMode] = useState<"known" | "other">(
+    initialIsCustom ? "other" : "known"
+  );
+  const [knownCourier, setKnownCourier] = useState(
+    initialIsCustom || !initialCourier ? "Pargo" : initialCourier
+  );
+  const [otherCourier, setOtherCourier] = useState(initialIsCustom ? initialCourier! : "");
   const [tracking, setTracking] = useState(initialTracking ?? "");
   const [url, setUrl]           = useState(initialTrackingUrl ?? "");
   const [error, setError]       = useState<string | null>(null);
   const [success, setSuccess]   = useState<string | null>(null);
 
+  const courier = courierMode === "other" ? otherCourier.trim() : knownCourier;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    if (courierMode === "other" && !otherCourier.trim()) {
+      setError("Courier name is required");
+      return;
+    }
     if (!tracking.trim()) {
       setError("Tracking number is required");
       return;
@@ -84,15 +101,30 @@ export function ShipOrderForm({
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium uppercase tracking-wider text-stone-500">Courier</span>
           <select
-            value={courier}
-            onChange={(e) => setCourier(e.target.value)}
+            value={courierMode === "other" ? "__OTHER__" : knownCourier}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "__OTHER__") setCourierMode("other");
+              else { setCourierMode("known"); setKnownCourier(v); }
+            }}
             disabled={isPending}
             className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
           >
-            {COURIERS.map((c) => (
+            {KNOWN_COURIERS.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
+            <option value="__OTHER__">Other (type below)</option>
           </select>
+          {courierMode === "other" && (
+            <input
+              type="text"
+              value={otherCourier}
+              onChange={(e) => setOtherCourier(e.target.value)}
+              disabled={isPending}
+              placeholder="Courier name"
+              className="mt-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
+            />
+          )}
         </label>
 
         <label className="flex flex-col gap-1">

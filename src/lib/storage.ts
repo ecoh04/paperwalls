@@ -2,9 +2,11 @@ import { supabaseAdmin } from "./supabaseAdmin";
 
 const BUCKET = "print-files";
 
-// 24h is enough for a tab open, a download, and a forward to the printer.
-// Admin pages re-sign on each render so refreshing always works.
-const DEFAULT_TTL_SECONDS = 60 * 60 * 24;
+// 7 days. Admin pages re-sign on each render, so a tablet left open in the
+// print room across multiple shifts won't silently break when the operator
+// clicks the print file the next morning. Long enough that the URL is
+// effectively "good for the work week" but still expires.
+const DEFAULT_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 function requireAdmin() {
   if (!supabaseAdmin) throw new Error("Supabase service role not configured");

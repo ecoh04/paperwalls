@@ -4,6 +4,7 @@ import { signedPrintUrls } from "@/lib/storage";
 import { MATERIAL_LABELS, APPLICATION_LABELS, PROVINCE_LABELS, formatZarCents } from "@/lib/admin-labels";
 import type { WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 import { MoveToProductionButton } from "@/components/admin/MoveToProductionButton";
+import { RefreshButton } from "@/components/admin/RefreshButton";
 
 export const dynamic = "force-dynamic";
 
@@ -91,23 +92,33 @@ export default async function PrintQueuePage() {
 
   const newCount = list.filter((r) => r.status === "new").length;
   const inProductionCount = list.filter((r) => r.status === "in_production").length;
+  const totalSqm = list.reduce((s, r) => s + Number(r.total_sqm ?? 0), 0);
+  const loadedAt = Date.now();
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-stone-900">Print queue</h1>
           <p className="mt-1 text-sm text-stone-600">
             Paid orders awaiting print. Sample-pack orders are excluded.
           </p>
         </div>
-        <div className="flex gap-3 text-sm">
-          <span className="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-800">
-            {newCount} new
-          </span>
-          <span className="rounded-full bg-blue-100 px-3 py-1 font-medium text-blue-800">
-            {inProductionCount} in production
-          </span>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <div className="flex flex-wrap gap-2 text-sm">
+            <span className="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-800">
+              {newCount} new
+            </span>
+            <span className="rounded-full bg-blue-100 px-3 py-1 font-medium text-blue-800">
+              {inProductionCount} in production
+            </span>
+            {totalSqm > 0 && (
+              <span className="rounded-full bg-stone-100 px-3 py-1 font-medium text-stone-700">
+                {totalSqm.toFixed(2)} m² total
+              </span>
+            )}
+          </div>
+          <RefreshButton initialLoadedAt={loadedAt} />
         </div>
       </header>
 

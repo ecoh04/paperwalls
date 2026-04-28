@@ -21,6 +21,8 @@ import { ShipOrderForm } from "@/components/admin/ShipOrderForm";
 import { MarkDeliveredButton } from "@/components/admin/MarkDeliveredButton";
 import { PreflightChecks } from "@/components/admin/PreflightChecks";
 import { ResendEmailButtons } from "@/components/admin/ResendEmailButtons";
+import { EmailHistoryPanel } from "@/components/admin/EmailHistoryPanel";
+import { CopyButton } from "@/components/admin/CopyButton";
 import type { OrderStatus, WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 
 export const dynamic = "force-dynamic";
@@ -144,6 +146,19 @@ export default async function AdminOrderDetailPage({
     .order("created_at", { ascending: false })
     .limit(50);
 
+  // Latest successful send per type, so the resend buttons can show "last sent X ago".
+  const { data: lastSentRows } = await supabase
+    .from("scheduled_emails")
+    .select("type, sent_at")
+    .eq("order_id", id)
+    .eq("status", "sent")
+    .not("sent_at", "is", null)
+    .order("sent_at", { ascending: false });
+  const lastSent: Record<string, string> = {};
+  for (const r of (lastSentRows ?? []) as { type: string; sent_at: string }[]) {
+    if (!lastSent[r.type]) lastSent[r.type] = r.sent_at;
+  }
+
   const row = order as Row;
   const imageUrls = parseImageUrls(row.image_urls);
   const paths = imageUrls.length > 0 ? imageUrls : row.image_url ? [row.image_url] : [];
@@ -261,6 +276,11 @@ export default async function AdminOrderDetailPage({
               orderId={id}
               status={status}
               hasTracking={!!row.tracking_number}
+              lastSent={{
+                order_confirmed: lastSent["order_confirmed"],
+                order_shipped:   lastSent["order_shipped"],
+                order_delivered: lastSent["order_delivered"],
+              }}
             />
           </div>
         </div>
@@ -289,7 +309,22 @@ export default async function AdminOrderDetailPage({
         />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Sample-pack orders skip the print-spec grid entirely; they ship
+          directly. Show a thin info card instead. */}
+      {row.product_type === "sample_pack" && (
+        <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-stone-900">Sample pack</h2>
+          <p className="mt-2 text-sm text-stone-700">
+            All three finishes (satin, matte, linen) — A5 swatches, no print files needed. Pick, pack, ship.
+          </p>
+          <p className="mt-1 text-xs text-stone-500">
+            Quantity: {row.quantity}
+          </p>
+        </section>
+      )}
+
+      <div className={`grid gap-6 ${row.product_type === "wallpaper" ? "lg:grid-cols-2" : ""}`}>
+        {row.product_type === "wallpaper" && (
         <section className="rounded-xl border-2 border-amber-200 bg-amber-50/50 p-6">
           <h2 className="text-lg font-semibold text-stone-900">Print specs</h2>
           <dl className="mt-4 space-y-3">
@@ -354,6 +389,7 @@ export default async function AdminOrderDetailPage({
             </ul>
           </div>
         </section>
+        )}
 
         <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-stone-900">Customer & delivery</h2>
@@ -372,10 +408,17 @@ export default async function AdminOrderDetailPage({
             </div>
             <div>
               <dt className="text-xs font-medium uppercase tracking-wider text-stone-500">Phone</dt>
-              <dd className="mt-0.5">
-                <a href={`tel:${row.customer_phone}`} className="text-amber-600 hover:underline">
+              <dd className="mt-0.5 flex items-center gap-2">
+                <a
+                  href={`tel:${row.customer_phone}`}
+                  className="inline-flex items-center gap-1.5 text-amber-600 hover:underline"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
                   {row.customer_phone}
                 </a>
+                <CopyButton value={row.customer_phone} label="Copy" small />
               </dd>
             </div>
             <div>
@@ -386,6 +429,13 @@ export default async function AdminOrderDetailPage({
                 <br />
                 {row.city}, {provinceLabel} {row.postal_code}
               </dd>
+              <div className="mt-2">
+                <CopyButton
+                  value={`${row.customer_name}\n${row.address_line1}${row.address_line2 ? `\n${row.address_line2}` : ""}\n${row.city}, ${provinceLabel} ${row.postal_code}\n${row.customer_phone}`}
+                  label="Copy address block"
+                  small
+                />
+              </div>
             </div>
           </dl>
         </section>
@@ -501,10 +551,12 @@ export default async function AdminOrderDetailPage({
         </div>
       </section>
 
+      <EmailHistoryPanel orderId={id} />
+
       <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-stone-900">Activity log</h2>
         <p className="mt-1 text-sm text-stone-500">
-          Status changes, factory assignments, and notes. Newest first.
+          Status changes and notes. Newest first.
         </p>
         <div className="mt-4">
           <OrderNoteForm orderId={id} addNote={addOrderNote} />
