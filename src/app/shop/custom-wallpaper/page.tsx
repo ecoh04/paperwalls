@@ -48,11 +48,12 @@ export default function CustomWallpaperPage() {
         price={price}
       />
       <ProductDescription />
-      <PricingExamples />
+      <ProcessStrip />
       <MaterialsSection />
-      <WhatsInBox />
       <RealHomesGallery />
+      <PricingExamples />
       <ComparisonSection />
+      <WhatsInBox />
       <SamplePackBanner />
       <FAQSection />
       <ClosingCTA />
@@ -251,15 +252,6 @@ function ProductHeader({ price }: { price: number }) {
       <h1 className="pw-h1 mt-3 text-pw-ink">
         Wallpaper printed to your wall.
       </h1>
-
-      <div className="mt-3 flex items-center gap-2">
-        <span aria-hidden className="text-pw-accent text-base tracking-wide">
-          ★★★★★
-        </span>
-        <span className="pw-small text-pw-ink/70">
-          4.9 from 847 reviews
-        </span>
-      </div>
 
       <div className="mt-5 flex items-baseline gap-3">
         <span className="pw-h2 text-pw-ink">R{price}</span>
@@ -530,6 +522,63 @@ function PricingExamples() {
             Takes about 60 seconds. No payment yet.
           </span>
         </div>
+      </div>
+    </Section>
+  );
+}
+
+// ── Process strip — three-icon how-it-works for ad-traffic landing here ──
+// Cold buyers from paid traffic land on the PDP without visiting /how-it-works.
+// This 3-step strip gives a one-glance answer to "how does this even work?"
+// without sending them off to another page.
+function ProcessStrip() {
+  const STEPS = [
+    {
+      title: "Upload your image",
+      body:  "Any photo, art, or pattern. JPG, PNG, or WebP up to 50 MB.",
+      icon:  (
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+        />
+      ),
+    },
+    {
+      title: "We print in Cape Town",
+      body:  "Commercial press, cut to the millimetre, packed in kraft. 72-hour production.",
+      icon:  (
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M6.75 7.5h10.5m-10.5 3h10.5m-10.5 3h7.5M3.375 19.5h17.25c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v12.75c0 .621.504 1.125 1.125 1.125Z"
+        />
+      ),
+    },
+    {
+      title: "Free SA delivery",
+      body:  "Tracked courier, anywhere in South Africa. Yours in 5 days.",
+      icon:  (
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9-1.5h9.75a.75.75 0 0 0 .75-.75V8.25A2.25 2.25 0 0 0 15 6h-3.75M14.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.5a.75.75 0 0 0 .75-.75v-7.5m0 0L18 6.75m1.5 4.5h.75a.75.75 0 0 1 .75.75V18a.75.75 0 0 1-.75.75H18.75M3 4.5v9.75A.75.75 0 0 0 3.75 15h7.5a.75.75 0 0 0 .75-.75v-9.75a.75.75 0 0 0-.75-.75h-7.5a.75.75 0 0 0-.75.75Z"
+        />
+      ),
+    },
+  ];
+
+  return (
+    <Section tone="bg" density="tight" id="process">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-8">
+        {STEPS.map((s, i) => (
+          <div key={s.title} className="flex flex-col">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-pw-ink/20 bg-pw-surface">
+                <svg className="h-5 w-5 text-pw-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                  {s.icon}
+                </svg>
+              </span>
+              <p className="pw-overline text-pw-muted">Step {i + 1}</p>
+            </div>
+            <h3 className="pw-h3 mt-3 text-pw-ink">{s.title}</h3>
+            <p className="pw-body mt-1.5 text-pw-ink/70">{s.body}</p>
+          </div>
+        ))}
       </div>
     </Section>
   );

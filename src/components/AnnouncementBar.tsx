@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 const MESSAGES = [
   "Free SA delivery on every order",
   "Yours in 5 days. Free reprints, no questions.",
-  "★★★★★ 4.9 from 847 reviews",
+  "Made-to-order in Cape Town. Cut to the millimetre.",
   "R150 off when you start with a sample pack",
 ];
 
