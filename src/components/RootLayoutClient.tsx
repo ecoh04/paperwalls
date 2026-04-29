@@ -9,6 +9,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
 import { CartDrawer } from "@/components/CartDrawer";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
+import { MetaPixel } from "@/components/MetaPixel";
 
 export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

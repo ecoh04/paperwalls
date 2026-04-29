@@ -8,6 +8,8 @@ import { PROVINCES } from "@/lib/shipping";
 import { useCart } from "@/contexts/CartContext";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { track, flushNow } from "@/lib/analytics";
+import { metaPixelTrack } from "@/components/MetaPixel";
+import { mintEventId } from "@/lib/meta/event-id";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_NAME    = 2;
@@ -69,11 +71,26 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
         return;
       }
       setSubmitting(true);
+      const totalCents = items.reduce((s, i) => s + i.subtotalCents, 0);
       track("checkout.submitted", {
         item_count:  items.length,
-        total_cents: items.reduce((s, i) => s + i.subtotalCents, 0),
+        total_cents: totalCents,
       });
       flushNow();
+
+      // Meta Pixel: InitiateCheckout. The same event_id rides through to
+      // the server in the request body so the CAPI fired by the API route
+      // dedupes against this pixel event.
+      const checkoutEventId = mintEventId("InitiateCheckout");
+      metaPixelTrack("InitiateCheckout", {
+        event_id:     checkoutEventId,
+        value_cents:  totalCents,
+        currency:     "ZAR",
+        num_items:    items.length,
+        content_type: "product",
+        content_ids:  items.map((i) => i.type === "sample_pack" ? "sample_pack" : "custom_wallpaper"),
+      });
+
       try {
         const res = await fetch("/api/checkout/create", {
           method: "POST",
@@ -83,8 +100,9 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               ...address,
               address_line2: address.address_line2 || null,
             },
-            cart:       items,
-            session_id: sessionId,
+            cart:               items,
+            session_id:         sessionId,
+            meta_event_id_init: checkoutEventId,
           }),
         });
         const data = await res.json();

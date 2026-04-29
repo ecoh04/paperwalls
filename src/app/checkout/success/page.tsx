@@ -3,6 +3,7 @@ import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { signedPrintUrl } from "@/lib/storage";
 import { CartClearOnMount } from "@/components/checkout/CartClearOnMount";
+import { PurchasePixelTrigger } from "@/components/checkout/PurchasePixelTrigger";
 import { addBusinessDays, formatSaDate } from "@/lib/business-days";
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -120,6 +121,13 @@ export default async function CheckoutSuccessPage({
   return (
     <Suspense>
       <CartClearOnMount />
+      {orderNumbers.length > 0 && (
+        <PurchasePixelTrigger
+          orderNumbers={orderNumbers}
+          valueCents={orders.reduce((s, o) => s + Number(o.total_cents ?? 0), 0)}
+          numItems={orders.length}
+        />
+      )}
 
       <main className="bg-pw-bg pb-20 sm:pb-24">
         {/* ── Hero ──────────────────────────────────────────────────── */}

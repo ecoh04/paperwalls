@@ -5,6 +5,7 @@ import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
 import { getShippingCents } from "@/lib/shipping";
 import { uploadPrintImage, renamePrintFile } from "@/lib/storage";
 import { buildPayfastFormFields } from "@/lib/payfast";
+import { sendMetaConversion } from "@/lib/meta/capi";
 import type { ShippingProvince } from "@/types/order";
 
 function validateProvince(p: string): p is ShippingProvince {
@@ -18,10 +19,12 @@ function validateProvince(p: string): p is ShippingProvince {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { address, cart, session_id } = body as {
+    const { address, cart, session_id, meta_event_id_init } = body as {
       address?: CheckoutAddress;
       cart?: CartItem[];
       session_id?: string;
+      /** Pixel-side InitiateCheckout event_id to dedup the CAPI side against. */
+      meta_event_id_init?: string;
     };
 
     if (!address || !cart || !Array.isArray(cart) || cart.length === 0) {
@@ -397,6 +400,41 @@ export async function POST(request: Request) {
 
     if (customerId) {
       void supabase.rpc("update_customer_stats", { p_customer_id: customerId });
+    }
+
+    // Meta Conversions API: InitiateCheckout (mirrors the client pixel via
+    // the shared event_id passed through from the form). Fire-and-forget.
+    if (meta_event_id_init) {
+      const splitName = a.customer_name.trim().split(/\s+/);
+      const firstName = splitName[0] ?? "";
+      const lastName  = splitName.slice(1).join(" ");
+      void sendMetaConversion({
+        event_name: "InitiateCheckout",
+        event_id:   meta_event_id_init,
+        event_source_url: process.env.NEXT_PUBLIC_APP_URL
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/checkout`
+          : undefined,
+        user_data: {
+          email:        a.customer_email.trim(),
+          phone:        a.customer_phone.trim(),
+          first_name:   firstName,
+          last_name:    lastName,
+          city:         a.city,
+          state:        a.province,
+          zip:          a.postal_code,
+          country_code: "ZA",
+          external_id:  customerId,
+          fbclid:       sessionAttribution.fbclid,
+          client_ip:    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+          client_ua:    request.headers.get("user-agent") ?? null,
+        },
+        custom_data: {
+          currency:  "ZAR",
+          value:     totalPaymentCents / 100,
+          num_items: cart.length,
+        },
+        meta: { customer_id: customerId ?? undefined },
+      });
     }
 
     const { url: payfastUrl, fields: payfastFields } = buildPayfastFormFields({

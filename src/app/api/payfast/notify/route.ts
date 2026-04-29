@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
 import { sendEmail } from "@/lib/email/send";
 import { renderAdminNewOrder } from "@/lib/email/templates";
+import { sendMetaConversion } from "@/lib/meta/capi";
 import {
   formatPayfastAmount,
   generatePayfastSignature,
@@ -254,6 +255,62 @@ export async function POST(request: Request) {
         }
       } else if (!adminEmail) {
         console.warn("[PayFast ITN] ADMIN_NOTIFICATION_EMAIL not set — skipping admin alert");
+      }
+
+      // ── Meta Conversions API: Purchase ───────────────────────────────
+      // Deterministic event_id derived from the (sorted) order numbers so
+      // it matches the pixel-side Purchase fired on /checkout/success.
+      // Fire-and-forget; CAPI failure must not block ITN ack.
+      if (paidRows?.length) {
+        const orderId   = paidRows[0].id as string;
+        const customerId = (paidRows[0].customer_id as string | null) ?? null;
+        const { data: orderForCapi } = await supabase
+          .from("orders")
+          .select("customer_name, customer_email, customer_phone, city, province, postal_code, utm_source, fbclid, session_id")
+          .eq("id", orderId)
+          .maybeSingle();
+        const splitName = (orderForCapi?.customer_name ?? "").trim().split(/\s+/);
+        const firstName = splitName[0] ?? "";
+        const lastName  = splitName.slice(1).join(" ");
+        let userAgent: string | null = null;
+        if (orderForCapi?.session_id) {
+          const { data: sess } = await supabase
+            .from("sessions")
+            .select("user_agent")
+            .eq("id", orderForCapi.session_id)
+            .maybeSingle();
+          userAgent = (sess?.user_agent as string | null) ?? null;
+        }
+        const sortedNumbers = [...orderNumbers].sort();
+        void sendMetaConversion({
+          event_name: "Purchase",
+          event_id:   `purchase:${sortedNumbers.join(",")}`,
+          event_source_url: process.env.NEXT_PUBLIC_APP_URL
+            ? `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?orders=${orderNumbers.join(",")}`
+            : undefined,
+          user_data: {
+            email:        orderForCapi?.customer_email,
+            phone:        orderForCapi?.customer_phone,
+            first_name:   firstName,
+            last_name:    lastName,
+            city:         orderForCapi?.city,
+            state:        orderForCapi?.province,
+            zip:          orderForCapi?.postal_code,
+            country_code: "ZA",
+            external_id:  customerId,
+            fbclid:       (orderForCapi?.fbclid as string | null) ?? null,
+            client_ua:    userAgent,
+          },
+          custom_data: {
+            currency:    "ZAR",
+            value:       amountGross,
+            content_ids: orderNumbers,
+            content_type: "product",
+            num_items:   orderNumbers.length,
+            order_id:    sortedNumbers.join(","),
+          },
+          meta: { order_id: orderId, customer_id: customerId ?? undefined },
+        });
       }
 
       console.log(`[PayFast ITN] ✓ Payment ${pfPaymentId} confirmed for orders: ${orderNumbers.join(", ")}`);

@@ -38,26 +38,35 @@ export default async function SetupPage() {
 
   // ── Env-var presence (server-side, never reveal values) ───────────────
   const env = {
-    RESEND_API_KEY:           !!process.env.RESEND_API_KEY?.trim(),
-    EMAIL_FROM:               !!process.env.EMAIL_FROM?.trim(),
-    EMAIL_REPLY_TO:           !!process.env.EMAIL_REPLY_TO?.trim(),
-    ADMIN_NOTIFICATION_EMAIL: !!process.env.ADMIN_NOTIFICATION_EMAIL?.trim(),
-    CRON_SECRET:              !!process.env.CRON_SECRET?.trim(),
-    NEXT_PUBLIC_APP_URL:      !!process.env.NEXT_PUBLIC_APP_URL?.trim(),
-    PAYFAST_MERCHANT_ID:      !!process.env.PAYFAST_MERCHANT_ID?.trim(),
-    PAYFAST_MERCHANT_KEY:     !!process.env.PAYFAST_MERCHANT_KEY?.trim(),
-    PAYFAST_PASSPHRASE:       !!process.env.PAYFAST_PASSPHRASE?.trim(),
-    SLACK_ALERTS_URL:         !!process.env.SLACK_ALERTS_URL?.trim(),
+    RESEND_API_KEY:                !!process.env.RESEND_API_KEY?.trim(),
+    EMAIL_FROM:                    !!process.env.EMAIL_FROM?.trim(),
+    EMAIL_REPLY_TO:                !!process.env.EMAIL_REPLY_TO?.trim(),
+    ADMIN_NOTIFICATION_EMAIL:      !!process.env.ADMIN_NOTIFICATION_EMAIL?.trim(),
+    CRON_SECRET:                   !!process.env.CRON_SECRET?.trim(),
+    NEXT_PUBLIC_APP_URL:           !!process.env.NEXT_PUBLIC_APP_URL?.trim(),
+    PAYFAST_MERCHANT_ID:           !!process.env.PAYFAST_MERCHANT_ID?.trim(),
+    PAYFAST_MERCHANT_KEY:          !!process.env.PAYFAST_MERCHANT_KEY?.trim(),
+    PAYFAST_PASSPHRASE:            !!process.env.PAYFAST_PASSPHRASE?.trim(),
+    SLACK_ALERTS_URL:              !!process.env.SLACK_ALERTS_URL?.trim(),
+    NEXT_PUBLIC_META_PIXEL_ID:     !!process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim(),
+    META_PIXEL_ID:                 !!process.env.META_PIXEL_ID?.trim(),
+    META_CAPI_ACCESS_TOKEN:        !!process.env.META_CAPI_ACCESS_TOKEN?.trim(),
+    META_CAPI_TEST_EVENT_CODE:     !!process.env.META_CAPI_TEST_EVENT_CODE?.trim(),
   };
 
-  // ── Heartbeat events from cron jobs ───────────────────────────────────
-  const [drainerEvt, reconcileEvt, paymentEvt] = await Promise.all([
+  // ── Heartbeat events from cron jobs + recent CAPI sends ───────────────
+  const [drainerEvt, reconcileEvt, paymentEvt, lastCapi, capiCounts] = await Promise.all([
     supabase.from("events").select("created_at").eq("type", "cron.drain_emails")
       .order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("events").select("created_at").eq("type", "cron.reconcile_payments")
       .order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("events").select("created_at").eq("type", "payment.completed")
       .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("capi_events").select("sent_at, event_type, status")
+      .order("sent_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("capi_events").select("status", { count: "exact", head: true })
+      .eq("status", "failed")
+      .gte("sent_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
   ]);
 
   function ago(iso: string | null | undefined): string {
@@ -117,6 +126,31 @@ export default async function SetupPage() {
   const optionalChecks: Check[] = [
     { label: "SLACK_ALERTS_URL", tone: env.SLACK_ALERTS_URL ? "ok" : "neutral",
       status: env.SLACK_ALERTS_URL ? "Set" : "Optional — without it, alerts log to Vercel runtime only" },
+  ];
+
+  // ── Meta Pixel + Conversions API ──────────────────────────────────────
+  const metaChecks: Check[] = [
+    { label: "NEXT_PUBLIC_META_PIXEL_ID",  tone: env.NEXT_PUBLIC_META_PIXEL_ID ? "ok" : "warn",
+      status: env.NEXT_PUBLIC_META_PIXEL_ID ? "Set" : "Missing — pixel won't load on customer site",
+      detail: "Browser-exposed (this is fine; Pixel IDs are public). Same value as META_PIXEL_ID." },
+    { label: "META_PIXEL_ID",              tone: env.META_PIXEL_ID ? "ok" : "warn",
+      status: env.META_PIXEL_ID ? "Set" : "Missing — server CAPI calls will be skipped",
+      detail: "Server-side reads this. Same value as NEXT_PUBLIC_META_PIXEL_ID; both must be set." },
+    { label: "META_CAPI_ACCESS_TOKEN",     tone: env.META_CAPI_ACCESS_TOKEN ? "ok" : "warn",
+      status: env.META_CAPI_ACCESS_TOKEN ? "Set" : "Missing — server CAPI calls will be skipped",
+      detail: "Generate in Events Manager → Settings → 'Generate access token'." },
+    { label: "META_CAPI_TEST_EVENT_CODE",  tone: env.META_CAPI_TEST_EVENT_CODE ? "ok" : "neutral",
+      status: env.META_CAPI_TEST_EVENT_CODE
+        ? "Set — CAPI events visible in Test Events tab only (not used for ad optimisation)"
+        : "Optional — set during testing, unset before production",
+      detail: "From Events Manager → Test Events. Use the temporary code to verify wiring without polluting your real conversion data." },
+    { label: "CAPI activity",              tone: lastCapi.data ? "ok" : "neutral",
+      status: lastCapi.data
+        ? `Last fired: ${lastCapi.data.event_type} · ${ago(lastCapi.data.sent_at)} · ${lastCapi.data.status}`
+        : "No CAPI events sent yet — fire a test order or AddToCart to verify",
+      detail: (capiCounts.count ?? 0) > 0
+        ? `${capiCounts.count} CAPI failure${capiCounts.count === 1 ? "" : "s"} in last 24h`
+        : undefined },
   ];
 
   const drainerUrl   = `${appUrl}/api/cron/drain-emails`;
@@ -237,9 +271,54 @@ export default async function SetupPage() {
         </Steps>
       </Section>
 
-      {/* ── Optional ───────────────────────────────────────────────── */}
+      {/* ── Meta Pixel + CAPI ───────────────────────────────────────── */}
       <Section
         n={4}
+        title="Meta Pixel + Conversions API"
+        body="Required before running Meta ads. Pixel + server CAPI deduplicated by event_id so iOS 14+ doesn't gut your attribution."
+        checks={metaChecks}
+      >
+        <Steps title="What to do">
+          <Step n={1}>
+            In Meta Business Manager → Events Manager, open your Pixel. The numeric ID at the top is what you need.
+          </Step>
+          <Step n={2}>
+            In Vercel env vars, set <strong>both</strong>:
+            <ul className="mt-2 ml-1 list-disc pl-4 text-stone-700">
+              <li><code className="rounded bg-stone-100 px-1">NEXT_PUBLIC_META_PIXEL_ID</code> = the Pixel ID</li>
+              <li><code className="rounded bg-stone-100 px-1">META_PIXEL_ID</code> = same Pixel ID</li>
+            </ul>
+            (Two vars because Next.js requires the <code className="rounded bg-stone-100 px-1">NEXT_PUBLIC_</code> prefix for client exposure.)
+          </Step>
+          <Step n={3}>
+            Same Pixel → Settings → <strong>Generate access token</strong>. Copy. Set <code className="rounded bg-stone-100 px-1">META_CAPI_ACCESS_TOKEN</code> in Vercel.
+          </Step>
+          <Step n={4}>
+            Optional but recommended for first-time setup: Events Manager → Test Events tab → copy the temporary test event code. Set <code className="rounded bg-stone-100 px-1">META_CAPI_TEST_EVENT_CODE</code> in Vercel. Now every CAPI call shows up in Test Events for verification, without polluting real conversion data.
+          </Step>
+          <Step n={5}>
+            Redeploy. Open the customer site in incognito. Add to cart. Watch Test Events for AddToCart pixel + CAPI both showing up with the same event ID (ie. dedup working).
+          </Step>
+          <Step n={6}>
+            <strong>Before going live:</strong> remove <code className="rounded bg-stone-100 px-1">META_CAPI_TEST_EVENT_CODE</code>. Otherwise Meta keeps treating events as test-only and your ads won't optimise.
+          </Step>
+        </Steps>
+
+        <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+          <p className="text-sm font-semibold text-stone-900">Events wired</p>
+          <ul className="mt-2 space-y-1 text-xs text-stone-600">
+            <li>✓ <code className="rounded bg-white px-1">PageView</code> — automatic, every route change</li>
+            <li>✓ <code className="rounded bg-white px-1">ViewContent</code> — on the PDP</li>
+            <li>✓ <code className="rounded bg-white px-1">AddToCart</code> — pixel only (low-stakes signal)</li>
+            <li>✓ <code className="rounded bg-white px-1">InitiateCheckout</code> — pixel + CAPI, deduped</li>
+            <li>✓ <code className="rounded bg-white px-1">Purchase</code> — pixel + CAPI, deduped — most critical for ad optimisation</li>
+          </ul>
+        </div>
+      </Section>
+
+      {/* ── Optional ───────────────────────────────────────────────── */}
+      <Section
+        n={5}
         title="Optional: ops alerts"
         body="Not required. Without this, alerts (drainer failures, reconciliation drift) only land in Vercel runtime logs."
         checks={optionalChecks}

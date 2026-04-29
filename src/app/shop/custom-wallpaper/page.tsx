@@ -7,6 +7,7 @@ import { Section } from "@/components/ui/Section";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
+import { PdpPixelTrigger } from "@/components/PdpPixelTrigger";
 
 // ── Shopify-style Product Detail Page ─────────────────────────────────────
 // Above-the-fold: classic 2-col buy box (gallery left, info + CTA right).
@@ -38,6 +39,7 @@ export default function CustomWallpaperPage() {
 
   return (
     <>
+      <PdpPixelTrigger />
       <BuyBox
         activeImage={activeImage}
         setActiveImage={setActiveImage}
