@@ -192,17 +192,60 @@ export function CartDrawer() {
               </div>
             </div>
           ) : (
-            <ul className="divide-y divide-pw-stone">
-              {items.map((item) => (
-                <li key={item.id}>
-                  {item.type === "sample_pack" ? (
-                    <SamplePackRow item={item} onRemove={() => removeItem(item.id)} />
-                  ) : (
-                    <WallpaperRow item={item} onRemove={() => removeItem(item.id)} />
-                  )}
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="divide-y divide-pw-stone">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    {item.type === "sample_pack" ? (
+                      <SamplePackRow item={item} onRemove={() => removeItem(item.id)} />
+                    ) : (
+                      <WallpaperRow item={item} onRemove={() => removeItem(item.id)} />
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              {/* CRO upsell — only when cart is sample-only. The drawer
+                  doesn't fire for wallpaper adds (those go straight to
+                  /checkout), so this is the moment to convert a sample
+                  buyer into a wallpaper buyer while intent is hot. */}
+              {items.every((i) => i.type === "sample_pack") && (
+                <div className="mt-6 rounded-pw-card bg-pw-ink p-5 text-white">
+                  <p className="pw-overline text-pw-accent-mid">Skip ahead?</p>
+                  <h3 className="pw-h3 mt-2 text-white">
+                    Design your wall now, the R150 is on us.
+                  </h3>
+                  <p className="pw-body mt-2 text-white/75">
+                    The samples are useful. But if you already know the photo
+                    you want printed, jump straight in. Your R150 sample-pack
+                    credit applies to a wallpaper order.
+                  </p>
+                  <ul className="mt-4 space-y-2 pw-small text-white/70">
+                    <li className="flex items-start gap-2">
+                      <span aria-hidden className="mt-0.5 text-pw-accent-mid">→</span>
+                      <span>See your image on a wall in under a minute</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span aria-hidden className="mt-0.5 text-pw-accent-mid">→</span>
+                      <span>Free SA delivery, free reprints if anything ships imperfect</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span aria-hidden className="mt-0.5 text-pw-accent-mid">→</span>
+                      <span>Yours in 5 days</span>
+                    </li>
+                  </ul>
+                  <Button
+                    href="/shop/custom-wallpaper"
+                    variant="light-on-ink"
+                    size="md"
+                    className="mt-5 w-full"
+                    onClick={closeCart}
+                  >
+                    Design my wallpaper
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
 

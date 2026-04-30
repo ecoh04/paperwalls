@@ -8,7 +8,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import type { CartItem } from "@/types/cart";
+import { metaPixelTrack } from "@/components/MetaPixel";
+import { mintEventId } from "@/lib/meta/event-id";
 
 const STORAGE_KEY = "paperwalls-cart";
 const SESSION_KEY = "paperwalls-session";
@@ -154,6 +157,7 @@ function captureAttribution(): SessionAttribution {
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const router                    = useRouter();
   const [items, setItems]         = useState<CartItem[]>([]);
   const [sessionId, setSessionId] = useState<string>("");
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -211,10 +215,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       saveCart(next);
       return next;
     });
-    // Always surface the drawer when something is added so the buyer
-    // sees confirmation without losing their place on the page.
-    setIsCartOpen(true);
-  }, []);
+
+    // Wallpaper is high-intent — they configured a wall and clicked add to
+    // cart, so cut the drawer step and send them straight to checkout.
+    // Sample-pack adds keep the drawer open so the buyer can see the
+    // confirmation + the upsell to wallpaper.
+    if (item.type === "wallpaper") {
+      router.push("/checkout");
+    } else {
+      setIsCartOpen(true);
+    }
+
+    // Meta Pixel: AddToCart. event_id minted here is what server-side
+    // CAPI will dedup against if/when we mirror this event server-side.
+    const eventId = mintEventId("AddToCart");
+    metaPixelTrack("AddToCart", {
+      event_id:     eventId,
+      value_cents:  item.subtotalCents,
+      currency:     "ZAR",
+      content_type: item.type === "sample_pack" ? "sample_pack" : "wallpaper",
+      content_ids:  [item.type === "sample_pack" ? "sample_pack" : "custom_wallpaper"],
+      content_name: item.type === "sample_pack" ? "Sample pack" : `Custom wallpaper (${item.material})`,
+      num_items:    1,
+    });
+  }, [router]);
 
   const removeItem = useCallback((id: string) => {
     setItems((prev) => {

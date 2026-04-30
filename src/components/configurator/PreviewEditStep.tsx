@@ -212,12 +212,21 @@ export function PreviewEditStep({
 
   const showResetLink = zoom > 1.001 || panX !== 0 || panY !== 0;
 
+  // Match the preview surface to the wall's aspect ratio so portrait and
+  // square walls use the available vertical space (was a fixed 62% before,
+  // which made the mobile crop tiny on anything taller than ~1.6:1). Clamp
+  // both ends so extreme aspects still fit on screen.
+  const previewPaddingTop =
+    widthM > 0 && heightM > 0
+      ? `${Math.min(125, Math.max(62, (heightM / widthM) * 100 + 6))}%`
+      : "62%";
+
   const previewBody = (
     <>
       <div
         ref={previewRef}
-        className="relative w-full overflow-hidden rounded-pw-card bg-pw-ink select-none"
-        style={{ paddingTop: "62%" }}
+        className="relative w-full overflow-hidden bg-pw-ink select-none sm:rounded-pw-card"
+        style={{ paddingTop: previewPaddingTop }}
       >
         {/* Hidden loader image — triggers onLoad to capture natural dimensions */}
         <img
@@ -319,7 +328,7 @@ export function PreviewEditStep({
       </div>
 
       {/* Zoom slider */}
-      <div className="mt-5 flex items-center gap-3">
+      <div className="mt-5 flex items-center gap-3 px-6 sm:px-0">
         <button
           type="button"
           onClick={() => onZoomChange(clamp(zoom - ZOOM_STEP, MIN_ZOOM, MAX_ZOOM))}
@@ -363,12 +372,12 @@ export function PreviewEditStep({
         )}
       </div>
 
-      <p className="pw-small mt-2 text-center text-pw-muted-light">
+      <p className="pw-small mt-2 text-center text-pw-muted-light px-6 sm:px-0">
         Drag to choose what gets printed · Slide to zoom in for a tighter crop
       </p>
 
       {quality && quality.level !== "good" && (
-        <div className="mt-5">
+        <div className="mt-5 px-6 sm:px-0">
           <ConfigAlert
             variant="warning"
             title={
@@ -388,9 +397,12 @@ export function PreviewEditStep({
   );
 
   return (
-    <div className="rounded-pw border border-pw-stone bg-pw-bg p-4 sm:p-5">
+    // On mobile we drop the inner card chrome and break out past the
+    // FlowSection's p-6 padding so the crop preview goes edge-to-edge.
+    // From sm+ we keep the original nested-card look.
+    <div className="-mx-6 sm:mx-0 sm:rounded-pw sm:border sm:border-pw-stone sm:bg-pw-bg sm:p-5">
       {wallLabel && (
-        <p className="pw-small font-semibold text-pw-ink mb-3">
+        <p className="pw-small font-semibold text-pw-ink mb-3 px-6 sm:px-0">
           {wallLabel.replace(/^\s*·\s*/, "")}
         </p>
       )}
