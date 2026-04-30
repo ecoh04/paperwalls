@@ -19,7 +19,10 @@ declare global {
 }
 
 export function MetaPixel() {
-  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+  // Trim is defensive — Vercel's UI lets you paste values with leading/
+  // trailing whitespace, which silently breaks the inline fbq('init', ...)
+  // call. Empty string after trim disables the Pixel.
+  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() || "";
 
   // Re-fire PageView on every client-side route change. fbq is set by
   // the inline boot script below; we only call it once it exists.
@@ -29,6 +32,15 @@ export function MetaPixel() {
     // The bootstrap already fires PageView on first load. This effect runs
     // on every navigation thereafter.
     window.fbq("track", "PageView");
+  }, [pixelId]);
+
+  // One-shot console warning in prod if the Pixel ID is missing — surfaces
+  // the problem in DevTools instead of silently no-op'ing.
+  useEffect(() => {
+    if (pixelId) return;
+    if (typeof window === "undefined") return;
+    if (process.env.NODE_ENV !== "production") return;
+    console.warn("[MetaPixel] NEXT_PUBLIC_META_PIXEL_ID is not set — Pixel disabled.");
   }, [pixelId]);
 
   if (!pixelId) return null;
