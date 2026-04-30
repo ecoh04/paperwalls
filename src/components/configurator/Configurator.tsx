@@ -16,7 +16,6 @@ import { PreviewEditStep } from "./PreviewEditStep";
 import { OrderSummaryPanel } from "./OrderSummaryPanel";
 import { MobileSummaryBar } from "./MobileSummaryBar";
 import { ConfigAlert } from "./ConfigAlert";
-import { ConfiguratorProgress, type ProgressStep } from "./ConfiguratorProgress";
 import { track } from "@/lib/analytics";
 
 const MAX_SIZE_MB = 50;
@@ -334,62 +333,13 @@ export function Configurator() {
     ? (state.walls[0]?.imagePreviewUrl ?? null)
     : state.imagePreviewUrl;
 
-  // Progress bar: image + size are user-driven, finish + install have defaults
-  // so we treat them as "done" once the user has cleared the required steps —
-  // by then they've necessarily scrolled past and either confirmed or changed
-  // the defaults.
-  const progressSteps = useMemo<ProgressStep[]>(() => {
-    const sizeValue = !dimensionsValid
-      ? "Set size"
-      : isMultiDifferent
-        ? `${state.wallCount} walls · ${totalSqm.toFixed(1)} m²`
-        : `${Math.round(state.widthM * 100)} × ${Math.round(state.heightM * 100)} cm`;
-
-    const materialLabel =
-      state.material === "satin" ? "Satin"
-      : state.material === "linen" ? "Linen"
-      : "Matte";
-
-    const installLabel = state.application === "pro_installer" ? "Pro install" : "DIY";
-
-    return [
-      {
-        id:    "step-image",
-        label: "Image",
-        done:  imageUploaded,
-        value: imageUploaded ? "Uploaded" : "Add image",
-      },
-      {
-        id:    "step-size",
-        label: "Size",
-        done:  dimensionsValid,
-        value: sizeValue,
-      },
-      {
-        id:    "step-finish",
-        label: "Finish",
-        done:  imageUploaded && dimensionsValid,
-        value: materialLabel,
-      },
-      {
-        id:    "step-install",
-        label: "Install",
-        done:  canAddToCart,
-        value: installLabel,
-      },
-    ];
-  }, [imageUploaded, dimensionsValid, isMultiDifferent, state.wallCount, state.widthM, state.heightM, state.material, state.application, totalSqm, canAddToCart]);
-
   // ── Render ─────────────────────────────────────────────────────────────
   return (
     <div className="pb-28 lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start lg:pb-10">
       <div className="space-y-5 sm:space-y-6">
 
-        <ConfiguratorProgress steps={progressSteps} />
-
         {/* 1 — Image */}
         <FlowSection
-          id="step-image"
           title={
             isMultiDifferent
               ? `Your designs (${state.wallCount})`
@@ -476,7 +426,6 @@ export function Configurator() {
 
         {/* 2 — Wall size */}
         <FlowSection
-          id="step-size"
           title="Your wall size"
           subtitle="Measure floor to ceiling, edge to edge, in centimetres. Add a few cm of bleed each side for a clean trim."
         >
@@ -493,7 +442,6 @@ export function Configurator() {
 
         {/* 3 — Material & finish */}
         <FlowSection
-          id="step-finish"
           title="Material & finish"
           subtitle="How it sticks, how it feels. Price updates live."
         >
@@ -501,13 +449,11 @@ export function Configurator() {
         </FlowSection>
 
         {/* 4 — Installation (DIY default + optional kit, or pro toggle) */}
-        <div id="step-install" className="scroll-mt-44 lg:scroll-mt-8">
-          <InstallSection
-            state={state}
-            setState={setState}
-            totalSqm={totalSqm}
-          />
-        </div>
+        <InstallSection
+          state={state}
+          setState={setState}
+          totalSqm={totalSqm}
+        />
 
         {/* Sample nudge for hesitant cold traffic — disappears when ready */}
         {!canAddToCart && !submitting && <SampleNudge />}
@@ -549,20 +495,14 @@ export function Configurator() {
 
 /* ── FlowSection ──────────────────────────────────────────────────────── */
 function FlowSection({
-  id, title, subtitle, children,
+  title, subtitle, children,
 }: {
-  id?: string;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section
-      id={id}
-      // scroll-mt offsets the sticky header + progress bar so anchor-jumps
-      // don't bury the section title under the chrome.
-      className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8 scroll-mt-44 sm:scroll-mt-44 lg:scroll-mt-8"
-    >
+    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8">
       <header className="mb-5 sm:mb-6">
         <h2 className="pw-h3 text-pw-ink">{title}</h2>
         {subtitle && (

@@ -18,6 +18,8 @@ export default function CheckoutPage() {
   const { items, sessionId } = useCart();
   const [error, setError] = useState<string | null>(null);
 
+  const totalCents = items.reduce((s, i) => s + i.subtotalCents, 0);
+
   const handleSuccess = useCallback(
     (payfastUrl: string, fields: Record<string, string>) => {
       setError(null);
@@ -191,7 +193,11 @@ export default function CheckoutPage() {
                   ))}
                 </ul>
 
-                <p className="pw-small mt-5 text-pw-muted-light">
+                <div className="mt-5 flex items-baseline justify-between border-t border-pw-stone pt-4">
+                  <span className="pw-small text-pw-muted">Total</span>
+                  <span className="pw-h3 text-pw-ink">{formatZar(totalCents)}</span>
+                </div>
+                <p className="pw-small mt-2 text-pw-muted-light">
                   Free SA delivery. VAT included.
                 </p>
               </div>

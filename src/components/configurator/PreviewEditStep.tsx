@@ -212,14 +212,11 @@ export function PreviewEditStep({
 
   const showResetLink = zoom > 1.001 || panX !== 0 || panY !== 0;
 
-  // Match the preview surface to the wall's aspect ratio so portrait and
-  // square walls use the available vertical space (was a fixed 62% before,
-  // which made the mobile crop tiny on anything taller than ~1.6:1). Clamp
-  // both ends so extreme aspects still fit on screen.
-  const previewPaddingTop =
-    widthM > 0 && heightM > 0
-      ? `${Math.min(125, Math.max(62, (heightM / widthM) * 100 + 6))}%`
-      : "62%";
+  // Stable preview-surface aspect — must NOT depend on wall dimensions, or
+  // the surface reflows on every keystroke and pushes the inputs around.
+  // 75% gives mobile users more vertical crop area than the old 62% without
+  // wasting space on landscape walls.
+  const previewPaddingTop = "75%";
 
   const previewBody = (
     <>
