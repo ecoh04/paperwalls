@@ -18,12 +18,17 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   const isCart     = pathname?.startsWith("/cart") ?? false;
   const isCheckout = pathname?.startsWith("/checkout") ?? false;
 
-  // Mount analytics on every customer-facing route. /admin is excluded so the
-  // operator's own clicks don't pollute funnel data.
-  const tracker = isAdmin ? null : (
-    <Suspense fallback={null}>
-      <AnalyticsTracker />
-    </Suspense>
+  // Mount analytics + Meta Pixel on every customer-facing route. /admin is
+  // excluded so the operator's own clicks don't pollute funnel data or Pixel
+  // events. MetaPixel is a no-op when NEXT_PUBLIC_META_PIXEL_ID isn't set,
+  // so dev/preview environments stay silent.
+  const customerObservability = isAdmin ? null : (
+    <>
+      <Suspense fallback={null}>
+        <AnalyticsTracker />
+      </Suspense>
+      <MetaPixel />
+    </>
   );
 
   if (isAdmin) {
@@ -33,7 +38,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   if (isFocused) {
     return (
       <CartProvider>
-        {tracker}
+        {customerObservability}
         <AnnouncementBar />
         <FocusedHeader />
         <main className="flex-1">{children}</main>
@@ -47,7 +52,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   if (isCheckout) {
     return (
       <CartProvider>
-        {tracker}
+        {customerObservability}
         <AnnouncementBar />
         <FocusedHeader />
         <main className="flex-1">{children}</main>
@@ -60,7 +65,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   if (isCart) {
     return (
       <CartProvider>
-        {tracker}
+        {customerObservability}
         <AnnouncementBar />
         <FocusedHeader />
         <main className="flex-1">{children}</main>
@@ -74,6 +79,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
   // it scrolls away on long pages but is the first thing every cold visitor sees.
   return (
     <CartProvider>
+      {customerObservability}
       <AnnouncementBar />
       <Header />
       <main className="flex-1">{children}</main>
