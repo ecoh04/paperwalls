@@ -14,7 +14,6 @@ import { DEFAULT_CONFIG, type ConfiguratorState, type WallSpec } from "@/types/c
 import type { WallpaperType, WallpaperMaterial, ApplicationMethod } from "@/types/order";
 import { PreviewEditStep } from "./PreviewEditStep";
 import { OrderSummaryPanel } from "./OrderSummaryPanel";
-import { MobileSummaryBar } from "./MobileSummaryBar";
 import { ConfigAlert } from "./ConfigAlert";
 import { track } from "@/lib/analytics";
 
@@ -335,7 +334,7 @@ export function Configurator() {
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <div className="pb-28 lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start lg:pb-10">
+    <div className="pb-12 lg:grid lg:grid-cols-[1fr_380px] lg:gap-10 lg:items-start lg:pb-10">
       <div className="space-y-5 sm:space-y-6">
 
         {/* 1 — Image */}
@@ -349,7 +348,7 @@ export function Configurator() {
             isMultiDifferent
               ? "Upload one image per wall. We'll print and cut each to its size."
               : (state.imagePreviewUrl
-                  ? "Looks great. Position it on your wall below if you want."
+                  ? "Looks great. Add your wall size next and we'll show you how it sits on the wall."
                   : "Any photo, artwork or pattern. We'll print it to fit your wall.")
           }
         >
@@ -379,28 +378,54 @@ export function Configurator() {
             </div>
           )}
 
-          {/* Single-mode wall preview, always visible once image + dims set */}
-          {!isMultiDifferent && state.imagePreviewUrl && dimensionsValid && (
-            <div className="mt-5 sm:mt-6">
-              <p className="pw-overline text-pw-ink mb-3">On your wall</p>
-              <PreviewEditStep
-                imageUrl={state.imagePreviewUrl}
-                widthM={state.widthM}
-                heightM={state.heightM}
-                panX={state.panX}
-                panY={state.panY}
-                zoom={state.zoom}
-                onPanChange={setPan}
-                onZoomChange={setZoom}
-                onCropDataReady={setCropReady}
-              />
-            </div>
-          )}
+        </FlowSection>
 
-          {/* Multi-different per-wall previews, only render walls that have both image + dims */}
-          {isMultiDifferent && state.walls.some((w) => w.imagePreviewUrl && w.widthM > 0 && w.heightM > 0) && (
-            <div className="mt-5 space-y-4 sm:mt-6">
-              <p className="pw-overline text-pw-ink">On your walls</p>
+        {/* 2 — Wall size */}
+        <FlowSection
+          title="Your wall size"
+          subtitle="Measure floor to ceiling, edge to edge, in centimetres. Add a few cm of bleed each side for a clean trim."
+        >
+          <DimensionsBlock
+            state={state}
+            setState={setState}
+            moreWalls={moreWalls}
+            setMoreWalls={setMoreWalls}
+            onWallCountChange={handleWallCountChange}
+            onMultiWallModeChange={handleMultiWallMode}
+            onWallSize={setWallSize}
+          />
+        </FlowSection>
+
+        {/* 3 — How it'll look (preview + crop). Renders only after image and
+             dimensions are both set, so it appears exactly where the buyer is
+             looking — right after they finish typing their wall size. */}
+        {!isMultiDifferent && state.imagePreviewUrl && dimensionsValid && (
+          <FlowSection
+            title="How it'll look on your wall"
+            subtitle="Drag to choose what gets printed. Pinch or use the slider to zoom in for a tighter crop."
+            flush
+          >
+            <PreviewEditStep
+              imageUrl={state.imagePreviewUrl}
+              widthM={state.widthM}
+              heightM={state.heightM}
+              panX={state.panX}
+              panY={state.panY}
+              zoom={state.zoom}
+              onPanChange={setPan}
+              onZoomChange={setZoom}
+              onCropDataReady={setCropReady}
+            />
+          </FlowSection>
+        )}
+
+        {isMultiDifferent && state.walls.some((w) => w.imagePreviewUrl && w.widthM > 0 && w.heightM > 0) && (
+          <FlowSection
+            title="How it'll look on your walls"
+            subtitle="Drag each one to position the image. Each wall gets its own crop."
+            flush
+          >
+            <div className="space-y-6">
               {state.walls.map((wall, i) => {
                 const hasContent = !!wall.imagePreviewUrl && wall.widthM > 0 && wall.heightM > 0;
                 if (!hasContent) return null;
@@ -421,26 +446,10 @@ export function Configurator() {
                 );
               })}
             </div>
-          )}
-        </FlowSection>
+          </FlowSection>
+        )}
 
-        {/* 2 — Wall size */}
-        <FlowSection
-          title="Your wall size"
-          subtitle="Measure floor to ceiling, edge to edge, in centimetres. Add a few cm of bleed each side for a clean trim."
-        >
-          <DimensionsBlock
-            state={state}
-            setState={setState}
-            moreWalls={moreWalls}
-            setMoreWalls={setMoreWalls}
-            onWallCountChange={handleWallCountChange}
-            onMultiWallModeChange={handleMultiWallMode}
-            onWallSize={setWallSize}
-          />
-        </FlowSection>
-
-        {/* 3 — Material & finish */}
+        {/* 4 — Material & finish */}
         <FlowSection
           title="Material & finish"
           subtitle="How it sticks, how it feels. Price updates live."
@@ -482,27 +491,28 @@ export function Configurator() {
         />
       </div>
 
-      <MobileSummaryBar
-        totalSqm={totalSqm}
-        subtotalCents={subtotalCents}
-        canAddToCart={canAddToCart && !submitting}
-        blockedReason={submitting ? "Preparing your print files…" : blockedReason}
-        onAddToCart={handleAddToCart}
-      />
     </div>
   );
 }
 
 /* ── FlowSection ──────────────────────────────────────────────────────── */
 function FlowSection({
-  title, subtitle, children,
+  title, subtitle, children, flush,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  /** When the section contains content that breaks out edge-to-edge (-mx-6),
+   * set this to clip the breakout to the section's rounded interior. */
+  flush?: boolean;
 }) {
   return (
-    <section className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8">
+    <section
+      className={[
+        "rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8",
+        flush ? "overflow-hidden" : "",
+      ].filter(Boolean).join(" ")}
+    >
       <header className="mb-5 sm:mb-6">
         <h2 className="pw-h3 text-pw-ink">{title}</h2>
         {subtitle && (

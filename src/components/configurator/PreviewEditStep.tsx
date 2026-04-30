@@ -220,9 +220,13 @@ export function PreviewEditStep({
 
   const previewBody = (
     <>
+      {/* Preview surface — breaks edge-to-edge on mobile inside the flush
+          parent FlowSection (overflow-hidden on the section clips the square
+          corners to the rounded card edge). On sm+ stays inside normal
+          flow with rounded corners. */}
       <div
         ref={previewRef}
-        className="relative w-full overflow-hidden bg-pw-ink select-none sm:rounded-pw-card"
+        className="relative w-full overflow-hidden bg-pw-ink select-none -mx-6 sm:mx-0 sm:rounded-pw-card"
         style={{ paddingTop: previewPaddingTop }}
       >
         {/* Hidden loader image — triggers onLoad to capture natural dimensions */}
@@ -325,7 +329,7 @@ export function PreviewEditStep({
       </div>
 
       {/* Zoom slider */}
-      <div className="mt-5 flex items-center gap-3 px-6 sm:px-0">
+      <div className="mt-5 flex items-center gap-3">
         <button
           type="button"
           onClick={() => onZoomChange(clamp(zoom - ZOOM_STEP, MIN_ZOOM, MAX_ZOOM))}
@@ -369,12 +373,12 @@ export function PreviewEditStep({
         )}
       </div>
 
-      <p className="pw-small mt-2 text-center text-pw-muted-light px-6 sm:px-0">
+      <p className="pw-small mt-2 text-center text-pw-muted-light">
         Drag to choose what gets printed · Slide to zoom in for a tighter crop
       </p>
 
       {quality && quality.level !== "good" && (
-        <div className="mt-5 px-6 sm:px-0">
+        <div className="mt-5">
           <ConfigAlert
             variant="warning"
             title={
@@ -394,12 +398,12 @@ export function PreviewEditStep({
   );
 
   return (
-    // On mobile we drop the inner card chrome and break out past the
-    // FlowSection's p-6 padding so the crop preview goes edge-to-edge.
-    // From sm+ we keep the original nested-card look.
-    <div className="-mx-6 sm:mx-0 sm:rounded-pw sm:border sm:border-pw-stone sm:bg-pw-bg sm:p-5">
+    // Sits inside the parent's flush FlowSection. The preview surface itself
+    // (inside previewBody) handles the mobile edge-to-edge breakout via -mx-6;
+    // everything else flows in the section's normal padding.
+    <div>
       {wallLabel && (
-        <p className="pw-small font-semibold text-pw-ink mb-3 px-6 sm:px-0">
+        <p className="pw-small font-semibold text-pw-ink mb-3">
           {wallLabel.replace(/^\s*·\s*/, "")}
         </p>
       )}
