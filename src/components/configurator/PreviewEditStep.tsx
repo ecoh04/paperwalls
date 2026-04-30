@@ -20,14 +20,19 @@ type PreviewEditStepProps = {
   onCropDataReady?: (getBlob: () => Promise<Blob | null>) => void;
 };
 
-type Size = { w: number; h: number };
+type Size    = { w: number; h: number };
+type Pointer = { id: number; x: number; y: number };
 
-const MIN_ZOOM = 1;
-const MAX_ZOOM = 3;
-const ZOOM_STEP = 0.1;
+const MIN_ZOOM  = 1;
+const MAX_ZOOM  = 3;
+const ZOOM_STEP = 0.25;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function distance(a: Pointer, b: Pointer): number {
+  return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
 export function PreviewEditStep({
@@ -42,21 +47,28 @@ export function PreviewEditStep({
   onZoomChange,
   onCropDataReady,
 }: PreviewEditStepProps) {
-  const previewRef   = useRef<HTMLDivElement>(null);
-  const imgRef       = useRef<HTMLImageElement>(null);
-  const rafRef       = useRef<number | null>(null);
-  const dragStartRef = useRef<{ panX: number; panY: number; clientX: number; clientY: number } | null>(null);
+  const previewRef    = useRef<HTMLDivElement>(null);
+  const imgRef        = useRef<HTMLImageElement>(null);
+  const rafRef        = useRef<number | null>(null);
 
-  const [isDragging,   setIsDragging]   = useState(false);
-  const [imgSize,      setImgSize]      = useState<Size | null>(null);
-  const [previewSize,  setPreviewSize]  = useState<Size | null>(null);
+  // Active pointers tracked by id. One pointer = pan, two pointers = pinch-zoom.
+  const pointersRef    = useRef<Pointer[]>([]);
+  const panStartRef    = useRef<{ panX: number; panY: number; clientX: number; clientY: number } | null>(null);
+  const pinchStartRef  = useRef<{ distance: number; zoom: number } | null>(null);
+
+  // Coalesce gesture updates: collect the latest values, flush on next frame.
+  const pendingPanRef  = useRef<{ x: number; y: number } | null>(null);
+  const pendingZoomRef = useRef<number | null>(null);
+
+  const [imgSize,     setImgSize]     = useState<Size | null>(null);
+  const [previewSize, setPreviewSize] = useState<Size | null>(null);
 
   // Reset image-bound state when the URL changes.
   useEffect(() => {
     setImgSize(null);
   }, [imageUrl]);
 
-  // Measure the preview surface (image is fitted to this — frame sits on top of image).
+  // Measure the preview surface — frame and image are sized off these dims.
   useEffect(() => {
     const el = previewRef.current;
     if (!el) return;
@@ -85,23 +97,24 @@ export function PreviewEditStep({
   // ── Layout math ─────────────────────────────────────────────────────────
   // Image is contain-fit inside the preview surface at zoom=1, so the customer
   // sees the WHOLE image. The wall frame (at the wall's aspect ratio) is overlaid
-  // and sized to fit *inside* the image at zoom=1 — so dragging changes the
-  // image position under a fixed frame, and zoom > 1 grows the image (making the
-  // frame cover a smaller portion = tighter crop).
+  // and sized to fit *inside* the image at zoom=1. The image renders at a
+  // FIXED base size — zoom is applied via CSS transform: scale() so the
+  // browser can GPU-composite it instead of repainting on every frame.
   const ready = imgSize !== null && previewSize !== null;
 
   const wallAspect       = widthM / heightM;
   const baseImageScale   = ready ? Math.min(previewSize.w / imgSize.w, previewSize.h / imgSize.h) : 0;
-  const effImageScale    = baseImageScale * zoom;
-  const imgDispW         = ready ? imgSize.w * effImageScale : 0;
-  const imgDispH         = ready ? imgSize.h * effImageScale : 0;
   const baseImgW         = ready ? imgSize.w * baseImageScale : 0;
   const baseImgH         = ready ? imgSize.h * baseImageScale : 0;
 
+  // Effective rendered image size (after CSS scale) — used for pan bounds and crop math only.
+  const effImageScale    = baseImageScale * zoom;
+  const imgDispW         = baseImgW * zoom;
+  const imgDispH         = baseImgH * zoom;
+
   // Frame size on screen — fixed once imgSize/previewSize are known. The
   // largest wall-aspect rectangle that fits inside the image at zoom=1.
-  // Trim 14 px so the user can always see the dimmed image bleed at the edges
-  // (otherwise on aspect-matched images the frame would touch the image edges).
+  // Trim 14 px so the user can always see the dimmed image bleed at the edges.
   const FRAME_INSET = 14;
   const frameScreenW = ready
     ? Math.max(0, Math.min(baseImgW, baseImgH * wallAspect) - FRAME_INSET * 2)
@@ -153,41 +166,90 @@ export function PreviewEditStep({
     if (w > 0 && h > 0) setImgSize({ w, h });
   };
 
-  // ── Drag (pan) ──────────────────────────────────────────────────────────
+  // ── Gesture handling: pan (1 finger) + pinch-zoom (2 fingers) ─────────
+  // Coalesce updates onto rAF so we re-render at most once per frame
+  // regardless of how many pointer/range-input events fire.
+  const flush = useCallback(() => {
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const pendingPan  = pendingPanRef.current;
+      const pendingZoom = pendingZoomRef.current;
+      pendingPanRef.current  = null;
+      pendingZoomRef.current = null;
+      if (pendingZoom !== null) onZoomChange(pendingZoom);
+      if (pendingPan)           onPanChange(pendingPan.x, pendingPan.y);
+    });
+  }, [onPanChange, onZoomChange]);
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!ready) return;
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
-    setIsDragging(true);
-    dragStartRef.current = { panX, panY, clientX: e.clientX, clientY: e.clientY };
+
+    const next = pointersRef.current.filter(p => p.id !== e.pointerId);
+    next.push({ id: e.pointerId, x: e.clientX, y: e.clientY });
+    pointersRef.current = next;
+
+    if (next.length === 1) {
+      panStartRef.current   = { panX, panY, clientX: e.clientX, clientY: e.clientY };
+      pinchStartRef.current = null;
+    } else if (next.length >= 2) {
+      const [p1, p2] = next;
+      pinchStartRef.current = { distance: distance(p1, p2), zoom };
+      panStartRef.current   = null;
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging || !dragStartRef.current || !ready) return;
+    if (!ready) return;
+    const idx = pointersRef.current.findIndex(p => p.id === e.pointerId);
+    if (idx === -1) return;
+    pointersRef.current[idx] = { id: e.pointerId, x: e.clientX, y: e.clientY };
 
-    const start = dragStartRef.current;
-    const dx = e.clientX - start.clientX;
-    const dy = e.clientY - start.clientY;
-
-    const nextX = clamp(start.panX + dx, -maxPanX, maxPanX);
-    const nextY = clamp(start.panY + dy, -maxPanY, maxPanY);
-
-    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
-      onPanChange(nextX, nextY);
-    });
-  };
-
-  const endDrag = () => {
-    if (rafRef.current !== null) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
+    if (pointersRef.current.length === 1 && panStartRef.current) {
+      const start = panStartRef.current;
+      const dx = e.clientX - start.clientX;
+      const dy = e.clientY - start.clientY;
+      pendingPanRef.current = {
+        x: clamp(start.panX + dx, -maxPanX, maxPanX),
+        y: clamp(start.panY + dy, -maxPanY, maxPanY),
+      };
+      flush();
+    } else if (pointersRef.current.length >= 2 && pinchStartRef.current) {
+      const [p1, p2] = pointersRef.current;
+      const d = distance(p1, p2);
+      const ratio = d / pinchStartRef.current.distance;
+      pendingZoomRef.current = clamp(pinchStartRef.current.zoom * ratio, MIN_ZOOM, MAX_ZOOM);
+      flush();
     }
-    dragStartRef.current = null;
-    setIsDragging(false);
   };
+
+  const handlePointerEnd = (e: React.PointerEvent) => {
+    pointersRef.current = pointersRef.current.filter(p => p.id !== e.pointerId);
+
+    if (pointersRef.current.length === 0) {
+      panStartRef.current   = null;
+      pinchStartRef.current = null;
+    } else if (pointersRef.current.length === 1) {
+      // Coming back from a pinch with one finger still down — restart pan
+      // tracking from the remaining finger's current position.
+      pinchStartRef.current = null;
+      const remaining = pointersRef.current[0];
+      panStartRef.current = { panX, panY, clientX: remaining.x, clientY: remaining.y };
+    }
+  };
+
+  // ── Slider zoom (button + range input). Same rAF coalescing path. ─────
+  const setZoomThrottled = useCallback((z: number) => {
+    pendingZoomRef.current = clamp(z, MIN_ZOOM, MAX_ZOOM);
+    flush();
+  }, [flush]);
 
   const handleReset = () => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    pendingPanRef.current  = null;
+    pendingZoomRef.current = null;
     onPanChange(0, 0);
     onZoomChange(1);
   };
@@ -212,24 +274,31 @@ export function PreviewEditStep({
 
   const showResetLink = zoom > 1.001 || panX !== 0 || panY !== 0;
 
-  // Stable preview-surface aspect — must NOT depend on wall dimensions, or
-  // the surface reflows on every keystroke and pushes the inputs around.
-  // 75% gives mobile users more vertical crop area than the old 62% without
-  // wasting space on landscape walls.
-  const previewPaddingTop = "75%";
+  // Image style is shared by the dimmed backdrop and the bright in-frame copy.
+  // Fixed box dimensions; zoom applied via transform scale so the browser can
+  // composite changes on the GPU instead of repainting at each new size.
+  const imageStyle: React.CSSProperties = {
+    width:            baseImgW,
+    height:           baseImgH,
+    transform:        `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoom})`,
+    backgroundImage:  `url(${imageUrl})`,
+    backgroundSize:   "100% 100%",
+    backgroundRepeat: "no-repeat",
+    willChange:       "transform",
+  };
 
   const previewBody = (
     <>
-      {/* Preview surface — breaks edge-to-edge on mobile inside the flush
-          parent FlowSection (overflow-hidden on the section clips the square
-          corners to the rounded card edge). On sm+ stays inside normal
-          flow with rounded corners. */}
+      {/* Preview surface. width:auto + -mx-6 means the box stretches by 48px
+          on mobile (cancelling the FlowSection's p-6 to go edge-to-edge). On
+          sm+ it stays inside the section's normal padding with rounded
+          corners. aspect-[4/3] gives a stable 75%-of-width height regardless
+          of wall dimensions, so typing in size doesn't reflow the page. */}
       <div
         ref={previewRef}
-        className="relative w-full overflow-hidden bg-pw-ink select-none -mx-6 sm:mx-0 sm:rounded-pw-card"
-        style={{ paddingTop: previewPaddingTop }}
+        className="relative overflow-hidden bg-pw-ink select-none -mx-6 sm:mx-0 sm:rounded-pw-card aspect-[4/3]"
       >
-        {/* Hidden loader image — triggers onLoad to capture natural dimensions */}
+        {/* Hidden loader — onLoad captures the natural dimensions */}
         <img
           ref={imgRef}
           src={imageUrl}
@@ -242,47 +311,29 @@ export function PreviewEditStep({
 
         {ready ? (
           <>
-            {/* Dimmed full image — what's visible OUTSIDE the wall frame won't print */}
+            {/* Dimmed backdrop — what's outside the wall frame won't print */}
             <div
               className="absolute left-1/2 top-1/2 pointer-events-none"
               style={{
-                width:  imgDispW,
-                height: imgDispH,
-                transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
-                backgroundImage:  `url(${imageUrl})`,
-                backgroundSize:   "100% 100%",
-                backgroundRepeat: "no-repeat",
-                filter:           "brightness(0.32) saturate(0.85)",
-                willChange:       isDragging ? "transform" : undefined,
+                ...imageStyle,
+                filter: "brightness(0.32) saturate(0.85)",
               }}
               aria-hidden
             />
 
-            {/* Wall frame (the print area) — overlaid on top, fixed screen size */}
+            {/* Wall frame — the actual print area */}
             <div
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-md ring-2 ring-white/95 shadow-[0_8px_24px_rgba(0,0,0,0.45)] pointer-events-none"
-              style={{
-                width:  frameScreenW,
-                height: frameScreenH,
-              }}
+              style={{ width: frameScreenW, height: frameScreenH }}
             >
-              {/* Full-brightness image inside the frame — same screen position
-                  as the dimmed backdrop, just clipped by the frame's overflow */}
+              {/* Full-brightness image clipped by the frame */}
               <div
                 className="absolute left-1/2 top-1/2"
-                style={{
-                  width:  imgDispW,
-                  height: imgDispH,
-                  transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
-                  backgroundImage:  `url(${imageUrl})`,
-                  backgroundSize:   "100% 100%",
-                  backgroundRepeat: "no-repeat",
-                  willChange:       isDragging ? "transform" : undefined,
-                }}
+                style={imageStyle}
                 aria-hidden
               />
 
-              {/* 3×3 rule-of-thirds grid — inside the print frame */}
+              {/* Rule-of-thirds grid */}
               <div className="pointer-events-none absolute inset-0" aria-hidden>
                 <div className="absolute top-0 bottom-0 left-1/3   w-px bg-white/35" />
                 <div className="absolute top-0 bottom-0 left-2/3   w-px bg-white/35" />
@@ -302,7 +353,7 @@ export function PreviewEditStep({
           </div>
         )}
 
-        {/* Drag overlay — captures pointer events for pan across the whole preview */}
+        {/* Gesture overlay — captures pointer events for pan + pinch-zoom */}
         <div
           className={[
             "absolute inset-0",
@@ -315,12 +366,11 @@ export function PreviewEditStep({
           style={{ touchAction: "none" }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-          onPointerLeave={endDrag}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
         />
 
-        {/* Wall dimension chip — bottom of preview surface */}
+        {/* Wall dimension chip */}
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none">
           <span className="rounded-full bg-white/10 backdrop-blur-sm px-3 py-1 pw-overline text-white/85">
             {widthCm.toFixed(0)} × {heightCm.toFixed(0)} cm
@@ -328,14 +378,15 @@ export function PreviewEditStep({
         </div>
       </div>
 
-      {/* Zoom slider */}
-      <div className="mt-5 flex items-center gap-3">
+      {/* Zoom controls. Bigger touch targets (h-11 w-11 ≈ 44pt) so they're
+          comfortable to tap on mobile. */}
+      <div className="mt-4 flex items-center gap-3">
         <button
           type="button"
-          onClick={() => onZoomChange(clamp(zoom - ZOOM_STEP, MIN_ZOOM, MAX_ZOOM))}
+          onClick={() => setZoomThrottled(zoom - ZOOM_STEP)}
           disabled={zoom <= MIN_ZOOM + 0.001}
           aria-label="Zoom out"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-pw-stone bg-pw-surface text-pw-ink hover:bg-pw-bg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-pw-stone bg-pw-surface text-pw-ink active:bg-pw-bg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeWidth={2} d="M5 12h14" />
@@ -347,16 +398,16 @@ export function PreviewEditStep({
           max={MAX_ZOOM}
           step={0.01}
           value={zoom}
-          onChange={(e) => onZoomChange(parseFloat(e.target.value))}
+          onChange={(e) => setZoomThrottled(parseFloat(e.target.value))}
           aria-label="Zoom"
-          className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-pw-stone accent-pw-accent"
+          className="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-pw-stone accent-pw-accent"
         />
         <button
           type="button"
-          onClick={() => onZoomChange(clamp(zoom + ZOOM_STEP, MIN_ZOOM, MAX_ZOOM))}
+          onClick={() => setZoomThrottled(zoom + ZOOM_STEP)}
           disabled={zoom >= MAX_ZOOM - 0.001}
           aria-label="Zoom in"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-pw-stone bg-pw-surface text-pw-ink hover:bg-pw-bg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-pw-stone bg-pw-surface text-pw-ink active:bg-pw-bg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
@@ -374,7 +425,7 @@ export function PreviewEditStep({
       </div>
 
       <p className="pw-small mt-2 text-center text-pw-muted-light">
-        Drag to choose what gets printed · Slide to zoom in for a tighter crop
+        Drag to position · Pinch or use the slider to zoom
       </p>
 
       {quality && quality.level !== "good" && (
@@ -398,9 +449,6 @@ export function PreviewEditStep({
   );
 
   return (
-    // Sits inside the parent's flush FlowSection. The preview surface itself
-    // (inside previewBody) handles the mobile edge-to-edge breakout via -mx-6;
-    // everything else flows in the section's normal padding.
     <div>
       {wallLabel && (
         <p className="pw-small font-semibold text-pw-ink mb-3">
