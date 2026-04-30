@@ -95,31 +95,44 @@ export function PreviewEditStep({
   }, []);
 
   // ── Layout math ─────────────────────────────────────────────────────────
-  // Image is contain-fit inside the preview surface at zoom=1, so the customer
-  // sees the WHOLE image. The wall frame (at the wall's aspect ratio) is overlaid
-  // and sized to fit *inside* the image at zoom=1. The image renders at a
-  // FIXED base size — zoom is applied via CSS transform: scale() so the
-  // browser can GPU-composite it instead of repainting on every frame.
+  // Standard photo-cropper model: the wall frame fills the preview (largest
+  // wall-aspect rectangle inside it), and the image cover-fits the frame at
+  // zoom=1 so there's never empty space inside the print area. Image may
+  // extend beyond the preview surface — overflow-hidden clips it and the
+  // user pans to reveal the off-screen parts.
+  //
+  // Why not contain-fit-to-preview? When the image and wall aspects don't
+  // match (portrait image + landscape wall), the image got letter-boxed and
+  // the frame could only be as big as the image — making the print frame
+  // tiny instead of the image-being-cropped tiny.
+  //
+  // Image renders at a FIXED base size; zoom is applied via CSS transform:
+  // scale() so the browser GPU-composites changes instead of repainting.
   const ready = imgSize !== null && previewSize !== null;
 
-  const wallAspect       = widthM / heightM;
-  const baseImageScale   = ready ? Math.min(previewSize.w / imgSize.w, previewSize.h / imgSize.h) : 0;
-  const baseImgW         = ready ? imgSize.w * baseImageScale : 0;
-  const baseImgH         = ready ? imgSize.h * baseImageScale : 0;
+  const wallAspect = widthM / heightM;
 
-  // Effective rendered image size (after CSS scale) — used for pan bounds and crop math only.
-  const effImageScale    = baseImageScale * zoom;
-  const imgDispW         = baseImgW * zoom;
-  const imgDispH         = baseImgH * zoom;
-
-  // Frame size on screen — fixed once imgSize/previewSize are known. The
-  // largest wall-aspect rectangle that fits inside the image at zoom=1.
-  // Trim 14 px so the user can always see the dimmed image bleed at the edges.
+  // Frame size on screen — derived from preview alone (not image), so an
+  // aspect mismatch with the image doesn't shrink the print area.
   const FRAME_INSET = 14;
-  const frameScreenW = ready
-    ? Math.max(0, Math.min(baseImgW, baseImgH * wallAspect) - FRAME_INSET * 2)
-    : 0;
+  const frameMaxW = ready ? Math.max(0, previewSize.w - FRAME_INSET * 2) : 0;
+  const frameMaxH = ready ? Math.max(0, previewSize.h - FRAME_INSET * 2) : 0;
+  const frameScreenW = ready ? Math.min(frameMaxW, frameMaxH * wallAspect) : 0;
   const frameScreenH = frameScreenW / wallAspect;
+
+  // Image: cover-fits the frame at zoom=1 (= the smallest scale at which
+  // the image fully covers the print area). Math.max picks whichever axis
+  // requires the larger scale.
+  const baseImageScale = ready && imgSize.w > 0 && imgSize.h > 0 && frameScreenW > 0
+    ? Math.max(frameScreenW / imgSize.w, frameScreenH / imgSize.h)
+    : 0;
+  const baseImgW = ready ? imgSize.w * baseImageScale : 0;
+  const baseImgH = ready ? imgSize.h * baseImageScale : 0;
+
+  // Effective rendered image size after CSS scale — used for pan bounds + crop math only.
+  const effImageScale = baseImageScale * zoom;
+  const imgDispW      = baseImgW * zoom;
+  const imgDispH      = baseImgH * zoom;
 
   // Pan bounds: frame must always stay inside the image.
   const maxPanX = Math.max(0, (imgDispW - frameScreenW) / 2);
