@@ -3,6 +3,8 @@ import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
 import { sendEmail } from "@/lib/email/send";
 import { renderAdminNewOrder } from "@/lib/email/templates";
 import { sendMetaConversion } from "@/lib/meta/capi";
+import { notifyOps } from "@/lib/alerts";
+import { extractClientIp, isPayfastIp } from "@/lib/payfast-ip";
 import {
   formatPayfastAmount,
   generatePayfastSignature,
@@ -17,16 +19,26 @@ import {
  * redirect flow. This is the ONLY place we mark orders as paid and record
  * the gateway_payment_id. The client-side modal callback is not trusted.
  *
- * Security checks per docs:
- *   1. Signature matches (MD5 of all fields + passphrase)
- *   2. merchant_id matches our env
- *   3. amount_gross matches our expected total (within R0.01)
- *   4. Server-side validation via https://{pfHost}/eng/query/validate
+ * Five mandatory security checks per the PayFast spec:
+ *   1. Source IP is in PayFast's allowlist (DNS-resolved + AWS range)
+ *   2. Signature matches (MD5 of all fields + passphrase)
+ *   3. merchant_id matches our env
+ *   4. amount_gross matches our expected total (within R0.01)
+ *   5. Server-side validation via https://{pfHost}/eng/query/validate
+ *
+ * HTTP response policy:
+ *   - 200 on accepted (and on rejected-as-unauthentic — we don't want
+ *     PayFast retrying a forgery)
+ *   - 5xx on transient internal errors (DB unavailable, env missing) so
+ *     PayFast retries the ITN
  */
 export async function POST(request: Request) {
+  const clientIp = extractClientIp(request.headers);
+  let rawBody = "";
+
   try {
-    const rawBody = await request.text();
-    const params  = new URLSearchParams(rawBody);
+    rawBody = await request.text();
+    const params = new URLSearchParams(rawBody);
 
     const pfData: Record<string, string> = {};
     params.forEach((value, key) => { pfData[key] = value; });
@@ -35,8 +47,33 @@ export async function POST(request: Request) {
     const passphrase    = process.env.PAYFAST_PASSPHRASE?.trim() ?? null;
 
     if (!merchantIdEnv) {
-      console.error("[PayFast ITN] PAYFAST_MERCHANT_ID not set");
-      return NextResponse.json({ error: "Misconfigured" }, { status: 200 });
+      // Server misconfiguration — return 5xx so PayFast retries once we fix it.
+      await notifyOps({
+        severity: "fatal",
+        title:    "PayFast ITN: PAYFAST_MERCHANT_ID env var is not set",
+        detail:   "ITN endpoint can't validate notifications without the merchant id. Set it in Vercel env vars and redeploy.",
+      });
+      return NextResponse.json({ error: "Misconfigured" }, { status: 503 });
+    }
+
+    // ── 0. Source IP allowlist (PayFast spec security check #4) ──────────────
+    // Reject anything that isn't from a known PayFast IP. Returns 200 so
+    // we never retry a forgery — but logs to ops because if our IP list is
+    // stale we want to know.
+    const ipAllowed = await isPayfastIp(clientIp);
+    if (!ipAllowed) {
+      await notifyOps({
+        severity: "warn",
+        title:    "PayFast ITN from non-allowlisted source IP",
+        fields:   {
+          client_ip:     clientIp || "(empty)",
+          pf_payment_id: pfData["pf_payment_id"] ?? "",
+          m_payment_id:  pfData["m_payment_id"] ?? "",
+          amount_gross:  pfData["amount_gross"] ?? "",
+        },
+        detail: `Body preview: ${rawBody.slice(0, 200)}`,
+      });
+      return NextResponse.json({ error: "Source IP not recognised" }, { status: 200 });
     }
 
     // ── 1. Rebuild parameter string for signature & validate ─────────────────
@@ -63,16 +100,35 @@ export async function POST(request: Request) {
     const expectedSignature = generatePayfastSignature(baseData, passphrase);
 
     if (!signatureProvided || signatureProvided !== expectedSignature) {
-      console.error("[PayFast ITN] Invalid signature", {
-        provided: signatureProvided,
-        expected: expectedSignature,
+      // Source IP check passed but signature didn't — high-signal forgery
+      // attempt or a misconfigured passphrase. Either way, operator needs
+      // to know.
+      await notifyOps({
+        severity: "fatal",
+        title:    "PayFast ITN signature mismatch",
+        fields:   {
+          client_ip:     clientIp,
+          provided:      signatureProvided || "(none)",
+          expected:      expectedSignature,
+          pf_payment_id: pfData["pf_payment_id"] ?? "",
+          m_payment_id:  pfData["m_payment_id"] ?? "",
+          amount_gross:  pfData["amount_gross"] ?? "",
+        },
       });
       return NextResponse.json({ error: "Invalid signature" }, { status: 200 });
     }
 
     // ── 3. Verify merchant_id ─────────────────────────────────────────────────
     if ((pfData["merchant_id"] ?? "") !== merchantIdEnv) {
-      console.error("[PayFast ITN] merchant_id mismatch", pfData["merchant_id"]);
+      await notifyOps({
+        severity: "fatal",
+        title:    "PayFast ITN merchant_id mismatch",
+        fields:   {
+          client_ip: clientIp,
+          received:  pfData["merchant_id"] ?? "(none)",
+          expected:  merchantIdEnv,
+        },
+      });
       return NextResponse.json({ error: "Invalid merchant" }, { status: 200 });
     }
 
@@ -85,15 +141,28 @@ export async function POST(request: Request) {
       .filter(Boolean);
 
     if (!orderNumbers.length) {
-      console.error("[PayFast ITN] Missing order numbers in payload");
+      // Signature was valid but the payload doesn't reference an order —
+      // shouldn't happen with the redirect/onsite flows we use. Log loudly.
+      await notifyOps({
+        severity: "fatal",
+        title:    "PayFast ITN missing order reference",
+        fields:   {
+          pf_payment_id: pfData["pf_payment_id"] ?? "",
+          m_payment_id:  pfData["m_payment_id"]  ?? "",
+          custom_str1:   pfData["custom_str1"]   ?? "",
+        },
+      });
       return NextResponse.json({ error: "No order reference" }, { status: 200 });
     }
 
     if (!supabase) {
-      console.error(
-        "[PayFast ITN] Supabase service role not configured — set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in env"
-      );
-      return NextResponse.json({ error: "Server misconfigured" }, { status: 200 });
+      // Server misconfig — return 5xx so PayFast retries when fixed.
+      await notifyOps({
+        severity: "fatal",
+        title:    "PayFast ITN: Supabase service-role client not configured",
+        detail:   "Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in env then redeploy.",
+      });
+      return NextResponse.json({ error: "Server misconfigured" }, { status: 503 });
     }
 
     // ── 4. Verify amount ──────────────────────────────────────────────────────
@@ -104,8 +173,27 @@ export async function POST(request: Request) {
       .select("order_number, total_cents, status")
       .in("order_number", orderNumbers);
 
-    if (ordersError || !orders || orders.length === 0) {
-      console.error("[PayFast ITN] Orders lookup failed", ordersError);
+    if (ordersError) {
+      // DB failure during a verified ITN — return 5xx so PayFast retries.
+      await notifyOps({
+        severity: "fatal",
+        title:    "PayFast ITN: orders lookup failed",
+        fields:   { order_numbers: orderNumbers.join(",") },
+        detail:   ordersError.message,
+      });
+      return NextResponse.json({ error: "Orders lookup failed" }, { status: 503 });
+    }
+    if (!orders || orders.length === 0) {
+      // Signature + IP + merchant all passed but no order matches — likely
+      // a stale ITN replay for an archived/deleted order. Don't retry.
+      await notifyOps({
+        severity: "warn",
+        title:    "PayFast ITN: no matching orders",
+        fields:   {
+          order_numbers: orderNumbers.join(","),
+          pf_payment_id: pfPaymentId ?? "",
+        },
+      });
       return NextResponse.json({ error: "No matching orders" }, { status: 200 });
     }
 
@@ -113,7 +201,19 @@ export async function POST(request: Request) {
     const expectedAmount = parseFloat(formatPayfastAmount(expectedCents));
 
     if (Math.abs(expectedAmount - amountGross) > 0.01) {
-      console.error("[PayFast ITN] Amount mismatch", { expectedAmount, amountGross });
+      // Amount tampering or order edited after PayFast was hit. Either way
+      // this is fraud/data-integrity territory — fatal alert.
+      await notifyOps({
+        severity: "fatal",
+        title:    "PayFast ITN amount mismatch",
+        fields:   {
+          client_ip:      clientIp,
+          expected_amount: expectedAmount,
+          received_amount: amountGross,
+          order_numbers:  orderNumbers.join(","),
+          pf_payment_id:  pfPaymentId ?? "",
+        },
+      });
       return NextResponse.json({ error: "Amount mismatch" }, { status: 200 });
     }
 
@@ -127,7 +227,18 @@ export async function POST(request: Request) {
     const validateBody = (await validateRes.text()).trim();
 
     if (!validateBody.toUpperCase().includes("VALID")) {
-      console.error("[PayFast ITN] Server validation failed", validateBody);
+      // Remote validation refused — log loudly. PayFast disowning the
+      // notification means our fields are wrong or the ITN is fake.
+      await notifyOps({
+        severity: "fatal",
+        title:    "PayFast ITN: /eng/query/validate refused",
+        fields:   {
+          client_ip:      clientIp,
+          pf_response:    validateBody.slice(0, 200),
+          pf_payment_id:  pfPaymentId ?? "",
+          order_numbers:  orderNumbers.join(","),
+        },
+      });
       return NextResponse.json({ error: "Remote validation failed" }, { status: 200 });
     }
 
@@ -318,7 +429,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (err) {
+    // Unexpected error — DB hiccup, network blip, code bug. Return 5xx so
+    // PayFast retries the ITN; meanwhile alert ops loudly. Don't include
+    // the full body in the alert (may include sensitive data).
     console.error("[PayFast ITN] Unexpected error", err);
-    return NextResponse.json({ error: "Bad request" }, { status: 200 });
+    await notifyOps({
+      severity: "fatal",
+      title:    "PayFast ITN: unexpected error",
+      fields:   { client_ip: clientIp, body_size: rawBody.length },
+      detail:   err instanceof Error ? `${err.message}\n${err.stack ?? ""}` : String(err),
+    });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
