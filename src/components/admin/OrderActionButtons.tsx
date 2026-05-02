@@ -40,9 +40,19 @@ export function OrderActionButtons({
   }
 
   function handleMarkRefunded() {
-    if (!confirm("Mark this order as refunded? It will be set to Cancelled.")) return;
+    const reason = window.prompt(
+      "Refund reason (required — e.g. 'customer request', 'print quality', 'duplicate order', 'address invalid'):"
+    );
+    // Treat cancel and empty as cancel — refund without context creates
+    // accounting/audit pain we can't recover from later.
+    if (reason === null) return;
+    if (reason.trim().length === 0) {
+      alert("A refund reason is required.");
+      return;
+    }
+    if (!confirm(`Refund this order with reason: "${reason.trim()}"?\nIt will be set to Cancelled.`)) return;
     startTransition(async () => {
-      await markOrderRefunded(orderId);
+      await markOrderRefunded(orderId, reason.trim());
       router.refresh();
     });
   }

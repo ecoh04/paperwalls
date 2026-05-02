@@ -440,7 +440,7 @@ export async function cancelOrder(orderId: string, reason?: string) {
   return { ok: true };
 }
 
-export async function markOrderRefunded(orderId: string) {
+export async function markOrderRefunded(orderId: string, reason?: string) {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
@@ -451,13 +451,17 @@ export async function markOrderRefunded(orderId: string) {
     .eq("id", orderId);
   if (updateError) return { error: updateError.message };
 
+  // Persist the operator's reason in order_activity so the audit trail
+  // answers "why" not just "what" — six months later when accountant or
+  // customer asks, the context is still there.
+  const trimmed = (reason ?? "").trim();
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: userId,
-    action: "refunded",
-    new_value: "Refunded",
+    user_id:  userId,
+    action:   "refunded",
+    new_value: trimmed.length > 0 ? trimmed : "Refunded (no reason given)",
   });
-  await setLastActivity(supabase, orderId, "Refunded");
+  await setLastActivity(supabase, orderId, trimmed ? `Refunded: ${trimmed}` : "Refunded");
 
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);

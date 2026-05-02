@@ -147,6 +147,26 @@ export default async function AdminOrderDetailPage({
     .order("created_at", { ascending: false })
     .limit(50);
 
+  // Customer lifetime stats — surface "this person has spent R X over N
+  // orders" inline on the order so the operator instantly knows whether to
+  // treat as VIP or first-timer. Only fetched when the order is linked to a
+  // customer record (won't be true for the very first order before
+  // identify_customer ran).
+  const customerId = (order as { customer_id?: string | null }).customer_id ?? null;
+  const { data: customerStats } = customerId
+    ? await supabase
+        .from("customers")
+        .select("id, total_orders, total_spent_cents, last_seen_at, first_seen_at")
+        .eq("id", customerId)
+        .maybeSingle()
+    : { data: null as null | {
+        id: string;
+        total_orders: number;
+        total_spent_cents: number;
+        last_seen_at: string | null;
+        first_seen_at: string | null;
+      } };
+
   // Latest successful send per type, so the resend buttons can show "last sent X ago".
   const { data: lastSentRows } = await supabase
     .from("scheduled_emails")
@@ -426,7 +446,70 @@ export default async function AdminOrderDetailPage({
         )}
 
         <section className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-stone-900">Customer & delivery</h2>
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-lg font-semibold text-stone-900">Customer & delivery</h2>
+            {customerStats && (
+              <Link
+                href={`/admin/customers/${customerStats.id}`}
+                className="text-xs font-medium text-amber-600 hover:underline"
+              >
+                Full history →
+              </Link>
+            )}
+          </div>
+
+          {customerStats && (() => {
+            // total_orders includes the current order — it counts as the
+            // customer's Nth purchase. Frame it that way: clearer than
+            // "X prior orders" and matches Shopify's wording.
+            const orderNumberInLifetime = Math.max(1, customerStats.total_orders ?? 1);
+            const lifetimeR             = Math.round((customerStats.total_spent_cents ?? 0) / 100);
+            const isVip                 = lifetimeR >= 5000 || orderNumberInLifetime >= 3;
+            const isFirstTime           = orderNumberInLifetime === 1;
+            const lastSeenIso           = customerStats.last_seen_at ?? customerStats.first_seen_at ?? null;
+            const daysSinceLastSeen     = lastSeenIso
+              ? Math.floor((Date.now() - new Date(lastSeenIso).getTime()) / (1000 * 60 * 60 * 24))
+              : null;
+            const lastSeenLabel = daysSinceLastSeen == null
+              ? null
+              : daysSinceLastSeen < 1
+                ? "today"
+                : daysSinceLastSeen === 1
+                  ? "yesterday"
+                  : daysSinceLastSeen < 30
+                    ? `${daysSinceLastSeen} days ago`
+                    : `${Math.floor(daysSinceLastSeen / 30)} mo ago`;
+
+            return (
+              <div className={`mt-4 flex flex-wrap items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${
+                isFirstTime
+                  ? "bg-sky-50 ring-1 ring-sky-200 text-sky-900"
+                  : isVip
+                    ? "bg-amber-50 ring-1 ring-amber-200 text-amber-900"
+                    : "bg-stone-50 ring-1 ring-stone-200 text-stone-700"
+              }`}>
+                {isFirstTime ? (
+                  <span className="font-semibold">First-time customer</span>
+                ) : (
+                  <>
+                    <span className="font-semibold">
+                      {isVip && <span className="mr-1.5">★</span>}
+                      Order #{orderNumberInLifetime} for this customer
+                    </span>
+                    <span className="text-stone-400">·</span>
+                    <span>R&nbsp;{lifetimeR.toLocaleString("en-ZA")} lifetime spend</span>
+                    {lastSeenLabel && (
+                      <>
+                        <span className="text-stone-400">·</span>
+                        <span>last seen {lastSeenLabel}</span>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
           <dl className="mt-4 space-y-3">
             <div>
               <dt className="text-xs font-medium uppercase tracking-wider text-stone-500">Name</dt>

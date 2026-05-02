@@ -120,6 +120,7 @@ export async function POST(request: Request) {
       subtotal_cents: number;
       shipping_cents: number;
       discount_cents: number;
+      discount_code: string | null;
       total_cents: number;
       status: string;
       utm_source: string | null;
@@ -143,16 +144,61 @@ export async function POST(request: Request) {
       postal_code:    a.postal_code.trim(),
     };
 
+    // ── Sample-pack credit (R150 off first wallpaper) ─────────────────────────
+    // Marketing copy across the site promises "R150 credited to your wallpaper
+    // order when you come back." Apply it server-side so the promise is kept
+    // even if the customer didn't notice the discount line. One credit per
+    // customer ever — keyed by email since customer_id may not yet exist for
+    // first-time email captures.
+    const SAMPLE_CREDIT_CENTS = 15_000;
+    const SAMPLE_CREDIT_CODE  = "sample_credit";
+    const hasWallpaperInCart = (cart as CartItem[]).some((it) => it.type === "wallpaper");
+    let sampleCreditAvailable = 0;
+    if (hasWallpaperInCart) {
+      const [{ data: priorSamples }, { data: priorCreditUsed }] = await Promise.all([
+        // Has the customer previously paid for a sample pack?
+        supabase.from("orders")
+          .select("id").eq("customer_email", customerFields.customer_email)
+          .eq("product_type", "sample_pack").not("status", "in", "(pending,cancelled)")
+          .is("refunded_at", null).is("deleted_at", null).limit(1),
+        // Have they already redeemed the credit on a prior wallpaper order?
+        supabase.from("orders")
+          .select("id").eq("customer_email", customerFields.customer_email)
+          .eq("discount_code", SAMPLE_CREDIT_CODE)
+          .not("status", "eq", "cancelled").is("deleted_at", null).limit(1),
+      ]);
+      if ((priorSamples?.length ?? 0) > 0 && (priorCreditUsed?.length ?? 0) === 0) {
+        sampleCreditAvailable = SAMPLE_CREDIT_CENTS;
+      }
+    }
+    let sampleCreditApplied = false;
+
     for (let i = 0; i < cart.length; i++) {
       const item = cart[i] as CartItem;
       const isFirst = i === 0;
       const itemShipping = isFirst ? shippingCents : 0;
-      const totalCents = item.subtotalCents + itemShipping;
+
+      // Apply sample-credit to the first wallpaper item only. Cap at item
+      // subtotal so we never produce a negative line total.
+      let itemDiscount  = 0;
+      let itemDiscountCode: string | null = null;
+      if (
+        item.type === "wallpaper" &&
+        sampleCreditAvailable > 0 &&
+        !sampleCreditApplied
+      ) {
+        itemDiscount = Math.min(sampleCreditAvailable, item.subtotalCents);
+        itemDiscountCode = SAMPLE_CREDIT_CODE;
+        sampleCreditApplied = true;
+      }
+
+      const totalCents = item.subtotalCents + itemShipping - itemDiscount;
 
       const baseRow = {
         ...customerFields,
         ...sessionAttribution,
-        discount_cents: 0,
+        discount_cents: itemDiscount,
+        discount_code:  itemDiscountCode,
         subtotal_cents: item.subtotalCents,
         shipping_cents: itemShipping,
         total_cents:    totalCents,
