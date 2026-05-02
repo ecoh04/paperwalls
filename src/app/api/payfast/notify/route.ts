@@ -115,6 +115,30 @@ export async function POST(request: Request) {
           amount_gross:  pfData["amount_gross"] ?? "",
         },
       });
+
+      // TEMPORARY: write the full forensic payload to events so we can query
+      // exactly what we hashed vs what PayFast sent. Remove this block once
+      // sandbox is verified end-to-end.
+      if (supabase) {
+        // Build a non-secret param dump (mask the passphrase length only).
+        const fieldKeys = Array.from(params.keys()).filter((k) => k !== "signature");
+        const fieldValues: Record<string, string> = {};
+        for (const k of fieldKeys) fieldValues[k] = params.get(k) ?? "";
+        await supabase.from("events").insert({
+          type: "debug.payfast_itn_signature_mismatch",
+          payload: {
+            client_ip:        clientIp,
+            provided:         signatureProvided,
+            expected:         expectedSignature,
+            passphrase_len:   (passphrase ?? "").length,
+            field_keys_order: fieldKeys,
+            field_values:     fieldValues,
+            // The exact string we MD5'd (with passphrase tail truncated)
+            param_string:     pfParamString.slice(0, 2000),
+          },
+        });
+      }
+
       return NextResponse.json({ error: "Invalid signature" }, { status: 200 });
     }
 
