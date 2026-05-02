@@ -140,7 +140,7 @@ export default async function CheckoutSuccessPage({
               </h1>
               <p className="pw-body-lg mt-4 max-w-md text-pw-ink/70 sm:mt-5">
                 {isSample
-                  ? `Your sample pack ships within 1–2 business days. The R150 you paid is credited against your first wallpaper order.`
+                  ? `Your sample pack ships within 1–2 business days. R150 of what you paid will credit against your first wallpaper order.`
                   : isProInstall
                     ? `Your wallpaper goes on the press today. Your installer will be in touch within 2 business days to arrange the wall.`
                     : `Your wallpaper goes on the press today. We'll keep you posted at every step.`}

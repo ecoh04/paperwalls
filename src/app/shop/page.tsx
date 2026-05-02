@@ -28,7 +28,7 @@ const PRODUCTS = [
     cta:     "Order samples",
     image:   "/images/product/pdp-14-sample.jpg",
     alt:     "PaperWalls sample pack flat-lay with three finish swatches and kraft envelope",
-    price:   "R150 (credited to your order)",
+    price:   "R300 (R150 credits back to your wallpaper order)",
   },
 ];
 

@@ -1002,8 +1002,8 @@ function SampleNudge() {
     <div className="rounded-pw-card border border-pw-stone bg-pw-bg p-5 sm:p-6">
       <p className="pw-overline text-pw-accent">Not ready?</p>
       <p className="pw-body mt-2 text-pw-ink">
-        Order an A5 swatch of every finish. R150, credited to your wallpaper
-        order when you come back.
+        Order an A5 swatch of every finish. R300, with R150 credited to your
+        wallpaper order when you come back.
       </p>
       <a
         href="/samples"

@@ -9,7 +9,7 @@ import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Button } from "@/components/ui/Button";
 import { ImagePlaceholder } from "@/components/ui/ImagePlaceholder";
 
-const SAMPLE_PRICE_CENTS = 15_000; // R150
+const SAMPLE_PRICE_CENTS = 30_000; // R300 paid; R150 of it credits back on wallpaper.
 
 const FINISHES = [
   {
@@ -132,7 +132,7 @@ export default function SamplesPage() {
           <div className="lg:col-span-7">
             <Eyebrow>What's in the pack</Eyebrow>
             <h2 className="pw-h2 mt-3 text-pw-ink sm:mt-4">
-              Four reasons it's R150 well spent.
+              Four reasons it's R300 well spent.
             </h2>
             <ul className="mt-7 space-y-5">
               {INCLUDES.map((item) => (
@@ -155,9 +155,9 @@ export default function SamplesPage() {
           <div className="lg:col-span-5">
             <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8 lg:sticky lg:top-[7rem]">
               <Eyebrow variant="muted">Sample pack</Eyebrow>
-              <p className="pw-h1 mt-3 text-pw-ink">R150</p>
+              <p className="pw-h1 mt-3 text-pw-ink">R300</p>
               <p className="pw-small mt-1 text-pw-muted">
-                Free delivery, 3 to 5 business days.
+                Free delivery, 3 to 5 business days. R150 of it credits back when you order wallpaper.
               </p>
 
               <div className="mt-6">
@@ -177,7 +177,7 @@ export default function SamplesPage() {
               </div>
 
               <p className="pw-small mt-4 text-center text-pw-muted">
-                The R150 credits to your wallpaper order when you come back.
+                R150 credits to your wallpaper order when you come back.
               </p>
             </div>
           </div>

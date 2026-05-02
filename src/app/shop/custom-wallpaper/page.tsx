@@ -890,7 +890,7 @@ function FAQSection() {
 function ClosingCTA() {
   const safety = [
     "Free reprints if anything ships imperfect",
-    "Samples first? R150 in. Off your first order.",
+    "Samples first? R300 in. R150 off your first wallpaper order.",
     "No payment until you approve the price",
   ];
 

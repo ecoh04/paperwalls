@@ -20,7 +20,7 @@ const FAQS = [
   },
   {
     q: "Will the colour I see on my screen match the print?",
-    a: "Within tolerance. We calibrate to industry-standard ICC profiles, but every screen displays colour differently. The R150 sample pack is the only way to see exact colour before you commit on a full wall.",
+    a: "Within tolerance. We calibrate to industry-standard ICC profiles, but every screen displays colour differently. The R300 sample pack is the only way to see exact colour before you commit on a full wall — and R150 of it credits back to your wallpaper order.",
   },
   {
     q: "What's the difference between Traditional and Peel & Stick?",
@@ -118,7 +118,7 @@ export default function FAQPage() {
               Try it before you buy.
             </h2>
             <p className="pw-body-lg mt-4 max-w-xl text-white/65 sm:mt-5">
-              Order an A5 swatch of every finish for R150, credited to your wallpaper order when you come back.
+              Order an A5 swatch of every finish for R300, with R150 credited to your wallpaper order when you come back.
             </p>
           </div>
           <div className="flex flex-col gap-3 lg:col-span-5 lg:items-end">

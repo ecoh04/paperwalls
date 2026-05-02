@@ -213,12 +213,12 @@ export function CartDrawer() {
                 <div className="mt-6 rounded-pw-card bg-pw-ink p-5 text-white">
                   <p className="pw-overline text-pw-accent-mid">Skip ahead?</p>
                   <h3 className="pw-h3 mt-2 text-white">
-                    Design your wall now, the R150 is on us.
+                    Already know the photo? Design now.
                   </h3>
                   <p className="pw-body mt-2 text-white/75">
-                    The samples are useful. But if you already know the photo
-                    you want printed, jump straight in. Your R150 sample-pack
-                    credit applies to a wallpaper order.
+                    The samples are useful. But if you already know the image
+                    you want printed, jump straight in — once you've ordered
+                    samples, R150 credits back when you order wallpaper.
                   </p>
                   <ul className="mt-4 space-y-2 pw-small text-white/70">
                     <li className="flex items-start gap-2">

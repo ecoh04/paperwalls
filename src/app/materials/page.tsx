@@ -56,7 +56,7 @@ const FAQ = [
   },
   {
     q: "Can I see the finishes before I buy?",
-    a: "Yes. The sample pack is R150 with all three finishes, credited to your wallpaper order.",
+    a: "Yes. The sample pack is R300 with all three finishes, and R150 of it credits back when you order wallpaper.",
   },
 ];
 
@@ -171,7 +171,7 @@ export default function MaterialsPage() {
               Hold them in your hand.
             </h2>
             <p className="pw-body-lg mt-4 max-w-xl text-white/65 sm:mt-5">
-              R150 sample pack with all three finishes, credited to your wallpaper order.
+              R300 sample pack with all three finishes. R150 credits back when you order wallpaper.
             </p>
           </div>
           <div className="flex flex-col gap-3 lg:col-span-5 lg:items-end">
