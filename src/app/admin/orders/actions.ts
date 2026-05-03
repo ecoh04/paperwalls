@@ -56,9 +56,9 @@ async function setLastActivity(
     .eq("id", orderId);
 }
 
-/** Returns supabase + userId if current user is admin; otherwise { error }. */
+/** Returns supabase + userId + actorEmail if current user is admin; otherwise { error }. */
 async function requireAdmin(): Promise<
-  | { supabase: Awaited<ReturnType<typeof createClient>>; userId: string }
+  | { supabase: Awaited<ReturnType<typeof createClient>>; userId: string; actorEmail: string }
   | { error: string }
 > {
   const supabase = await createClient();
@@ -68,13 +68,15 @@ async function requireAdmin(): Promise<
   if (!user) return { error: "Unauthorized" };
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") return { error: "Admin only" };
-  return { supabase, userId: user.id };
+  // Audit-log column is actor_email (text), so capture it here. user.email
+  // is non-null for any auth-provider session that completed admin login.
+  return { supabase, userId: user.id, actorEmail: user.email ?? "" };
 }
 
 export async function updateOrderStatus(orderId: string, status: string) {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, actorEmail } = auth;
 
   if (!VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) {
     return { error: "Invalid status" };
@@ -123,7 +125,7 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: userId,
+    actor_email: actorEmail,
     action: "status_change",
     old_value: order.status,
     new_value: status,
@@ -171,7 +173,7 @@ export async function markOrderShipped(
 ): Promise<{ ok?: true; error?: string }> {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, actorEmail } = auth;
 
   const courier        = (args.courier ?? "").trim().slice(0, MAX_COURIER_LEN);
   const trackingNumber = (args.trackingNumber ?? "").trim();
@@ -204,7 +206,7 @@ export async function markOrderShipped(
 
   await supabase.from("order_activity").insert({
     order_id:  orderId,
-    user_id:   userId,
+    actor_email: actorEmail,
     action:    wasShipped ? "note" : "shipped",
     new_value: `${courier} · ${trackingNumber}`,
   });
@@ -229,7 +231,7 @@ export async function markOrderShipped(
 export async function markOrderDelivered(orderId: string): Promise<{ ok?: true; error?: string }> {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, actorEmail } = auth;
 
   const { data: order } = await supabase
     .from("orders")
@@ -246,7 +248,7 @@ export async function markOrderDelivered(orderId: string): Promise<{ ok?: true; 
 
   await supabase.from("order_activity").insert({
     order_id:  orderId,
-    user_id:   userId,
+    actor_email: actorEmail,
     action:    "status_change",
     old_value: order.status,
     new_value: "delivered",
@@ -276,7 +278,7 @@ export async function resendCustomerEmail(
 ): Promise<{ ok?: true; error?: string }> {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, actorEmail } = auth;
 
   const { data: order } = await supabase
     .from("orders")
@@ -300,7 +302,7 @@ export async function resendCustomerEmail(
 
   await supabase.from("order_activity").insert({
     order_id:  orderId,
-    user_id:   userId,
+    actor_email: actorEmail,
     action:    "note",
     new_value: `Resent ${type.replace("_", " ")} email`,
   });
@@ -329,7 +331,7 @@ export async function addOrderNote(orderId: string, note: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: user.id,
+    actor_email: user.email ?? "",
     action: "note",
     new_value: text,
   });
@@ -362,7 +364,7 @@ export async function updateOrderDetails(
 ) {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, actorEmail } = auth;
 
   const { data: order } = await supabase.from("orders").select("*").eq("id", orderId).single();
   if (!order) return { error: "Order not found" };
@@ -401,7 +403,7 @@ export async function updateOrderDetails(
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: userId,
+    actor_email: actorEmail,
     action: actionType,
     new_value: JSON.stringify(Object.keys(allowed)),
   });
@@ -415,7 +417,7 @@ export async function updateOrderDetails(
 export async function cancelOrder(orderId: string, reason?: string) {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, actorEmail } = auth;
 
   const { data: order } = await supabase.from("orders").select("status").eq("id", orderId).single();
   if (!order) return { error: "Order not found" };
@@ -428,7 +430,7 @@ export async function cancelOrder(orderId: string, reason?: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: userId,
+    actor_email: actorEmail,
     action: "cancelled",
     old_value: order.status,
     new_value: reason ?? "Cancelled",
@@ -443,7 +445,7 @@ export async function cancelOrder(orderId: string, reason?: string) {
 export async function markOrderRefunded(orderId: string, reason?: string) {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, actorEmail } = auth;
 
   const { error: updateError } = await supabase
     .from("orders")
@@ -457,7 +459,7 @@ export async function markOrderRefunded(orderId: string, reason?: string) {
   const trimmed = (reason ?? "").trim();
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id:  userId,
+    actor_email: actorEmail,
     action:   "refunded",
     new_value: trimmed.length > 0 ? trimmed : "Refunded (no reason given)",
   });
@@ -471,7 +473,7 @@ export async function markOrderRefunded(orderId: string, reason?: string) {
 export async function archiveOrder(orderId: string) {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, actorEmail } = auth;
 
   const { error: updateError } = await supabase
     .from("orders")
@@ -481,7 +483,7 @@ export async function archiveOrder(orderId: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: userId,
+    actor_email: actorEmail,
     action: "archived",
     new_value: "Archived",
   });
@@ -495,7 +497,7 @@ export async function archiveOrder(orderId: string) {
 export async function restoreOrder(orderId: string) {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, actorEmail } = auth;
 
   const { error: updateError } = await supabase
     .from("orders")
@@ -505,7 +507,7 @@ export async function restoreOrder(orderId: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: userId,
+    actor_email: actorEmail,
     action: "restored",
     new_value: "Restored",
   });
@@ -523,7 +525,7 @@ export async function replaceOrderPrintFile(
 ): Promise<{ ok?: true; error?: string }> {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, actorEmail } = auth;
 
   const { data: order } = await supabase
     .from("orders")
@@ -555,7 +557,7 @@ export async function replaceOrderPrintFile(
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    user_id: userId,
+    actor_email: actorEmail,
     action: "print_file_replaced",
     new_value: `Wall ${wallIndex + 1} replaced`,
   });
