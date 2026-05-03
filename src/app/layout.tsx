@@ -1,12 +1,55 @@
 import type { Metadata } from "next";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { CartProvider } from "@/contexts/CartContext";
 import "./globals.css";
 
+const SITE_URL =
+  (process.env.NEXT_PUBLIC_APP_URL ?? "https://www.paperwalls.co.za").replace(/\/$/, "");
+
 export const metadata: Metadata = {
-  title: "PaperWalls | Custom Wallpaper South Africa",
-  description: "Design your custom wallpaper. Upload your image, enter dimensions, choose your style. Printed in South Africa.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default:  "PaperWalls | Custom Wallpaper South Africa",
+    template: "%s | PaperWalls",
+  },
+  description:
+    "Design your custom wallpaper. Upload your image, enter dimensions, choose your style. Printed in South Africa.",
+  applicationName: "PaperWalls",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type:        "website",
+    locale:      "en_ZA",
+    siteName:    "PaperWalls",
+    url:         SITE_URL,
+    title:       "PaperWalls | Custom Wallpaper South Africa",
+    description: "Design your custom wallpaper. Upload your image, enter dimensions, choose your style. Printed in South Africa.",
+    images: [
+      {
+        url:    "/images/product/pdp-01-hero.jpg",
+        width:  1200,
+        height: 630,
+        alt:    "PaperWalls custom wallpaper",
+      },
+    ],
+  },
+  twitter: {
+    card:        "summary_large_image",
+    title:       "PaperWalls | Custom Wallpaper South Africa",
+    description: "Design your custom wallpaper. Upload your image, enter dimensions, choose your style. Printed in South Africa.",
+    images:      ["/images/product/pdp-01-hero.jpg"],
+  },
+  robots: {
+    index:    true,
+    follow:   true,
+    nocache:  false,
+    googleBot: {
+      index:           true,
+      follow:          true,
+      "max-image-preview": "large",
+      "max-snippet":      -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 import { RootLayoutClient } from "@/components/RootLayoutClient";

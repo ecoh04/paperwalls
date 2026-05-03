@@ -23,7 +23,7 @@ const SECTIONS: { h: string; body: string[] }[] = [
   {
     h: "Where it is stored",
     body: [
-      "On Supabase (database) and PayFast (for payment processing only — we never see your card details).",
+      "On Supabase (database) and PayFast (for payment processing only). We never see your card details.",
       "Image files are stored securely in cloud storage. We retain order records for 5 years (legal requirement) and delete them on request after that.",
     ],
   },

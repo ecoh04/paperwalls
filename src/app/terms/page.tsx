@@ -10,7 +10,7 @@ const SECTIONS: { h: string; body: string[] }[] = [
     h: "Acceptance",
     body: [
       "By using paperwalls.co.za and placing an order, you agree to these terms. If you do not agree, please do not use the site or place an order.",
-      "These terms work alongside our Privacy Policy, Shipping & delivery, and Returns & refunds pages — together they form the full agreement.",
+      "These terms work alongside our Privacy Policy, Shipping & delivery, and Returns & refunds pages. Together they form the full agreement.",
     ],
   },
   {
@@ -32,8 +32,8 @@ const SECTIONS: { h: string; body: string[] }[] = [
     h: "Production and quality",
     body: [
       "Every order is custom-printed to the dimensions and image you confirm. We print at commercial-grade resolution on substrate appropriate to the finish you selected.",
-      "We are not responsible for design choices you make at checkout — including image resolution, cropping, or your final dimension entries — once you have confirmed the order.",
-      "If your order ships with a genuine production defect (cuts, banding, packaging damage), the Returns & refunds policy applies — free reprint or full refund, your choice.",
+      "We are not responsible for design choices you make at checkout (including image resolution, cropping, or your final dimension entries) once you have confirmed the order.",
+      "If your order ships with a genuine production defect (cuts, banding, packaging damage), the Returns & refunds policy applies. Free reprint or full refund, your choice.",
     ],
   },
   {
@@ -52,7 +52,7 @@ const SECTIONS: { h: string; body: string[] }[] = [
   {
     h: "Right to refuse",
     body: [
-      "We may refuse or cancel any order at our discretion — for example, if the uploaded image appears to infringe third-party rights, contains illegal content, or if delivery to the supplied address is not possible.",
+      "We may refuse or cancel any order at our discretion. For example, if the uploaded image appears to infringe third-party rights, contains illegal content, or if delivery to the supplied address is not possible.",
     ],
   },
   {

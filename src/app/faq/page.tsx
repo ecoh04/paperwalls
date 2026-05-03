@@ -12,7 +12,7 @@ const FAQS = [
   },
   {
     q: "What file formats do you accept?",
-    a: "JPG, PNG, or WebP up to 50 MB. The configurator runs a live resolution check against your wall size and tells you in plain language whether it'll print sharply or look soft. We never block you on resolution — you decide.",
+    a: "JPG, PNG, or WebP up to 50 MB. The configurator runs a live resolution check against your wall size and tells you in plain language whether it'll print sharply or look soft. We never block you on resolution. You decide.",
   },
   {
     q: "How long does it take?",
@@ -20,11 +20,11 @@ const FAQS = [
   },
   {
     q: "Will the colour I see on my screen match the print?",
-    a: "Within tolerance. We calibrate to industry-standard ICC profiles, but every screen displays colour differently. The R300 sample pack is the only way to see exact colour before you commit on a full wall — and R150 of it credits back to your wallpaper order.",
+    a: "Within tolerance. We calibrate to industry-standard ICC profiles, but every screen displays colour differently. The R300 sample pack is the only way to see exact colour before you commit on a full wall, and R150 of it credits back to your wallpaper order.",
   },
   {
     q: "What's the difference between Traditional and Peel & Stick?",
-    a: "Traditional uses paste applied to the wall before hanging. Permanent, cleanest seam lines, the industry standard. Peel & Stick has a self-adhesive backing — peel, press, reposition while you hang, removes cleanly later. Best for renters or anyone who might update later.",
+    a: "Traditional uses paste applied to the wall before hanging. Permanent, cleanest seam lines, the industry standard. Peel & Stick has a self-adhesive backing. Peel, press, reposition while you hang, removes cleanly later. Best for renters or anyone who might update later.",
   },
   {
     q: "Can someone install it for me?",

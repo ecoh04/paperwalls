@@ -448,7 +448,9 @@ export async function POST(request: Request) {
         });
       }
 
-      console.log(`[PayFast ITN] ✓ Payment ${pfPaymentId} confirmed for orders: ${orderNumbers.join(", ")}`);
+      // Quiet success — verbose enough to find in logs by greppable prefix
+      // but no longer noisy in Vercel runtime.
+      console.info(`[PayFast ITN] ok ${pfPaymentId} → ${orderNumbers.join(",")}`);
     }
 
     return NextResponse.json({ received: true }, { status: 200 });

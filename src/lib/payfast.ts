@@ -9,7 +9,19 @@ const PAYFAST_MERCHANT_ID  = env("PAYFAST_MERCHANT_ID");
 const PAYFAST_MERCHANT_KEY = env("PAYFAST_MERCHANT_KEY");
 const PAYFAST_PASSPHRASE   = env("PAYFAST_PASSPHRASE") || null;
 const PAYFAST_SANDBOX      = env("PAYFAST_SANDBOX", "true").toLowerCase() === "true";
-const NEXT_PUBLIC_APP_URL  = (env("NEXT_PUBLIC_APP_URL") || "http://localhost:3000").replace(/\/$/, "");
+
+// Don't silently fall back to localhost when NEXT_PUBLIC_APP_URL isn't set —
+// PayFast would receive a notify_url pointing at our dev box, which means
+// silently lost ITNs in production. The localhost fallback only survives
+// truly local dev where the env var is genuinely unset; on Vercel the
+// build will error before deploy if this happens.
+const RAW_APP_URL = env("NEXT_PUBLIC_APP_URL");
+const NEXT_PUBLIC_APP_URL = (
+  RAW_APP_URL
+  || (process.env.NODE_ENV === "production"
+        ? (() => { throw new Error("NEXT_PUBLIC_APP_URL must be set in production — PayFast notify_url cannot resolve to localhost.") })()
+        : "http://localhost:3000")
+).replace(/\/$/, "");
 
 /**
  * Replicates PHP urlencode():

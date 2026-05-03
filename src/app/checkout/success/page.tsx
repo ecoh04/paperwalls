@@ -140,7 +140,7 @@ export default async function CheckoutSuccessPage({
               </h1>
               <p className="pw-body-lg mt-4 max-w-md text-pw-ink/70 sm:mt-5">
                 {isSample
-                  ? `Your sample pack ships within 1–2 business days. R150 of what you paid will credit against your first wallpaper order.`
+                  ? `Your sample pack ships within 1 to 2 business days. R150 of what you paid will credit against your first wallpaper order.`
                   : isProInstall
                     ? `Your wallpaper goes on the press today. Your installer will be in touch within 2 business days to arrange the wall.`
                     : `Your wallpaper goes on the press today. We'll keep you posted at every step.`}
@@ -219,20 +219,20 @@ export default async function CheckoutSuccessPage({
                 ? [
                     { when: "Today",                  t: "Order received",            b: "We'll pack your sample pack tomorrow." },
                     { when: shipsBy,                  t: "Shipped via courier",       b: "Tracking number arrives by email." },
-                    { when: `${earlyEta} – ${lateEta}`, t: "Estimated delivery",       b: "Most addresses receive in 1–3 business days." },
+                    { when: `${earlyEta} to ${lateEta}`, t: "Estimated delivery",       b: "Most addresses receive in 1 to 3 business days." },
                   ]
                 : isProInstall
                   ? [
                       { when: "Today",                t: "Order received",            b: "Your file is checked and on the press." },
                       { when: packedBy,               t: "Printed and packed",        b: "Your installer is contacted to arrange handover." },
                       { when: shipsBy,                t: "Handed over to your installer", b: "They'll schedule the install with you directly." },
-                      { when: `${earlyEta} – ${lateEta}`, t: "Wall complete",          b: "Your installer confirms when finished." },
+                      { when: `${earlyEta} to ${lateEta}`, t: "Wall complete",          b: "Your installer confirms when finished." },
                     ]
                   : [
                       { when: "Today",                t: "Order received",            b: "Your file is checked and on the press." },
                       { when: packedBy,               t: "Printed and packed",        b: "Trimmed, rolled, and labelled in Cape Town." },
                       { when: shipsBy,                t: "Shipped via courier",       b: "Tracking number arrives by email." },
-                      { when: `${earlyEta} – ${lateEta}`, t: "Estimated delivery",     b: "Most SA addresses receive in 1–3 business days." },
+                      { when: `${earlyEta} to ${lateEta}`, t: "Estimated delivery",     b: "Most SA addresses receive in 1 to 3 business days." },
                     ]
               ).map((step, i, arr) => (
                 <li key={step.t} className="flex gap-4">

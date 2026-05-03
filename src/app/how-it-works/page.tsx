@@ -39,7 +39,7 @@ const STEPS = [
     body:  "Packed in kraft paper with cotton ribbon, dispatched within 72 hours, free tracked courier across SA. Hang it yourself with the printed install guide, or add a pro installer.",
     tag:   "Free SA delivery",
     image: "/images/how-it-works/step-4-deliver.jpg",
-    alt:   "Editorial flat-lay of a PaperWalls package — rolled wallpaper, kraft sleeve, care card",
+    alt:   "Editorial flat-lay of a PaperWalls package: rolled wallpaper, kraft sleeve, care card",
   },
 ];
 

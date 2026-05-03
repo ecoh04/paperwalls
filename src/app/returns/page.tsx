@@ -20,7 +20,7 @@ const SECTIONS: { h: string; body: string[]; bullets?: string[] }[] = [
   {
     h: "Production defects",
     body: [
-      "If your order arrives with a genuine production defect — misaligned cuts, significant colour banding, missing sections, or damage caused by our packaging — we will reprint and reship at no cost or issue a full refund. Your choice. Free reprints, no questions, no return shipping required.",
+      "If your order arrives with a genuine production defect (misaligned cuts, significant colour banding, missing sections, or damage caused by our packaging) we will reprint and reship at no cost or issue a full refund. Your choice. Free reprints, no questions, no return shipping required.",
     ],
     bullets: [
       "Contact us within 7 days of receiving your order.",
