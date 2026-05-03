@@ -100,6 +100,14 @@ export default async function AdminOrdersPage({
       query = query.not("refunded_at", "is", null);
     } else if (validStatus) {
       query = query.eq("status", validStatus);
+    } else {
+      // Default view (no explicit status filter): hide pendings older than
+      // 24h — those are abandoned-at-PayFast / failed-card / closed-tab
+      // sessions that will never convert. They still show under the
+      // Pending tab if the operator clicks it, and the reconcile cron's
+      // stuck-pending alert keeps tabs on them.
+      const staleCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      query = query.or(`status.neq.pending,created_at.gte.${staleCutoff}`);
     }
     if (typeFilter) {
       query = query.eq("product_type", typeFilter);

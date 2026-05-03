@@ -6,7 +6,16 @@ import { getShippingCents } from "@/lib/shipping";
 import { uploadPrintImage, renamePrintFile } from "@/lib/storage";
 import { buildPayfastFormFields } from "@/lib/payfast";
 import { sendMetaConversion } from "@/lib/meta/capi";
+import { calculateSubtotalCents } from "@/lib/pricing";
 import type { ShippingProvince } from "@/types/order";
+
+// Sample-pack price is the canonical server-side number. Anything else from
+// the client gets rejected. Mirrors src/app/samples/page.tsx.
+const SAMPLE_PACK_PRICE_CENTS = 30_000;
+
+// 1 cent rounding tolerance — the only difference we accept between the
+// client's claimed subtotal and our server-side recompute.
+const SUBTOTAL_TOLERANCE_CENTS = 1;
 
 function validateProvince(p: string): p is ShippingProvince {
   const provinces: ShippingProvince[] = [
@@ -143,6 +152,51 @@ export async function POST(request: Request) {
       province:       a.province,
       postal_code:    a.postal_code.trim(),
     };
+
+    // ── Server-side cart-price validation ────────────────────────────────────
+    // Client sends `subtotalCents` per item, but we never trust it. Recompute
+    // each item's subtotal from its spec on the server using lib/pricing. If
+    // they don't match (within rounding), reject. Without this, a malicious
+    // request could submit `subtotalCents: 1` and create a near-free order.
+    for (let i = 0; i < cart.length; i++) {
+      const item = cart[i] as CartItem;
+
+      let expected = 0;
+      if (item.type === "sample_pack") {
+        expected = SAMPLE_PACK_PRICE_CENTS * Math.max(1, item.quantity ?? 1);
+      } else if (item.type === "wallpaper") {
+        // Trust ONLY the spec (sqm + finish + install). Recompute price.
+        if (!item.totalSqm || item.totalSqm <= 0 || !item.wallpaperType || !item.material || !item.application) {
+          return NextResponse.json(
+            { error: "Wallpaper item is missing size, finish, or install method." },
+            { status: 400 }
+          );
+        }
+        expected = calculateSubtotalCents(
+          item.totalSqm,
+          item.wallpaperType,
+          item.material,
+          item.application
+        );
+      } else {
+        return NextResponse.json(
+          { error: "Unknown cart item type." },
+          { status: 400 }
+        );
+      }
+
+      if (Math.abs(expected - item.subtotalCents) > SUBTOTAL_TOLERANCE_CENTS) {
+        // Hard reject — possible tampering or stale client price after a
+        // pricing change. Don't fail soft (could leak revenue at launch
+        // when prices are still being tweaked).
+        return NextResponse.json(
+          {
+            error: "Cart prices have changed since you last loaded the page. Please refresh and try again.",
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     // ── Sample-pack credit (R150 off first wallpaper) ─────────────────────────
     // Marketing copy across the site promises "R150 credited to your wallpaper
@@ -377,46 +431,61 @@ export async function POST(request: Request) {
           }
         }
 
-        try {
-          await supabase
-            .from("orders")
-            .update({ image_url: renamed[0], image_urls: renamed })
-            .eq("id", o.id);
-        } catch {
-          // Non-fatal: the tmp path still works
+        const { error: renameDbError } = await supabase
+          .from("orders")
+          .update({ image_url: renamed[0], image_urls: renamed })
+          .eq("id", o.id);
+        if (renameDbError) {
+          // Non-fatal — order points to tmp/ paths, signed URL still
+          // works — but log it so we know to investigate. Without this
+          // the tmp/ paths could leak into print-team workflows.
+          console.error(
+            `[checkout/create] Failed to update image paths for order ${o.order_number}:`,
+            renameDbError.message
+          );
         }
       }
     }
 
     // ── Insert order_items ────────────────────────────────────────────────────
+    // CRITICAL: if this fails, the order exists but has no line items, which
+    // breaks the print queue, the analytics product mix, and any downstream
+    // export. Surface failures to console so we can react.
     if (insertedOrders?.length) {
-      try {
-        const orderItemRows = insertedOrders.map((o, idx) => {
-          const cartItem = cart[idx];
-          const spec = cartItem?.type === "wallpaper"
-            ? {
-                width_m:    cartItem.widthM,
-                height_m:   cartItem.heightM,
-                wall_count: cartItem.wallCount,
-                total_sqm:  cartItem.totalSqm,
-                wallpaperType: cartItem.wallpaperType,
-                material:      cartItem.material,
-                application:   cartItem.application,
-                walls:      cartItem.walls ?? [],
-              }
-            : {};
-          return {
-            order_id:        o.id,
-            product_type:    o.product_type,
-            quantity:        o.quantity,
-            unit_price_cents: o.subtotal_cents,
-            subtotal_cents:  o.subtotal_cents,
-            spec,
-          };
-        });
-        await supabase.from("order_items").insert(orderItemRows);
-      } catch {
-        // Non-fatal
+      const orderItemRows = insertedOrders.map((o, idx) => {
+        const cartItem = cart[idx];
+        const spec = cartItem?.type === "wallpaper"
+          ? {
+              width_m:    cartItem.widthM,
+              height_m:   cartItem.heightM,
+              wall_count: cartItem.wallCount,
+              total_sqm:  cartItem.totalSqm,
+              wallpaperType: cartItem.wallpaperType,
+              material:      cartItem.material,
+              application:   cartItem.application,
+              walls:      cartItem.walls ?? [],
+            }
+          : {};
+        return {
+          order_id:        o.id,
+          product_type:    o.product_type,
+          quantity:        o.quantity,
+          unit_price_cents: o.subtotal_cents,
+          subtotal_cents:  o.subtotal_cents,
+          spec,
+        };
+      });
+      const { error: orderItemsError } = await supabase
+        .from("order_items")
+        .insert(orderItemRows);
+      if (orderItemsError) {
+        console.error(
+          "[checkout/create] order_items insert failed for orders",
+          insertedOrders.map((o) => o.order_number).join(","),
+          orderItemsError.message
+        );
+        // Don't block checkout — the buyer is mid-flow. Log + carry on.
+        // Reconcile cron will surface the missing line items.
       }
     }
 
