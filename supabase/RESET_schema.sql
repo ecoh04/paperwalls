@@ -1,6 +1,20 @@
 -- =============================================================================
 -- PaperWalls: COMPLETE SCHEMA RESET  (v3 — final)
 --
+-- ============================================================================
+-- ⛔ DO NOT RUN AGAINST PRODUCTION — THIS FILE IS STALE (drifted from live DB).
+-- ============================================================================
+-- The live database has since been re-secured: every business table is locked
+-- to authenticated is_admin() (server routes use the service-role key). The RLS
+-- section BELOW is the OLD permissive model (anon can read/write everything) and
+-- would REOPEN customer-data read holes if applied. The scheduled_emails table
+-- here is also missing the queue columns (idempotency_key, attempts, locking)
+-- the app depends on. Treat this file as historical only.
+--
+-- To rebuild from the real schema, regenerate from the live DB
+-- (e.g. `supabase db dump`) instead of running this file.
+-- ============================================================================
+--
 -- ⚠️  WIPES ALL DATA. Run once in Supabase → SQL Editor on a clean database.
 --
 -- Design decisions captured here:

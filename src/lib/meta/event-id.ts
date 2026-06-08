@@ -10,9 +10,6 @@
 // or similar). Server reads the same UUID when posting to CAPI.
 
 const KEY_PREFIX = "pw_meta_evt_";
-const TTL_MS     = 30 * 60 * 1000; // 30 min — long enough to cover a checkout flow
-
-type Stored = { id: string; ts: number };
 
 function safeStorage(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -45,27 +42,4 @@ export function mintEventId(eventType: string): string {
     }
   }
   return id;
-}
-
-/**
- * Read an event_id minted earlier in this session, if it's still fresh.
- * Used by the server-side flow when it wants to match a server event back
- * to a recent client event — e.g. the checkout API reads InitiateCheckout
- * to dedup against the pixel that fired moments earlier.
- */
-export function readEventId(eventType: string): string | null {
-  const ss = safeStorage();
-  if (!ss) return null;
-  try {
-    const raw = ss.getItem(`${KEY_PREFIX}${eventType}`);
-    if (!raw) return null;
-    const { id, ts } = JSON.parse(raw) as Stored;
-    if (Date.now() - ts > TTL_MS) {
-      ss.removeItem(`${KEY_PREFIX}${eventType}`);
-      return null;
-    }
-    return id;
-  } catch {
-    return null;
-  }
 }

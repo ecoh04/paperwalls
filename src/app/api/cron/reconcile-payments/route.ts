@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { notifyOps } from "@/lib/alerts";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 // Nightly payment-integrity check. Two passes:
 //
@@ -24,14 +25,10 @@ import { notifyOps } from "@/lib/alerts";
 
 const HOURS = 60 * 60 * 1000;
 
-function unauthorized() {
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
-
 export async function GET(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const got      = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
-  if (!expected || got !== expected) return unauthorized();
+  if (!cronAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });

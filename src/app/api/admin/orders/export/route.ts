@@ -11,6 +11,12 @@ export async function GET(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // This endpoint exports full customer PII (names, emails, phones). Match the
+  // admin-role gate every mutating action enforces — "logged in" is not enough.
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") {
+    return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  }
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
@@ -71,7 +77,7 @@ export async function GET(request: Request) {
         r.customer_name,
         r.customer_email,
         r.customer_phone,
-        ORDER_STATUS_LABELS[(r.status as keyof typeof ORDER_STATUS_LABELS) ?? "pending"],
+        ORDER_STATUS_LABELS[r.status as keyof typeof ORDER_STATUS_LABELS] ?? (r.status ? String(r.status) : "—"),
         formatZarCents(Number(r.total_cents)),
         r.created_at ? new Date(r.created_at as string).toISOString().slice(0, 10) : "",
         r.updated_at ? new Date(r.updated_at as string).toISOString().slice(0, 10) : "",

@@ -65,10 +65,3 @@ export function formatZar(cents: number): string {
     maximumFractionDigits: 0,
   }).format(rands);
 }
-
-// Kept for any code that needs a quick lookup; pro_installer is dynamic.
-export const APPLICATION_ADDON_CENTS: Record<ApplicationMethod, number> = {
-  diy:           0,
-  diy_kit:       DIY_KIT_CENTS,
-  pro_installer: 0, // use calculateInstallationCents for the real value
-};

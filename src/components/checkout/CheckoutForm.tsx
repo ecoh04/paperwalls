@@ -146,7 +146,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               value={address.customer_name}
               onChange={(e) => set("customer_name", e.target.value)}
               className={INPUT_CLASSES}
-              placeholder="Thabo Mbeki"
+              placeholder="Your full name"
             />
           </div>
 
@@ -168,7 +168,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
                 }
               }}
               className={INPUT_CLASSES}
-              placeholder="you@example.com"
+              placeholder="your@email.com"
             />
           </div>
 

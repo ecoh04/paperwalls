@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { CheckoutAddress } from "@/types/checkout";
-import type { CartItem } from "@/types/cart";
+import type { CartItem, WallpaperCartItem } from "@/types/cart";
 import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
 import { getShippingCents } from "@/lib/shipping";
 import { uploadPrintImage, renamePrintFile } from "@/lib/storage";
@@ -158,6 +158,32 @@ export async function POST(request: Request) {
     // each item's subtotal from its spec on the server using lib/pricing. If
     // they don't match (within rounding), reject. Without this, a malicious
     // request could submit `subtotalCents: 1` and create a near-free order.
+    //
+    // CRITICAL: price off the wall GEOMETRY, not the client's `totalSqm`.
+    // totalSqm can be forged independently of the dimensions/walls_spec we
+    // actually print — a tiny sqm with full-size walls would otherwise pass
+    // the price check while we print a full wall for almost nothing. We derive
+    // coverage from the trusted geometry and reject if the client's totalSqm
+    // doesn't match it (and reject out-of-range dimensions outright).
+    const MIN_WALL_M = 0.1;   // 10 cm  — matches the configurator's input floor
+    const MAX_WALL_M = 20;    // 2000 cm — matches the configurator's input ceiling
+    const serverSqmFor = (item: WallpaperCartItem): number | null => {
+      const walls = item.walls?.length
+        ? item.walls
+        : [{ widthM: item.widthM, heightM: item.heightM }];
+      const count = item.walls?.length ? 1 : Math.max(1, item.wallCount ?? 1);
+      let sqm = 0;
+      for (const w of walls) {
+        if (
+          !Number.isFinite(w.widthM) || !Number.isFinite(w.heightM) ||
+          w.widthM  < MIN_WALL_M || w.widthM  > MAX_WALL_M ||
+          w.heightM < MIN_WALL_M || w.heightM > MAX_WALL_M
+        ) return null;
+        sqm += w.widthM * w.heightM;
+      }
+      return sqm * count;
+    };
+
     for (let i = 0; i < cart.length; i++) {
       const item = cart[i] as CartItem;
 
@@ -170,6 +196,23 @@ export async function POST(request: Request) {
           return NextResponse.json(
             { error: "Wallpaper item is missing size, finish, or install method." },
             { status: 400 }
+          );
+        }
+        // Tie priced coverage to the geometry we will actually print.
+        const geomSqm = serverSqmFor(item);
+        if (geomSqm === null) {
+          return NextResponse.json(
+            { error: "Wall dimensions are out of range. Please re-check your sizes." },
+            { status: 400 }
+          );
+        }
+        // Generous tolerance (2% or 0.1 m²) so legitimate rounding never blocks
+        // a real customer, but a forged totalSqm vs full-size walls is caught.
+        const sqmTolerance = Math.max(0.1, geomSqm * 0.02);
+        if (Math.abs(geomSqm - item.totalSqm) > sqmTolerance) {
+          return NextResponse.json(
+            { error: "Wall size doesn't match the dimensions entered. Please refresh and try again." },
+            { status: 409 }
           );
         }
         expected = calculateSubtotalCents(
@@ -410,6 +453,27 @@ export async function POST(request: Request) {
       (s, o) => s + (o.total_cents as number), 0
     );
 
+    // Positional safety. The image-rename and order_items loops below pair
+    // insertedOrders[i] with orderRows[i]/cart[i] by array index, assuming
+    // INSERT ... RETURNING preserved VALUES order. supabase-js sends a single
+    // INSERT so this holds today, but a mismatch would attach the wrong print
+    // file and spec to the wrong order_number — wrong art printed. Fail loudly
+    // instead of silently corrupting the mapping. Orders are still 'pending'
+    // (payment not started), so they age out via the stuck-pending path.
+    const misaligned =
+      (insertedOrders?.length ?? 0) !== orderRows.length ||
+      (insertedOrders ?? []).some((o, i) => o.product_type !== orderRows[i]?.product_type);
+    if (misaligned) {
+      console.error(
+        "[checkout/create] inserted order rows misaligned with input order; aborting before side effects",
+        { inserted: insertedOrders?.length, expected: orderRows.length }
+      );
+      return NextResponse.json(
+        { error: "We couldn't finalize your order. Please try again, or email hello@paperwalls.co.za." },
+        { status: 500 }
+      );
+    }
+
     // ── Rename tmp uploads to orders/PW-XXXX-N.jpg ────────────────────────────
     // Stable, traceable paths so the print team / admin search can find files
     // by order number alone. Failure here is non-fatal — the row still has the
@@ -448,9 +512,10 @@ export async function POST(request: Request) {
     }
 
     // ── Insert order_items ────────────────────────────────────────────────────
-    // CRITICAL: if this fails, the order exists but has no line items, which
-    // breaks the print queue, the analytics product mix, and any downstream
-    // export. Surface failures to console so we can react.
+    // Line-item snapshot of each order. NOTE: nothing currently READS this table
+    // downstream (the print queue, analytics, and CSV export all read the orders
+    // table directly), so a failure here does not break fulfilment today — it
+    // only loses the line-item snapshot. Logged, non-fatal.
     if (insertedOrders?.length) {
       const orderItemRows = insertedOrders.map((o, idx) => {
         const cartItem = cart[idx];
@@ -466,11 +531,13 @@ export async function POST(request: Request) {
               walls:      cartItem.walls ?? [],
             }
           : {};
+        const qty = Math.max(1, (o.quantity as number) ?? 1);
         return {
           order_id:        o.id,
           product_type:    o.product_type,
-          quantity:        o.quantity,
-          unit_price_cents: o.subtotal_cents,
+          quantity:        qty,
+          // Per-unit price, so unit_price_cents * quantity === subtotal_cents.
+          unit_price_cents: Math.round((o.subtotal_cents as number) / qty),
           subtotal_cents:  o.subtotal_cents,
           spec,
         };
@@ -485,7 +552,6 @@ export async function POST(request: Request) {
           orderItemsError.message
         );
         // Don't block checkout — the buyer is mid-flow. Log + carry on.
-        // Reconcile cron will surface the missing line items.
       }
     }
 
@@ -545,7 +611,10 @@ export async function POST(request: Request) {
         },
         custom_data: {
           currency:  "ZAR",
-          value:     totalPaymentCents / 100,
+          // Match the client pixel's InitiateCheckout value (sum of item
+          // subtotals) so Meta doesn't dedup to a divergent amount. Both sides
+          // must carry the same value for the shared event_id.
+          value:     (insertedOrders ?? []).reduce((s, o) => s + (o.subtotal_cents as number), 0) / 100,
           num_items: cart.length,
         },
         meta: { customer_id: customerId ?? undefined },

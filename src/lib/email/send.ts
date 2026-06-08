@@ -14,6 +14,28 @@ export type SendResult =
   | { ok: false; error: string }
   | { skipped: true; reason: string };
 
+/**
+ * Derive a readable plain-text body from our HTML templates so every send is
+ * multipart/alternative. HTML-only mail scores materially worse on spam
+ * filters (Gmail/Outlook), which matters most for a brand-new sending domain.
+ */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<head[\s\S]*?<\/head>/gi, "")
+    .replace(/<\/(p|div|tr|h1|h2|h3|li)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&middot;/g, "·")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export async function sendEmail(args: {
   to:      string;
   subject: string;
@@ -40,7 +62,7 @@ export async function sendEmail(args: {
         to:        [args.to],
         subject:   args.subject,
         html:      args.html,
-        text:      args.text,
+        text:      args.text ?? htmlToText(args.html),
         reply_to:  replyTo,
       }),
     });

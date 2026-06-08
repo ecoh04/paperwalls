@@ -84,22 +84,37 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, status, customer_id, customer_email, tracking_number, product_type, image_url, image_urls, address_line1, city, province, postal_code, customer_phone")
+    .select("id, status, customer_id, customer_email, tracking_number, product_type, image_url, image_urls, wall_count, address_line1, city, province, postal_code, customer_phone, shipped_at")
     .eq("id", orderId)
     .single();
   if (!order) return { error: "Order not found" };
+
+  // State-machine guard: 'delivered' implies the parcel shipped. Without this,
+  // a dropdown mis-click can fire the "your order was delivered" email for an
+  // order that was never dispatched (no shipped_at, no tracking).
+  if (status === "delivered" && order.status !== "shipped" && !order.shipped_at) {
+    return { error: "Mark the order shipped (with tracking) before delivered." };
+  }
 
   // Hard block: only let an order leave 'new' for 'in_production' if the
   // print team has everything they need. Resolution stays warn-only because
   // a buyer can knowingly accept a soft image; address/phone/files cannot
   // be a judgement call — printing without them ALWAYS fails downstream.
   if (status === "in_production" && order.product_type === "wallpaper") {
-    const imgs = Array.isArray(order.image_urls) ? order.image_urls : [];
-    const hasImage = imgs.length > 0 || !!order.image_url;
+    const imgs = (Array.isArray(order.image_urls) ? order.image_urls : []).filter(
+      (u): u is string => typeof u === "string" && u.length > 0
+    );
+    // Per-wall coverage, not "at least one image": a multi-wall order must have
+    // a non-empty file for every wall, or the print team ships an incomplete job.
+    const wallCount = Math.max(1, Number(order.wall_count ?? 1));
+    const fileCount = imgs.length > 0 ? imgs.length : (order.image_url ? 1 : 0);
+    const hasAllWalls = fileCount >= wallCount;
     const hasAddress = !!(order.address_line1 && order.city && order.province && order.postal_code);
     const hasPhone   = !!order.customer_phone;
     const missing: string[] = [];
-    if (!hasImage)   missing.push("print file");
+    if (!hasAllWalls) missing.push(
+      wallCount > 1 ? `print files for all ${wallCount} walls (have ${fileCount})` : "print file"
+    );
     if (!hasAddress) missing.push("complete shipping address");
     if (!hasPhone)   missing.push("phone number");
     if (missing.length) {
@@ -313,11 +328,9 @@ export async function resendCustomerEmail(
 }
 
 export async function addOrderNote(orderId: string, note: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, actorEmail } = auth;
 
   const { data: order } = await supabase
     .from("orders")
@@ -331,7 +344,7 @@ export async function addOrderNote(orderId: string, note: string) {
 
   await supabase.from("order_activity").insert({
     order_id: orderId,
-    actor_email: user.email ?? "",
+    actor_email: actorEmail,
     action: "note",
     new_value: text,
   });
@@ -529,13 +542,17 @@ export async function replaceOrderPrintFile(
 
   const { data: order } = await supabase
     .from("orders")
-    .select("order_number, image_url, image_urls")
+    .select("order_number, image_url, image_urls, wall_count")
     .eq("id", orderId)
     .single();
   if (!order) return { error: "Order not found" };
 
+  if (wallIndex < 0) return { error: "Invalid wall index" };
+
   const { uploadPrintImage } = await import("@/lib/storage");
-  const path = `${(order as { order_number: string }).order_number}-${wallIndex}.jpg`;
+  // Must match the creation scheme (checkout/create writes orders/PW-XXXX-N.jpg)
+  // so the print team's "find by order number" convention keeps working.
+  const path = `orders/${(order as { order_number: string }).order_number}-${wallIndex}.jpg`;
   let newUrl: string;
   try {
     newUrl = await uploadPrintImage(dataUrl, path);
@@ -543,11 +560,18 @@ export async function replaceOrderPrintFile(
     return { error: e instanceof Error ? e.message : "Upload failed" };
   }
 
-  const urls = Array.isArray((order as { image_urls?: string[] }).image_urls)
+  const existing = Array.isArray((order as { image_urls?: string[] }).image_urls)
     ? ((order as { image_urls: string[] }).image_urls as string[]).slice()
-    : [(order as { image_url: string }).image_url];
+    : (order as { image_url: string | null }).image_url
+      ? [(order as { image_url: string }).image_url]
+      : [];
+  // Pad to the wall it replaces so a sparse/short array can't produce undefined
+  // holes (which would later sign to "" and read as a missing wall).
+  const wallCount = Number((order as { wall_count?: number }).wall_count ?? 0);
+  const targetLen = Math.max(existing.length, wallIndex + 1, wallCount);
+  const urls = Array.from({ length: targetLen }, (_, i) => existing[i] ?? "");
   urls[wallIndex] = newUrl;
-  const primaryUrl = urls[0];
+  const primaryUrl = urls.find((u) => u) ?? newUrl;
 
   const { error: updateError } = await supabase
     .from("orders")
@@ -555,12 +579,17 @@ export async function replaceOrderPrintFile(
     .eq("id", orderId);
   if (updateError) return { error: updateError.message };
 
-  await supabase.from("order_activity").insert({
+  const { error: activityError } = await supabase.from("order_activity").insert({
     order_id: orderId,
     actor_email: actorEmail,
     action: "print_file_replaced",
     new_value: `Wall ${wallIndex + 1} replaced`,
   });
+  if (activityError) {
+    // Don't fail the replace (the file is already swapped), but surface the
+    // audit-write failure instead of swallowing it.
+    console.error(`[replaceOrderPrintFile] audit log insert failed for ${orderId}:`, activityError.message);
+  }
   await setLastActivity(supabase, orderId, "Print file replaced");
 
   revalidatePath(`/admin/orders/${orderId}`);
@@ -571,10 +600,20 @@ export async function bulkUpdateStatus(orderIds: string[], status: string) {
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
   if (!VALID_STATUSES.includes(status as (typeof VALID_STATUSES)[number])) return { error: "Invalid status" };
+
+  // Aggregate results — updateOrderStatus can legitimately reject individual
+  // orders (e.g. the in_production pre-flight gate on a missing print file, or
+  // the delivered-before-shipped guard). Reporting a blanket success would hide
+  // those skips from the operator.
+  let moved = 0;
+  const skipped: { id: string; error: string }[] = [];
   for (const id of orderIds) {
-    await updateOrderStatus(id, status);
+    const res = await updateOrderStatus(id, status);
+    if (res && "error" in res && res.error) skipped.push({ id, error: res.error });
+    else moved++;
   }
+
   revalidatePath("/admin/orders");
-  return { ok: true };
+  return { ok: true, moved, skipped };
 }
 

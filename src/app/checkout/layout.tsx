@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Checkout | PaperWalls",
-  description: "Complete your order. Secure payment in ZAR with Stitch Express.",
+  description: "Complete your order. Secure card and EFT payment in ZAR with PayFast.",
 };
 
 export default function CheckoutLayout({

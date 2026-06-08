@@ -1,4 +1,4 @@
-import type { OrderStatus, WallpaperType, WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
+import type { OrderStatus, WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "Awaiting payment",
@@ -9,19 +9,11 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
 };
 
-export const WALLPAPER_TYPE_LABELS: Record<WallpaperType, string> = {
-  traditional: "Traditional",
-  peel_and_stick: "Peel & Stick",
-};
-
 export const MATERIAL_LABELS: Record<WallpaperMaterial, string> = {
   satin: "Satin",
   matte: "Matte",
   linen: "Linen",
 };
-
-/** @deprecated use MATERIAL_LABELS */
-export const STYLE_LABELS = MATERIAL_LABELS;
 
 export const APPLICATION_LABELS: Record<ApplicationMethod, string> = {
   diy:           "DIY",

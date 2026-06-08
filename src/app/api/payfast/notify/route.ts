@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
 import { sendEmail } from "@/lib/email/send";
-import { renderAdminNewOrder } from "@/lib/email/templates";
+import { renderAdminNewOrder, renderOrderConfirmed, type OrderEmailRow } from "@/lib/email/templates";
 import { sendMetaConversion } from "@/lib/meta/capi";
 import { notifyOps } from "@/lib/alerts";
 import { extractClientIp, isPayfastIp } from "@/lib/payfast-ip";
@@ -274,54 +274,106 @@ export async function POST(request: Request) {
         paymentId = paymentRow?.id ?? null;
       }
 
-      // Mark orders paid and link to the payments row
-      const { error: updateError } = await supabase
+      // Mark orders paid and link to the payments row. RETURNING the rows that
+      // actually matched the status='pending' guard tells us whether THIS ITN
+      // performed the transition. PayFast redelivers ITNs, so on a 2nd+
+      // delivery this matches zero rows — and we must NOT re-send the admin
+      // alert, re-insert the analytics event, or re-fire side effects.
+      const { data: updatedOrders, error: updateError } = await supabase
         .from("orders")
         .update({
           status:     "new",
           payment_id: paymentId,
         })
         .in("order_number", orderNumbers)
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .select("id, order_number, customer_id, customer_email");
 
       if (updateError) {
         console.error("[PayFast ITN] Orders update error", updateError.message);
         return NextResponse.json({ error: "Update failed" }, { status: 200 });
       }
 
-      // Queue order_confirmed email and update customer stats. Use the full
-      // (id, customer_id) row so we can attach order_id to the queued email.
-      const { data: paidRows } = await supabase
-        .from("orders")
-        .select("id, order_number, customer_id")
-        .in("order_number", orderNumbers);
-
-      const customerId = paidRows?.[0]?.customer_id ?? null;
-
-      if (paidRows?.length && customerId) {
-        // Idempotency key per (order_id, type) so a redelivered ITN can't queue duplicates.
-        const emailRows = paidRows.map((o) => ({
-          customer_id:     customerId,
-          order_id:        o.id,
-          type:            "order_confirmed",
-          status:          "pending",
-          send_at:         new Date().toISOString(),
-          subject:         `Your PaperWalls order ${o.order_number} is confirmed`,
-          idempotency_key: `order_confirmed:${o.id}`,
-          metadata:        { order_number: o.order_number, pf_payment_id: pfPaymentId },
-        }));
-
-        const { error: emailError } = await supabase
-          .from("scheduled_emails")
-          .upsert(emailRows, { onConflict: "idempotency_key", ignoreDuplicates: true });
-        if (emailError) {
-          console.error("[PayFast ITN] Email queue error", emailError.message);
+      if (!updatedOrders || updatedOrders.length === 0) {
+        // Already processed (redelivered/late ITN). Idempotently repair a
+        // missing payment_id link regardless of status, then ack without
+        // re-running any side effect.
+        if (paymentId) {
+          await supabase
+            .from("orders")
+            .update({ payment_id: paymentId })
+            .in("order_number", orderNumbers)
+            .is("payment_id", null);
         }
+        console.info(`[PayFast ITN] duplicate COMPLETE for ${orderNumbers.join(",")} — already processed`);
+        return NextResponse.json({ received: true }, { status: 200 });
+      }
 
+      const paidRows = updatedOrders;
+      const customerId = paidRows[0]?.customer_id ?? null;
+
+      // Send the order-confirmation email NOW rather than waiting for the
+      // drainer. We still write a scheduled_emails row per order for history +
+      // as a retry backstop: queue pending, attempt inline, mark sent on
+      // success, and leave it pending (drainer retries) on skip/failure.
+      for (const o of paidRows) {
+        const { data: queued } = await supabase
+          .from("scheduled_emails")
+          .upsert(
+            {
+              customer_id:     o.customer_id ?? null,
+              order_id:        o.id,
+              type:            "order_confirmed",
+              status:          "pending",
+              send_at:         new Date().toISOString(),
+              subject:         `Your PaperWalls order ${o.order_number} is confirmed`,
+              idempotency_key: `order_confirmed:${o.id}`,
+              attempts:        0,
+              metadata:        { order_number: o.order_number, pf_payment_id: pfPaymentId },
+            },
+            { onConflict: "idempotency_key", ignoreDuplicates: false },
+          )
+          .select("id, status")
+          .maybeSingle();
+
+        if (queued && queued.status !== "sent") {
+          const { data: orderForEmail } = await supabase
+            .from("orders")
+            .select("order_number, customer_email, customer_name, total_cents, wall_count, total_sqm, wallpaper_style, application_method, product_type")
+            .eq("id", o.id)
+            .maybeSingle();
+          if (orderForEmail?.customer_email) {
+            const rendered = renderOrderConfirmed(orderForEmail as unknown as OrderEmailRow);
+            const sendResult = await sendEmail({
+              to:      orderForEmail.customer_email as string,
+              subject: rendered.subject,
+              html:    rendered.html,
+            });
+            if ("ok" in sendResult && sendResult.ok) {
+              await supabase
+                .from("scheduled_emails")
+                .update({
+                  status:          "sent",
+                  sent_at:         new Date().toISOString(),
+                  last_attempt_at: new Date().toISOString(),
+                  attempts:        1,
+                  metadata:        { order_number: o.order_number, pf_payment_id: pfPaymentId, resend_id: sendResult.id },
+                })
+                .eq("id", queued.id);
+            } else {
+              // skipped (no key) or hard failure → leave pending for the drainer.
+              const reason = "skipped" in sendResult ? sendResult.reason : sendResult.error;
+              console.warn(`[PayFast ITN] inline order_confirmed not sent for ${o.order_number}: ${reason}`);
+            }
+          }
+        }
+      }
+
+      if (customerId) {
         void supabase.rpc("update_customer_stats", { p_customer_id: customerId });
       }
 
-      // Log analytics event
+      // Log analytics event (gated on a real pending->new transition above).
       void supabase.from("events").insert({
         type:    "payment.completed",
         payload: {

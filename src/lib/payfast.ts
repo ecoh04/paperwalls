@@ -40,10 +40,6 @@ export function getPayfastHost(): string {
   return PAYFAST_SANDBOX ? "sandbox.payfast.co.za" : "www.payfast.co.za";
 }
 
-export function getPayfastSandbox(): boolean {
-  return PAYFAST_SANDBOX;
-}
-
 export function assertPayfastEnv() {
   const missing = [
     !PAYFAST_MERCHANT_ID  && "PAYFAST_MERCHANT_ID",

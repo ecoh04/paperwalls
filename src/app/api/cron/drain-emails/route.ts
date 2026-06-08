@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendEmail } from "@/lib/email/send";
 import { notifyOps } from "@/lib/alerts";
+import { cronAuthorized } from "@/lib/cron-auth";
 import {
   renderOrderConfirmed,
   renderOrderShipped,
@@ -22,14 +23,10 @@ import {
 const BATCH_SIZE   = 25;
 const MAX_ATTEMPTS = 5;
 
-function unauthorized() {
-  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-}
-
 export async function GET(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const got      = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
-  if (!expected || got !== expected) return unauthorized();
+  if (!cronAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   if (!supabaseAdmin) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
@@ -137,10 +134,14 @@ export async function GET(req: Request) {
       const result = await sendEmail({ to: toEmail, subject, html });
 
       if ("skipped" in result) {
+        // Config skip (e.g. RESEND_API_KEY unset) is NOT a delivery attempt —
+        // do not increment attempts, or a pre-launch period with no key would
+        // silently exhaust MAX_ATTEMPTS and permanently dead-letter every
+        // queued email before the key is ever wired. Record the reason only;
+        // the row stays eligible so it sends once the key is configured.
         await supabaseAdmin
           .from("scheduled_emails")
           .update({
-            attempts:        (row.attempts as number) + 1,
             last_attempt_at: new Date().toISOString(),
             error:           result.reason,
           })

@@ -16,8 +16,11 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const GRAPH_VERSION = "v19.0";
 
+// Must stay in lockstep with the capi_events_event_type_check DB constraint
+// (Purchase, InitiateCheckout, AddToCart, ViewContent, Lead). 'PageView' is
+// intentionally absent — the constraint rejects it, so allowing it in the type
+// would let a caller queue an event whose audit insert silently fails.
 export type MetaEventName =
-  | "PageView"
   | "ViewContent"
   | "AddToCart"
   | "InitiateCheckout"
