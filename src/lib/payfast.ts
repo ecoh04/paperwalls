@@ -80,6 +80,25 @@ export function generatePayfastSignature(
 }
 
 /**
+ * MD5 a pre-built parameter string (optionally appending the passphrase),
+ * exactly as PayFast's ITN verification reference does. Unlike
+ * generatePayfastSignature (which is for OUTGOING requests and skips empty
+ * fields), this signs the string verbatim — the ITN signature is computed by
+ * PayFast over ALL posted fields including empty ones, so the verifier must
+ * NOT skip empties.
+ */
+export function md5ParamString(
+  paramString: string,
+  passphrase: string | null = PAYFAST_PASSPHRASE
+): string {
+  let s = paramString;
+  if (passphrase && passphrase.length > 0) {
+    s += `&passphrase=${pfUrlEncode(passphrase)}`;
+  }
+  return crypto.createHash("md5").update(s).digest("hex");
+}
+
+/**
  * Builds the PayFast payment data object.
  * Used by both the onsite and custom integration flows.
  */

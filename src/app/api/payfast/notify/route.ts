@@ -9,6 +9,7 @@ import {
   formatPayfastAmount,
   generatePayfastSignature,
   getPayfastHost,
+  md5ParamString,
   pfUrlEncode,
 } from "@/lib/payfast";
 
@@ -91,25 +92,49 @@ export async function POST(request: Request) {
     }
 
     // ── 2. Verify signature ───────────────────────────────────────────────────
+    // PayFast computes the ITN signature over ALL posted fields (in order,
+    // INCLUDING empty ones like custom_str2=). So the authoritative check is
+    // md5(pfParamString [+ passphrase]) — pfParamString already includes empty
+    // fields. We also accept the skip-empties variant (generatePayfastSignature)
+    // as a defensive fallback. A forgery matches neither; and step 5 (remote
+    // /validate) is the ultimate guard regardless.
     const signatureProvided = pfData["signature"] ?? "";
     const baseData: Record<string, string> = {};
     params.forEach((value, key) => {
       if (key === "signature") return;
       baseData[key] = value;
     });
-    const expectedSignature = generatePayfastSignature(baseData, passphrase);
+    const expectedFull = md5ParamString(pfParamString, passphrase);     // includes empties (PayFast's method)
+    const expectedSkip = generatePayfastSignature(baseData, passphrase); // skips empties (legacy fallback)
 
-    if (!signatureProvided || signatureProvided !== expectedSignature) {
-      // Source IP check passed but signature didn't — high-signal forgery
-      // attempt or a misconfigured passphrase. Either way, operator needs
-      // to know.
+    const signatureValid =
+      !!signatureProvided &&
+      (signatureProvided === expectedFull || signatureProvided === expectedSkip);
+
+    if (!signatureValid) {
+      // TEMPORARY forensic capture so a still-failing ITN is diagnosable on a
+      // dashboard ITN resend (no new payment needed). Remove once confirmed.
+      if (supabase) {
+        await supabase.from("events").insert({
+          type: "debug.payfast_itn_sig_mismatch",
+          payload: {
+            provided:           signatureProvided || "(none)",
+            expected_full:      expectedFull,
+            expected_skip:      expectedSkip,
+            passphrase_present: !!passphrase,
+            field_keys:         Array.from(params.keys()),
+            param_string:       pfParamString,
+          },
+        });
+      }
       await notifyOps({
         severity: "fatal",
         title:    "PayFast ITN signature mismatch",
         fields:   {
           client_ip:     clientIp,
           provided:      signatureProvided || "(none)",
-          expected:      expectedSignature,
+          expected_full: expectedFull,
+          expected_skip: expectedSkip,
           pf_payment_id: pfData["pf_payment_id"] ?? "",
           m_payment_id:  pfData["m_payment_id"] ?? "",
           amount_gross:  pfData["amount_gross"] ?? "",
