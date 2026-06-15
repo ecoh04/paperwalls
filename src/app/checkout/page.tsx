@@ -197,7 +197,7 @@ export default function CheckoutPage() {
                   <span className="pw-h3 text-pw-ink">{formatZar(totalCents)}</span>
                 </div>
                 <p className="pw-small mt-2 text-pw-muted-light">
-                  Free SA delivery. VAT included.
+                  Free SA delivery. Prices in ZAR.
                 </p>
               </div>
 

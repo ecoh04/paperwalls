@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import type { CheckoutAddress } from "@/types/checkout";
 import type { CartItem } from "@/types/cart";
 import type { ShippingProvince } from "@/types/order";
@@ -298,6 +299,13 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
 
       <p className="pw-small text-center text-pw-muted">
         You&rsquo;ll complete payment securely with PayFast on the next screen.
+      </p>
+
+      <p className="pw-small text-center text-pw-muted-light">
+        By continuing, you agree to our{" "}
+        <Link href="/terms" className="underline underline-offset-2 hover:text-pw-ink">Terms</Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="underline underline-offset-2 hover:text-pw-ink">Privacy Policy</Link>.
       </p>
     </form>
   );

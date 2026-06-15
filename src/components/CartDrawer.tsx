@@ -270,7 +270,7 @@ export function CartDrawer() {
               <span className="pw-small text-pw-muted">Subtotal</span>
               <div className="text-right">
                 <span className="pw-h3 text-pw-ink">{formatZar(totalCents)}</span>
-                <span className="pw-overline ml-2 text-pw-muted-light">VAT included</span>
+                <span className="pw-overline ml-2 text-pw-muted-light">Prices in ZAR</span>
               </div>
             </div>
 

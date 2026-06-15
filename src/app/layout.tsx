@@ -68,6 +68,23 @@ export default function RootLayout({
         <link rel="preconnect" href="https://www.payfast.co.za" />
         <link rel="preload" href="/fonts/satoshi-400.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/satoshi-900.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        {/* Organization structured data for Google (rich results / knowledge panel). */}
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "PaperWalls",
+              url: SITE_URL,
+              logo: `${SITE_URL}/logo.png`,
+              description: "Custom printed wallpaper, made to order in Cape Town, South Africa.",
+              email: "hello@paperwalls.co.za",
+              areaServed: "ZA",
+            }),
+          }}
+        />
         <RootLayoutClient>{children}</RootLayoutClient>
       </body>
     </html>

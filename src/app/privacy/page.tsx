@@ -10,7 +10,8 @@ const SECTIONS: { h: string; body: string[] }[] = [
     h: "What we collect",
     body: [
       "When you place an order: name, email, phone, delivery address, and the image you upload.",
-      "When you browse: standard server logs, anonymous analytics about which pages you visit, and (if applicable) UTM tags from the link that brought you here. We don’t track you across other sites.",
+      "When you browse: standard server logs, first-party analytics about which pages you visit, and UTM/click tags from the link that brought you here.",
+      "If you arrived from an advertisement, we use advertising and conversion-measurement tools — including the Meta (Facebook) pixel and Conversions API — which may set cookies and share a one-way-hashed version of your email/phone and your purchase events with the ad platform so we can measure ad performance. We do not sell your data.",
     ],
   },
   {
@@ -37,7 +38,8 @@ const SECTIONS: { h: string; body: string[] }[] = [
   {
     h: "Sharing",
     body: [
-      "We don’t sell your data. We share order details with PayFast (payment), our print fulfilment team (production), and our courier (delivery). That’s it.",
+      "We don’t sell your data. We share order details with PayFast (payment), our print fulfilment team (production), and our courier (delivery).",
+      "For advertising measurement we share hashed identifiers (a one-way hash of your email/phone) and conversion events with Meta Platforms, Inc. in the United States. Because this is a cross-border transfer, it is done under appropriate safeguards (Standard Contractual Clauses). You can limit this through your browser and ad-platform settings.",
     ],
   },
   {

@@ -40,6 +40,31 @@ export default function CustomWallpaperPage() {
   return (
     <>
       <PdpPixelTrigger />
+      {/* Product structured data — helps Google show price/availability in results.
+          AggregateOffer (priced per m², so a "from" price); no rating until reviews are real. */}
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: "Custom Wallpaper",
+            description:
+              "Made-to-measure custom wallpaper. Upload any image, set your wall size, choose your finish. Printed and delivered free across South Africa.",
+            image: ["https://paperwalls.co.za/images/product/pdp-01-hero.jpg"],
+            brand: { "@type": "Brand", name: "PaperWalls" },
+            category: "Wallpaper",
+            offers: {
+              "@type": "AggregateOffer",
+              priceCurrency: "ZAR",
+              lowPrice: "410",
+              availability: "https://schema.org/InStock",
+              areaServed: "ZA",
+            },
+          }),
+        }}
+      />
       <BuyBox
         activeImage={activeImage}
         setActiveImage={setActiveImage}
