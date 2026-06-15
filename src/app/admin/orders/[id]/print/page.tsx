@@ -30,6 +30,7 @@ type Row = {
   image_url: string;
   image_urls: string[] | null;
   walls_spec: { widthM: number; heightM: number }[] | null;
+  image_quality: { level: string; pxPerMm: number; widthPx: number; heightPx: number } | null;
   wallpaper_style: string;
   application_method: string;
   total_cents: number;
@@ -50,7 +51,7 @@ export default async function AdminOrderPrintPage({
 
   const { data: order, error } = await supabase
     .from("orders")
-    .select("order_number, customer_name, customer_email, customer_phone, address_line1, address_line2, city, province, postal_code, wall_width_m, wall_height_m, wall_count, total_sqm, image_url, image_urls, walls_spec, wallpaper_style, application_method, total_cents")
+    .select("order_number, customer_name, customer_email, customer_phone, address_line1, address_line2, city, province, postal_code, wall_width_m, wall_height_m, wall_count, total_sqm, image_url, image_urls, walls_spec, image_quality, wallpaper_style, application_method, total_cents")
     .eq("id", id)
     .single();
 
@@ -95,6 +96,15 @@ export default async function AdminOrderPrintPage({
         </p>
         <p>Material: {MATERIAL_LABELS[(row.wallpaper_style as WallpaperMaterial)] ?? row.wallpaper_style ?? "—"}</p>
         <p>Application: {APPLICATION_LABELS[(row.application_method as ApplicationMethod) ?? "diy"]}</p>
+        {row.image_quality && (
+          <p className={row.image_quality.level === "good" ? "mt-1" : "mt-1 font-bold text-amber-700"}>
+            Image resolution: ~{Math.round(row.image_quality.pxPerMm * 25.4)} dpi
+            {" "}({row.image_quality.widthPx}×{row.image_quality.heightPx}px)
+            {row.image_quality.level === "too_low"    ? " — LOW, buyer accepted at checkout"
+              : row.image_quality.level === "borderline" ? " — borderline, buyer accepted at checkout"
+              : ""}
+          </p>
+        )}
       </section>
 
       <section className="mb-6 border-b border-stone-200 pb-4">

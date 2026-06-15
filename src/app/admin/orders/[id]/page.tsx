@@ -49,6 +49,7 @@ type Row = {
   image_url: string | null;
   image_urls: string[] | null;
   walls_spec: { widthM: number; heightM: number }[] | null;
+  image_quality: { level: string; pxPerMm: number; widthPx: number; heightPx: number } | null;
   wallpaper_style: string | null;
   application_method: string | null;
   tracking_number: string | null;
@@ -212,6 +213,23 @@ export default async function AdminOrderDetailPage({
               ? `Sample pack · qty ${row.quantity}`
               : `Custom wallpaper · ${row.wall_count} wall${row.wall_count === 1 ? "" : "s"}${row.total_sqm ? ` · ${Number(row.total_sqm).toFixed(2)} m²` : ""}`}
           </p>
+          {row.product_type !== "sample_pack" && row.image_quality && (() => {
+            const q = row.image_quality;
+            const dpi = Math.round(q.pxPerMm * 25.4);
+            const tone = q.level === "too_low"    ? "bg-red-100 text-red-800"
+                       : q.level === "borderline" ? "bg-amber-100 text-amber-800"
+                       :                             "bg-green-100 text-green-800";
+            const label = q.level === "too_low"    ? "Low res — buyer accepted"
+                        : q.level === "borderline" ? "Borderline — buyer accepted"
+                        :                             "Good resolution";
+            return (
+              <p className="mt-1.5">
+                <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${tone}`}>
+                  {label} · ~{dpi} dpi · {q.widthPx}×{q.heightPx}px
+                </span>
+              </p>
+            );
+          })()}
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">

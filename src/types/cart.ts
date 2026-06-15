@@ -10,6 +10,14 @@ interface BaseCartItem {
   subtotalCents: number;
 }
 
+/** The image-resolution verdict the buyer saw and accepted (worst wall). */
+export interface CartItemQuality {
+  level:   "good" | "borderline" | "too_low";
+  pxPerMm: number;
+  widthPx: number;
+  heightPx: number;
+}
+
 export interface WallpaperCartItem extends BaseCartItem {
   type: "wallpaper";
   widthM: number;
@@ -24,6 +32,8 @@ export interface WallpaperCartItem extends BaseCartItem {
   imageDataUrl?: string;
   /** One image per wall when walls have different sizes. */
   imageDataUrls?: string[];
+  /** Resolution verdict accepted at add-to-cart (worst wall). */
+  imageQuality?: CartItemQuality | null;
 }
 
 export interface SamplePackCartItem extends BaseCartItem {

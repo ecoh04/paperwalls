@@ -9,9 +9,10 @@ import {
   formatZar,
   getPricePerSqmCents,
 } from "@/lib/pricing";
-import { MIN_PX_PER_MM } from "@/lib/quality";
+import { MIN_PX_PER_MM, getQuality } from "@/lib/quality";
 import { DEFAULT_CONFIG, type ConfiguratorState, type WallSpec } from "@/types/configurator";
 import type { WallpaperType, WallpaperMaterial, ApplicationMethod } from "@/types/order";
+import type { CartItemQuality } from "@/types/cart";
 import { PreviewEditStep } from "./PreviewEditStep";
 import { OrderSummaryPanel } from "./OrderSummaryPanel";
 import { ConfigAlert } from "./ConfigAlert";
@@ -27,6 +28,25 @@ function blobToDataUrl(blob: Blob): Promise<string> {
     r.onerror = reject;
     r.readAsDataURL(blob);
   });
+}
+
+// Snapshot the resolution verdict the buyer is accepting, so it persists onto
+// the order for the print team (and as a dispute/CPA defence).
+const QUALITY_RANK = { too_low: 0, borderline: 1, good: 2 } as const;
+function cartQuality(
+  widthPx: number | null, heightPx: number | null, wallW: number, wallH: number,
+): CartItemQuality | null {
+  if (!widthPx || !heightPx || wallW <= 0 || wallH <= 0) return null;
+  const q = getQuality(widthPx, heightPx, wallW, wallH);
+  return { level: q.level, pxPerMm: q.pxPerMm, widthPx, heightPx };
+}
+function worstQuality(items: (CartItemQuality | null)[]): CartItemQuality | null {
+  const valid = items.filter((x): x is CartItemQuality => !!x);
+  if (!valid.length) return null;
+  return valid.reduce((worst, cur) =>
+    QUALITY_RANK[cur.level] < QUALITY_RANK[worst.level] ||
+    (cur.level === worst.level && cur.pxPerMm < worst.pxPerMm) ? cur : worst
+  );
 }
 
 function loadImageDimensions(url: string): Promise<{ widthPx: number; heightPx: number }> {
@@ -270,6 +290,9 @@ export function Configurator() {
           return;
         }
         const imageDataUrls = await Promise.all(blobs.map((b) => blobToDataUrl(b!)));
+        const imageQuality = worstQuality(
+          state.walls.map((w) => cartQuality(w.imageWidthPx ?? null, w.imageHeightPx ?? null, w.widthM, w.heightM)),
+        );
         addItem({
           type:          "wallpaper",
           widthM:        state.walls[0].widthM,
@@ -282,6 +305,7 @@ export function Configurator() {
           application:   state.application,
           subtotalCents,
           imageDataUrls,
+          imageQuality,
         });
       } else {
         if (!state.imagePreviewUrl) return;
@@ -308,6 +332,7 @@ export function Configurator() {
           application:   state.application,
           subtotalCents,
           imageDataUrl,
+          imageQuality:  cartQuality(state.imageWidthPx ?? null, state.imageHeightPx ?? null, state.widthM, state.heightM),
         });
       }
       // Cart drawer auto-opens via CartContext.addItem so the buyer sees

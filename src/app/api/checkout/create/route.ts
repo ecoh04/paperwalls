@@ -124,6 +124,7 @@ export async function POST(request: Request) {
       image_url: string | null;
       image_urls: string[];
       walls_spec: { widthM: number; heightM: number }[] | null;
+      image_quality: { level: string; pxPerMm: number; widthPx: number; heightPx: number } | null;
       wallpaper_type: string | null;
       wallpaper_style: string | null;
       application_method: string | null;
@@ -316,6 +317,7 @@ export async function POST(request: Request) {
           image_url:          null,
           image_urls:         [],
           walls_spec:         null,
+          image_quality:      null,
           wallpaper_type:     null,
           wallpaper_style:    null,
           application_method: null,
@@ -364,6 +366,7 @@ export async function POST(request: Request) {
         image_url:          urls[0],
         image_urls:         urls,
         walls_spec:         wallsSpec,
+        image_quality:      item.imageQuality ?? null,
         wallpaper_type:     item.wallpaperType,
         wallpaper_style:    item.material,
         application_method: item.application,
@@ -429,11 +432,12 @@ export async function POST(request: Request) {
       .insert(
         orderRows.map((row) => ({
           ...row,
-          image_urls:  row.image_urls,
-          walls_spec:  row.walls_spec,
-          customer_id: customerId,
-          cart_id:     cartId,
-          session_id:  session_id ?? null,
+          image_urls:    row.image_urls,
+          walls_spec:    row.walls_spec,
+          image_quality: row.image_quality,
+          customer_id:   customerId,
+          cart_id:       cartId,
+          session_id:    session_id ?? null,
         }))
       )
       .select("id, order_number, product_type, quantity, subtotal_cents, total_cents");
