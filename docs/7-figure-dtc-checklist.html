@@ -97,6 +97,8 @@
       <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">Supabase hardened</div><div class="why">Full RLS (admin-only), comprehensive indexes, FKs, updated_at triggers, security-invoker views.</div></div></div>
       <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">Email + Meta infrastructure (account-agnostic)</div><div class="why">Resend wrapper, queue, templates; Meta Pixel/CAPI code with dedup. Both awaiting config (DNS verify / new account).</div></div></div>
       <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">Reconcile cron + Slack ops alerts, SEO baseline, error boundaries</div><div class="why">Payment-integrity drift alerts; sitemap/robots/OG; sample pack (R300) + R150 credit; free SA delivery.</div></div></div>
+      <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">Checkout speed + UX overhaul (shipped)</div><div class="why">Redirect-as-default (Apple Pay + wallets), removed onsite round-trip, self-hosted font, lazy configurator (/config 110→89kB), waitUntil deferrals, inline per-field checkout errors.</div></div></div>
+      <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">Launch hardening (shipped)</div><div class="why">VAT-copy fix, Meta privacy disclosure (POPIA), security headers, dead-Stitch removal, Organization+Product JSON-LD, quality-verdict on orders, new favicon. PayFast signature + onConflict fixed (ITN verified live).</div></div></div>
     </div>
   </section>
 
@@ -119,25 +121,20 @@
     </ul>
     <p class="note">Three things Shopify gives free that we consciously replicate: (1) app ecosystem for reviews/email/loyalty; (2) theme polish + Core Web Vitals; (3) maintained payments/trust layer (onsite modal + method logos).</p>
   </footer>
-  <p class="note" style="margin-top:14px">Pinned 2026-06-15 · source of truth: docs/7-figure-dtc-checklist.md</p>
+  <p class="note" style="margin-top:14px">Pinned 2026-06-15, updated after the checkout-speed + launch-hardening sprint · source of truth: docs/7-figure-dtc-checklist.md</p>
 </div>
 
 <script>
 const DONEXT = [
-  ["Fix \"VAT included\" copy (not VAT-registered)","Legal misrepresentation under CPA/VAT Act — live now.","S"],
-  ["Activate Resend (API key + DNS-verified domain)","In progress — blocked on DNS access.","S"],
-  ["Wire + verify new Meta Pixel + CAPI","Test order, confirm Purchase dedup in Events Manager. Gate before spend.","S"],
-  ["Capture _fbp/_fbc cookies → CAPI","Lifts Event Match Quality ~5 → 8+.","M"],
-  ["Tax-ready receipt in order-confirmed email","Label \"Receipt\" until VAT-registered.","M"],
-  ["Explicit consent at checkout","Required terms tick + unchecked marketing opt-in, logged.","S"],
-  ["Add WhatsApp (wa.me click-to-chat)","Biggest SA market gap; free.","S"],
-  ["Vercel Hobby → Pro (~R380/mo)","Unblocks 5-minute crons.","S"],
-  ["Wire abandoned-cart recovery end-to-end","Template/drainer exist; nothing enqueues. Deep-link resume URL. 5–12% recovery.","M"],
-  ["Switch checkout to PayFast onsite modal","Built but unused; removes off-site redirect. +5–10% completed payments.","M"],
-  ["Sticky mobile add-to-cart + live-price bar","CTA buried on mobile where ~all paid traffic lands.","M"],
+  ["Activate Resend (API key + DNS-verified domain)","In progress — blocked on DNS access (tech guy has the login).","S"],
+  ["Wire + verify new Meta Pixel + CAPI","New account pending. Test order, confirm Purchase dedup. Gate before spend.","S"],
+  ["Capture _fbp/_fbc cookies → CAPI","Lifts Event Match Quality ~5 → 8+ (after Meta is wired).","M"],
+  ["Tax-ready receipt in order-confirmed email","Label \"Receipt\" until VAT-registered (after Resend).","M"],
+  ["Add WhatsApp (wa.me click-to-chat)","Biggest SA market gap; free. Needs your WA number.","S"],
+  ["Vercel Hobby → Pro (~R380/mo)","Unblocks 5-minute crons (abandoned-cart, drains).","S"],
+  ["Wire abandoned-cart recovery end-to-end","Template/drainer exist; nothing enqueues. 5–12% recovery (needs Resend + Pro).","M"],
+  ["Sticky mobile add-to-cart + live-price bar","CTA buried on mobile where ~all paid traffic lands. Next conversion win.","M"],
   ["Rate-limit public POST routes (Upstash free)","track/subscribe/cart/checkout are open + service-role-backed.","M"],
-  ["Disclose Meta cross-border data sharing (Privacy)","POPIA s72.","S"],
-  ["Persist configurator quality verdict onto each order","#1 source of avoidable reprints + CPA defence.","S"],
   ["Error tracking (Sentry)","Thrown errors in checkout/ITN are invisible today.","M"],
   ["Real install photography + reviews system","All imagery AI-generated, zero reviews — biggest conversion ceiling.","M-L"],
 ];
@@ -149,18 +146,20 @@ const AREAS = [
     ["Google Ads conversion tracking","partial","P1","gclid persisted but dead; add GA4/Enhanced Conversions. Cheap high-intent SA search."],
     ["Creative / UGC pipeline","todo","P1","10–20 fresh variations/mo; 3–5 SA micro-creators @ R1.5k–R5k; lead with transformation/price/risk."],
     ["Retargeting + value-based lookalikes","partial","P1","Customer-list + WCA + 1–3% value LAL from your first-party data."],
-    ["Product/Org JSON-LD + Search Console","todo","P1","Zero JSON-LD today. Add Product schema (ZAR) + verify domain."],
+    ["Product/Org JSON-LD + Search Console","partial","P1","JSON-LD shipped (Organization + Product, ZAR). Still to do: verify domain in Search Console."],
   ]],
   ["Conversion & CRO",[
     ["Sticky mobile add-to-cart + price bar","todo","P0","Primary CTA buried at bottom of long scroll on mobile."],
     ["Per-m² price anchoring","partial","P1","R410/m² headline → add \"most walls R2,800–4,500\" anchor."],
     ["SA payment-method logos pre-checkout","partial","P1","Show Visa/MC + Instant EFT + Ozow/SnapScan. Copy + SVGs."],
-    ["Self-host Satoshi font","partial","P1","Render-blocking @import today; hurts mobile LCP/CLS."],
+    ["Self-host Satoshi font","done","P1","Shipped — same-origin woff2 + preload; Fontshare @import removed."],
+    ["Inline checkout error UX","done","P1","Shipped — per-field red errors + plain messages + auto-scroll/focus. No more easy-to-miss top box."],
+    ["Checkout speed (redirect + waitUntil + lazy configurator)","done","P0","Shipped — removed the onsite round-trip, deferred non-essential writes, /config 110→89kB."],
     ["Configurator mobile progress hint","partial","P2","Slim step hint + collapsed running total."],
     ["Honest urgency / momentum cue","todo","P2","\"Order by today for this week's run\" — no fake timers."],
   ]],
   ["Checkout & Payments",[
-    ["PayFast onsite modal","partial","P0","generateOnsiteIdentifier() built but unused; kill off-site redirect."],
+    ["Checkout path: redirect default (onsite disabled)","done","P0","Shipped — redirect keeps Apple Pay + all wallets, faster, sandbox-testable. Onsite removed after evaluation."],
     ["Abandoned-cart recovery wired","partial","P0","Enqueue + 3-touch (1h/24h/72h) + deep-link resume URL."],
     ["SA payment methods toggled + visible","partial","P0","Confirm Instant EFT + Apple Pay on in PayFast dashboard."],
     ["VAT-ready invoice/receipt PDF","todo","P1","Generate at ITN, attach via Resend."],
@@ -168,7 +167,7 @@ const AREAS = [
     ["Discount-code path","todo","P2","discount_codes table dead today; wire server-validated codes."],
   ]],
   ["Fulfillment & Ops",[
-    ["Persist quality verdict on order","todo","P0","Re-run server-side at insert; coloured chip on print sheet."],
+    ["Persist quality verdict on order","done","P0","Shipped — stored on order; chip on detail + bold line on print sheet so the press sees \"buyer accepted soft 14dpi\"."],
     ["Courier API (Bob Go / Shiplogic)","todo","P1","Auto waybill + label + tracking; rate-shops Courier Guy/Aramex/Pudo (R0 platform fee)."],
     ["Production-SLA clock + breach alerts","partial","P1","Flag new>24h / in_production>48h via reconcile + Slack."],
     ["Structured defect/reprint workflow","partial","P2","Logged claim + photo intake → linked reprint order."],
@@ -213,15 +212,15 @@ const AREAS = [
     ["Rate limiting on public POST routes","todo","P0","One shared limiter; generous limits (SA mobile NAT)."],
     ["Uptime + synthetic monitoring","todo","P1","/api/health + UptimeRobot/Better Stack. Downtime burns ad budget."],
     ["Supabase PITR + restore drill","partial","P1","Orders/payments are the business; enable PITR, do one real restore."],
-    ["Security response headers (HSTS/CSP)","todo","P1","next.config only sets image formats today. CSP report-only first."],
-    ["Remove dead Stitch webhook + stale SQL","partial","P2","Keeps PCI scope obviously PayFast-only."],
+    ["Security response headers (HSTS/CSP)","done","P1","Shipped — HSTS/nosniff/frame/referrer/permissions. CSP still a report-only follow-up."],
+    ["Remove dead Stitch webhook + stale SQL","done","P2","Shipped — webhook dir, SQL + stale docs removed. PCI = PayFast-only."],
     ["Incident runbook + secret rotation","todo","P2","One-pager + 90-day rotation reminder (POPIA safeguards)."],
   ]],
   ["Legal / Finance (SA)",[
-    ["Fix \"VAT included\" claim","todo","P0","CartDrawer + checkout copy. You're not VAT-registered."],
-    ["Tax-ready receipt in order email","todo","P0","Label \"Receipt\" → \"Tax Invoice\" on registration."],
-    ["Explicit consent at checkout","todo","P0","Terms tick (blocking) + separate marketing opt-in; log timestamp+IP."],
-    ["Disclose Meta cross-border data sharing","todo","P0","CAPI sends hashed PII to US; POPIA s72."],
+    ["Fix \"VAT included\" claim","done","P0","Shipped — now \"Prices in ZAR\" on checkout + cart."],
+    ["Tax-ready receipt in order email","todo","P0","Label \"Receipt\" → \"Tax Invoice\" on registration (after Resend)."],
+    ["Marketing opt-in at checkout","todo","P1","Unchecked opt-in → write marketing_opt_in; gate promo email on it. (Consent UI line was reverted by choice.)"],
+    ["Disclose Meta cross-border data sharing","done","P0","Shipped — privacy policy updated (POPIA s72, SCCs)."],
     ["Legal entity + ECTA s43 footer disclosure","todo","P1","Entity + CIPC no., CT address, support contact."],
     ["Register Information Officer (free)","partial","P1","Register with Information Regulator; name in privacy policy."],
     ["Business banking + bookkeeping + VAT tripwire","todo","P1","Dedicated account, Xero/Sage, alert at ~R850k trailing rev."],
