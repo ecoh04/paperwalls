@@ -10,6 +10,11 @@ import Script from "next/script";
 //
 // We only render the script when an ID is configured, so dev / preview
 // environments without the env var are silent.
+//
+// NOTE: NEXT_PUBLIC_* values are inlined at BUILD time. This comment is
+// bumped intentionally to invalidate the per-file build cache so a deploy
+// after changing/removing the Pixel ID recompiles with the new value and
+// can't keep a stale inlined ID. (Old account purged 2026-06; pixel reset.)
 
 declare global {
   interface Window {
