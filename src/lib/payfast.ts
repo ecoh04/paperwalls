@@ -177,10 +177,13 @@ export async function generateOnsiteIdentifier(params: {
     .join("&");
 
   const host = getPayfastHost();
+  // Bound the request so a slow/unreachable onsite endpoint can't hang checkout
+  // — the caller treats any failure as "no uuid" and falls back to the redirect.
   const res = await fetch(`https://${host}/onsite/process`, {
     method:  "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
+    signal:  AbortSignal.timeout(6000),
   });
 
   if (!res.ok) {

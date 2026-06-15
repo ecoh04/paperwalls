@@ -4,7 +4,7 @@ import type { CartItem, WallpaperCartItem } from "@/types/cart";
 import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
 import { getShippingCents } from "@/lib/shipping";
 import { uploadPrintImage, renamePrintFile } from "@/lib/storage";
-import { buildPayfastFormFields } from "@/lib/payfast";
+import { buildPayfastFormFields, generateOnsiteIdentifier, getPayfastHost } from "@/lib/payfast";
 import { sendMetaConversion } from "@/lib/meta/capi";
 import { calculateSubtotalCents } from "@/lib/pricing";
 import type { ShippingProvince } from "@/types/order";
@@ -624,15 +624,35 @@ export async function POST(request: Request) {
       });
     }
 
-    const { url: payfastUrl, fields: payfastFields } = buildPayfastFormFields({
+    const paymentParams = {
       orderNumbers,
       amountCents:   totalPaymentCents,
       customerName:  a.customer_name.trim(),
       customerEmail: a.customer_email.trim(),
       customerPhone: a.customer_phone.trim(),
-    });
+    };
 
-    return NextResponse.json({ payfastUrl, payfastFields, orderNumbers });
+    // Redirect form fields — the guaranteed fallback path (unchanged behavior).
+    const { url: payfastUrl, fields: payfastFields } = buildPayfastFormFields(paymentParams);
+
+    // Onsite modal identifier — preferred path (keeps the buyer on our domain).
+    // Best-effort: if PayFast's /onsite/process is slow/unavailable, we return a
+    // null uuid and the client silently falls back to the redirect form. This
+    // can NEVER block checkout.
+    let onsiteUuid: string | null = null;
+    try {
+      onsiteUuid = await generateOnsiteIdentifier(paymentParams);
+    } catch (e) {
+      console.error("[checkout/create] onsite identifier failed; client will use redirect fallback:", e);
+    }
+
+    return NextResponse.json({
+      payfastUrl,
+      payfastFields,
+      orderNumbers,
+      onsiteUuid,
+      payfastHost: getPayfastHost(),
+    });
   } catch (e) {
     console.error("Checkout create error:", e);
     return NextResponse.json(

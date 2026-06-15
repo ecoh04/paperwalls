@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PaperWalls — 7-Figure DTC Infrastructure</title>
+<style>
+  :root{
+    --bg:#f7f5f0; --surface:#fff; --ink:#1a1714; --muted:#6b655d; --stone:#e6e3dc;
+    --accent:#c47b3a; --done:#3f7d5c; --partial:#c2922f; --todo:#a39b90;
+    --p0:#c0492f; --p1:#c47b3a; --p2:#a39b90;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;padding:32px 20px 80px}
+  .wrap{max-width:1080px;margin:0 auto}
+  header{margin-bottom:8px}
+  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;font-weight:700;color:var(--accent)}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px}
+  .sub{color:var(--muted);font-size:15px;max-width:70ch}
+  .phase{display:inline-block;margin-top:14px;background:var(--ink);color:#fff;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px}
+
+  /* summary */
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:24px 0 8px}
+  .stat{background:var(--surface);border:1px solid var(--stone);border-radius:12px;padding:14px 16px}
+  .stat .n{font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .stat .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+  .bar{height:10px;border-radius:999px;background:var(--stone);overflow:hidden;display:flex;margin:18px 0 6px}
+  .bar i{display:block;height:100%}
+  .bar .d{background:var(--done)} .bar .p{background:var(--partial)} .bar .t{background:var(--todo)}
+  .barkey{font-size:12px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+  .barkey span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:999px;display:inline-block}
+  .dot.d{background:var(--done)} .dot.p{background:var(--partial)} .dot.t{background:var(--todo)}
+
+  /* filters */
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 10px;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5}
+  .filters button{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--stone);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer}
+  .filters button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  section{margin-top:26px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px;font-weight:700}
+  .card{background:var(--surface);border:1px solid var(--stone);border-radius:14px;overflow:hidden}
+  .item{display:flex;gap:12px;align-items:flex-start;padding:13px 16px;border-bottom:1px solid var(--stone)}
+  .item:last-child{border-bottom:0}
+  .item .sdot{width:11px;height:11px;border-radius:999px;margin-top:5px;flex:0 0 auto}
+  .sdot.done{background:var(--done)} .sdot.partial{background:var(--partial)} .sdot.todo{background:var(--todo)}
+  .item .body{flex:1;min-width:0}
+  .item .t{font-weight:650;font-size:15px}
+  .item .why{color:var(--muted);font-size:13.5px;margin-top:2px}
+  .chips{display:flex;gap:6px;flex:0 0 auto;align-items:center}
+  .chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.03em}
+  .chip.P0{background:#fbe9e5;color:var(--p0)} .chip.P1{background:#f6ece1;color:var(--p1)} .chip.P2{background:#efece6;color:#7c756a}
+  .chip.eff{background:#eef1ee;color:#5f6b62}
+
+  .donewrap .item .t{color:var(--ink)}
+  .pnext{background:#fff;border:1px solid var(--stone);border-left:4px solid var(--accent);border-radius:12px;padding:6px 0}
+  footer{margin-top:34px;background:var(--surface);border:1px solid var(--stone);border-radius:14px;padding:20px 22px}
+  footer h3{font-size:15px;margin-bottom:8px}
+  footer ul{margin:0 0 10px 18px;color:var(--muted);font-size:14px}
+  footer li{margin:3px 0}
+  .hide{display:none !important}
+  .note{font-size:12px;color:var(--muted);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">PaperWalls · South Africa (ZAR)</div>
+    <h1>7-Figure DTC Infrastructure</h1>
+    <p class="sub">The hard infrastructure is built. The next phase is <strong>activation, proof, and compliance</strong> — turning on engines that already exist, showing what you can credibly claim, and closing live legal gaps.</p>
+    <span class="phase">Phase: Activation · Proof · Compliance</span>
+  </header>
+
+  <div class="summary" id="summary"></div>
+  <div class="bar" id="bar"></div>
+  <div class="barkey">
+    <span><i class="dot d"></i> Done / shipped</span>
+    <span><i class="dot p"></i> Partial</span>
+    <span><i class="dot t"></i> To-do</span>
+  </div>
+
+  <div class="filters" id="filters">
+    <button data-f="all" class="on">All</button>
+    <button data-f="P0">P0 — do next</button>
+    <button data-f="todo">To-do</button>
+    <button data-f="partial">Partial</button>
+    <button data-f="done">Shipped</button>
+  </div>
+
+  <!-- FOUNDATION -->
+  <section data-area>
+    <h2>✓ Foundation — already shipped</h2>
+    <div class="card donewrap">
+      <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">Hardened PayFast checkout + 5-check idempotent ITN</div><div class="why">Server-side price/geometry anti-tamper; signature fixed; verified on live R300 orders.</div></div></div>
+      <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">Order-management admin</div><div class="why">Status state machine, print queue + manifest, per-wall signed print files, ship-with-tracking, mark delivered, audit log, CSV export.</div></div></div>
+      <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">First-party data + attribution</div><div class="why">Event tracking, UTM/fbclid/gclid snapshotted onto every order, customer LTV.</div></div></div>
+      <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">Supabase hardened</div><div class="why">Full RLS (admin-only), comprehensive indexes, FKs, updated_at triggers, security-invoker views.</div></div></div>
+      <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">Email + Meta infrastructure (account-agnostic)</div><div class="why">Resend wrapper, queue, templates; Meta Pixel/CAPI code with dedup. Both awaiting config (DNS verify / new account).</div></div></div>
+      <div class="item" data-status="done" data-priority="P2"><span class="sdot done"></span><div class="body"><div class="t">Reconcile cron + Slack ops alerts, SEO baseline, error boundaries</div><div class="why">Payment-integrity drift alerts; sitemap/robots/OG; sample pack (R300) + R150 credit; free SA delivery.</div></div></div>
+    </div>
+  </section>
+
+  <!-- DO NEXT P0 -->
+  <section data-area>
+    <h2>★ Do next (P0) — launch-critical, sequenced</h2>
+    <div class="card pnext" id="donext"></div>
+  </section>
+
+  <!-- AREAS render via JS -->
+  <div id="areas"></div>
+
+  <footer>
+    <h3>Why this beats Shopify</h3>
+    <ul>
+      <li>You own every byte of first-party data — attribution, event history, LTV, CAPI audit trail, all in your Supabase.</li>
+      <li>A bespoke live-priced configurator with server-side anti-tamper — no theme/app does custom-print natively. The moat.</li>
+      <li>No per-transaction platform fee (PayFast processing only). Real margin at scale.</li>
+      <li>Full control of checkout, emails, fulfillment queue, data model.</li>
+    </ul>
+    <p class="note">Three things Shopify gives free that we consciously replicate: (1) app ecosystem for reviews/email/loyalty; (2) theme polish + Core Web Vitals; (3) maintained payments/trust layer (onsite modal + method logos).</p>
+  </footer>
+  <p class="note" style="margin-top:14px">Pinned 2026-06-15 · source of truth: docs/7-figure-dtc-checklist.md</p>
+</div>
+
+<script>
+const DONEXT = [
+  ["Fix \"VAT included\" copy (not VAT-registered)","Legal misrepresentation under CPA/VAT Act — live now.","S"],
+  ["Activate Resend (API key + DNS-verified domain)","In progress — blocked on DNS access.","S"],
+  ["Wire + verify new Meta Pixel + CAPI","Test order, confirm Purchase dedup in Events Manager. Gate before spend.","S"],
+  ["Capture _fbp/_fbc cookies → CAPI","Lifts Event Match Quality ~5 → 8+.","M"],
+  ["Tax-ready receipt in order-confirmed email","Label \"Receipt\" until VAT-registered.","M"],
+  ["Explicit consent at checkout","Required terms tick + unchecked marketing opt-in, logged.","S"],
+  ["Add WhatsApp (wa.me click-to-chat)","Biggest SA market gap; free.","S"],
+  ["Vercel Hobby → Pro (~R380/mo)","Unblocks 5-minute crons.","S"],
+  ["Wire abandoned-cart recovery end-to-end","Template/drainer exist; nothing enqueues. Deep-link resume URL. 5–12% recovery.","M"],
+  ["Switch checkout to PayFast onsite modal","Built but unused; removes off-site redirect. +5–10% completed payments.","M"],
+  ["Sticky mobile add-to-cart + live-price bar","CTA buried on mobile where ~all paid traffic lands.","M"],
+  ["Rate-limit public POST routes (Upstash free)","track/subscribe/cart/checkout are open + service-role-backed.","M"],
+  ["Disclose Meta cross-border data sharing (Privacy)","POPIA s72.","S"],
+  ["Persist configurator quality verdict onto each order","#1 source of avoidable reprints + CPA defence.","S"],
+  ["Error tracking (Sentry)","Thrown errors in checkout/ITN are invisible today.","M"],
+  ["Real install photography + reviews system","All imagery AI-generated, zero reviews — biggest conversion ceiling.","M-L"],
+];
+
+const AREAS = [
+  ["Acquisition",[
+    ["Meta Pixel/CAPI live + verified","partial","P0","Code dedup-correct; config + EMQ verification remain."],
+    ["_fbp/_fbc match-quality capture","todo","P0","Read both cookies, persist, pass through CAPI."],
+    ["Google Ads conversion tracking","partial","P1","gclid persisted but dead; add GA4/Enhanced Conversions. Cheap high-intent SA search."],
+    ["Creative / UGC pipeline","todo","P1","10–20 fresh variations/mo; 3–5 SA micro-creators @ R1.5k–R5k; lead with transformation/price/risk."],
+    ["Retargeting + value-based lookalikes","partial","P1","Customer-list + WCA + 1–3% value LAL from your first-party data."],
+    ["Product/Org JSON-LD + Search Console","todo","P1","Zero JSON-LD today. Add Product schema (ZAR) + verify domain."],
+  ]],
+  ["Conversion & CRO",[
+    ["Sticky mobile add-to-cart + price bar","todo","P0","Primary CTA buried at bottom of long scroll on mobile."],
+    ["Per-m² price anchoring","partial","P1","R410/m² headline → add \"most walls R2,800–4,500\" anchor."],
+    ["SA payment-method logos pre-checkout","partial","P1","Show Visa/MC + Instant EFT + Ozow/SnapScan. Copy + SVGs."],
+    ["Self-host Satoshi font","partial","P1","Render-blocking @import today; hurts mobile LCP/CLS."],
+    ["Configurator mobile progress hint","partial","P2","Slim step hint + collapsed running total."],
+    ["Honest urgency / momentum cue","todo","P2","\"Order by today for this week's run\" — no fake timers."],
+  ]],
+  ["Checkout & Payments",[
+    ["PayFast onsite modal","partial","P0","generateOnsiteIdentifier() built but unused; kill off-site redirect."],
+    ["Abandoned-cart recovery wired","partial","P0","Enqueue + 3-touch (1h/24h/72h) + deep-link resume URL."],
+    ["SA payment methods toggled + visible","partial","P0","Confirm Instant EFT + Apple Pay on in PayFast dashboard."],
+    ["VAT-ready invoice/receipt PDF","todo","P1","Generate at ITN, attach via Resend."],
+    ["Fraud guard on /checkout/create","todo","P1","Rate limit + min-order floor + card-testing alert."],
+    ["Discount-code path","todo","P2","discount_codes table dead today; wire server-validated codes."],
+  ]],
+  ["Fulfillment & Ops",[
+    ["Persist quality verdict on order","todo","P0","Re-run server-side at insert; coloured chip on print sheet."],
+    ["Courier API (Bob Go / Shiplogic)","todo","P1","Auto waybill + label + tracking; rate-shops Courier Guy/Aramex/Pudo (R0 platform fee)."],
+    ["Production-SLA clock + breach alerts","partial","P1","Flag new>24h / in_production>48h via reconcile + Slack."],
+    ["Structured defect/reprint workflow","partial","P2","Logged claim + photo intake → linked reprint order."],
+    ["Customer packing slip / delivery note","todo","P2","Order, contents, install QR, reprint promise."],
+    ["Parcel dims + tube-batching by finish","todo","P2","Accurate courier rating; batch prints to cut substrate switching."],
+  ]],
+  ["Post-Purchase & Retention",[
+    ["review_request lifecycle flow","todo","P1","Enum stub today; template + /r/[token] photo page + reviews table."],
+    ["win_back flow","todo","P1","Delivered + no order in 45–60d → \"another room?\" (not a discount race)."],
+    ["Write marketing_opt_in at checkout","todo","P1","Column exists, never set; gate promos on it."],
+    ["WhatsApp shipped/delivered notifications","todo","P1","Via SA BSP (~R0.15–0.40/msg) reusing the queue pattern."],
+    ["Customer-facing order tracking page","todo","P2","/track lookup; reduces \"where is it\" tickets."],
+  ]],
+  ["CX & Support",[
+    ["WhatsApp as primary live channel","todo","P0","Floating bubble + Contact + configurator. Free with WA Business."],
+    ["Resend transactional + support email live","partial","P0","Until live, every \"reply within 1 business day\" promise is non-functional."],
+    ["Pre-sale design help in configurator","partial","P1","\"Send us your file, we'll check it free\" at the quality-warning step."],
+    ["Self-service defect/reprint form","partial","P2","/track-linked form → structured row + Slack."],
+    ["Response SLAs + single-operator routing","todo","P2","Gmail labels + WA quick-replies; explicit hours (load-shedding)."],
+  ]],
+  ["Brand & Creative",[
+    ["Replace AI imagery with real installs","todo","P0","Cold traffic spots fake interiors. ½-day CT shoot ~R3,500–6,000."],
+    ["Verified review system on PDP","todo","P0","No reviews table; five-star lives only in AI alt text."],
+    ["Make unboxing real + photographed","partial","P1","\"Made to be unboxed\" runs against an AI flat-lay. ~R15–40/order."],
+    ["Instagram/TikTok + UGC loop","todo","P1","@paperwalls.za; tag-us → R150 credit (reuses credit mechanic)."],
+    ["Founder origin story with a real face","partial","P2","About page faceless; PR hook for Visi / House & Leisure."],
+    ["Branded OG / social share card","partial","P2","Currently a cropped AI shot."],
+    ["Content engine (install + interiors SEO)","todo","P2","5–8 cornerstone pieces once real installs exist."],
+  ]],
+  ["Data & Analytics",[
+    ["Meta Pixel/CAPI dedup verified","partial","P0","Everything below depends on it. Target EMQ 7+."],
+    ["Contribution-margin engine","todo","P0","Dashboard has a \"needs cost data\" placeholder. Without it you can scale a 4x ROAS campaign into a loss."],
+    ["CAC / ROAS / LTV:CAC layer","todo","P0","Add ad_spend table → blended CAC, per-source ROAS, LTV:CAC. Target 3:1+."],
+    ["Server-side ViewContent/AddToCart CAPI","partial","P1","Top-of-funnel is pixel-only, lost to iOS/Safari/ad-block (high in SA)."],
+    ["Join events→customers + cohort view","partial","P1","customer_id never written; no cohort/repeat analysis."],
+    ["Pipeline-health alerting","partial","P1","Alert on CAPI failures + events drop-off after deploys."],
+    ["POPIA-safe analytics retention","partial","P2","Prune to rollups (12–18mo); name Meta as processor."],
+  ]],
+  ["Infrastructure & Reliability",[
+    ["Vercel Hobby → Pro","todo","P0","Prereq for timely crons + function limits under image load."],
+    ["Error tracking (Sentry)","todo","P0","Wrap checkout/ITN/configurator; tag release SHA → Slack."],
+    ["Rate limiting on public POST routes","todo","P0","One shared limiter; generous limits (SA mobile NAT)."],
+    ["Uptime + synthetic monitoring","todo","P1","/api/health + UptimeRobot/Better Stack. Downtime burns ad budget."],
+    ["Supabase PITR + restore drill","partial","P1","Orders/payments are the business; enable PITR, do one real restore."],
+    ["Security response headers (HSTS/CSP)","todo","P1","next.config only sets image formats today. CSP report-only first."],
+    ["Remove dead Stitch webhook + stale SQL","partial","P2","Keeps PCI scope obviously PayFast-only."],
+    ["Incident runbook + secret rotation","todo","P2","One-pager + 90-day rotation reminder (POPIA safeguards)."],
+  ]],
+  ["Legal / Finance (SA)",[
+    ["Fix \"VAT included\" claim","todo","P0","CartDrawer + checkout copy. You're not VAT-registered."],
+    ["Tax-ready receipt in order email","todo","P0","Label \"Receipt\" → \"Tax Invoice\" on registration."],
+    ["Explicit consent at checkout","todo","P0","Terms tick (blocking) + separate marketing opt-in; log timestamp+IP."],
+    ["Disclose Meta cross-border data sharing","todo","P0","CAPI sends hashed PII to US; POPIA s72."],
+    ["Legal entity + ECTA s43 footer disclosure","todo","P1","Entity + CIPC no., CT address, support contact."],
+    ["Register Information Officer (free)","partial","P1","Register with Information Regulator; name in privacy policy."],
+    ["Business banking + bookkeeping + VAT tripwire","todo","P1","Dedicated account, Xero/Sage, alert at ~R850k trailing rev."],
+    ["Business + product-liability insurance","todo","P2","SA broker quotes; public/product + cyber/POPIA cover."],
+  ]],
+];
+
+// render do-next
+const dn = document.getElementById('donext');
+DONEXT.forEach((it,i)=>{
+  dn.insertAdjacentHTML('beforeend',
+    `<div class="item" data-status="p0list" data-priority="P0">
+       <span class="sdot todo" style="background:var(--p0)"></span>
+       <div class="body"><div class="t">${i+1}. ${it[0]}</div><div class="why">${it[1]}</div></div>
+       <div class="chips"><span class="chip eff">${it[2]}</span></div>
+     </div>`);
+});
+
+// render areas
+const areasEl = document.getElementById('areas');
+AREAS.forEach(([name,items])=>{
+  let rows = items.map(([t,s,p,why])=>
+    `<div class="item" data-status="${s}" data-priority="${p}">
+       <span class="sdot ${s}"></span>
+       <div class="body"><div class="t">${t}</div><div class="why">${why}</div></div>
+       <div class="chips"><span class="chip ${p}">${p}</span></div>
+     </div>`).join('');
+  areasEl.insertAdjacentHTML('beforeend',
+    `<section data-area><h2>${name}</h2><div class="card">${rows}</div></section>`);
+});
+
+// summary counts (areas + foundation, excludes the P0 do-next strip to avoid double count)
+function counts(){
+  let d=0,p=0,t=0;
+  document.querySelectorAll('.item[data-status]').forEach(el=>{
+    const s=el.getAttribute('data-status');
+    if(s==='done')d++; else if(s==='partial')p++; else if(s==='todo')t++;
+  });
+  return {d,p,t,total:d+p+t};
+}
+const c=counts();
+const p0=document.querySelectorAll('.item[data-priority="P0"][data-status]:not([data-status="p0list"])').length;
+document.getElementById('summary').innerHTML=`
+  <div class="stat"><div class="n">${c.total}</div><div class="l">Work items</div></div>
+  <div class="stat"><div class="n" style="color:var(--p0)">${p0}</div><div class="l">P0 · do next</div></div>
+  <div class="stat"><div class="n" style="color:var(--done)">${c.d}</div><div class="l">Shipped</div></div>
+  <div class="stat"><div class="n" style="color:var(--partial)">${c.p}</div><div class="l">Partial</div></div>
+  <div class="stat"><div class="n" style="color:var(--todo)">${c.t}</div><div class="l">To-do</div></div>`;
+const tot=c.total||1;
+document.getElementById('bar').innerHTML=
+  `<i class="d" style="width:${c.d/tot*100}%"></i><i class="p" style="width:${c.p/tot*100}%"></i><i class="t" style="width:${c.t/tot*100}%"></i>`;
+
+// filters
+document.getElementById('filters').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  document.querySelectorAll('#filters button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  const f=b.dataset.f;
+  document.querySelectorAll('.item').forEach(el=>{
+    const s=el.getAttribute('data-status'), pr=el.getAttribute('data-priority');
+    let show=true;
+    if(f==='all')show=true;
+    else if(f==='P0')show=(pr==='P0');
+    else if(f==='done')show=(s==='done');
+    else if(f==='partial')show=(s==='partial');
+    else if(f==='todo')show=(s==='todo');
+    el.classList.toggle('hide',!show);
+  });
+  // hide empty sections
+  document.querySelectorAll('section[data-area]').forEach(sec=>{
+    const any=[...sec.querySelectorAll('.item')].some(el=>!el.classList.contains('hide'));
+    sec.classList.toggle('hide',!any);
+  });
+});
+</script>
+</body>
+</html>

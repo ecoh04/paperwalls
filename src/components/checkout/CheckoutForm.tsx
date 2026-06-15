@@ -20,10 +20,20 @@ const INPUT_CLASSES =
 
 const LABEL_CLASSES = "pw-overline mb-2 block text-pw-muted";
 
+export type CheckoutCreateResult = {
+  payfastUrl:    string;
+  payfastFields: Record<string, string>;
+  orderNumbers:  string[];
+  /** Onsite-modal identifier (preferred path). Null → client uses redirect form. */
+  onsiteUuid?:   string | null;
+  /** PayFast host the uuid was created against (live vs sandbox engine.js). */
+  payfastHost?:  string | null;
+};
+
 type CheckoutFormProps = {
   items:      CartItem[];
   sessionId?: string;
-  onSuccess:  (payfastUrl: string, fields: Record<string, string>, orderNumbers: string[]) => void;
+  onSuccess:  (result: CheckoutCreateResult) => void | Promise<void>;
   onError:    (message: string) => void;
 };
 
@@ -114,7 +124,15 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
           onError("Invalid response from server.");
           return;
         }
-        onSuccess(data.payfastUrl, data.payfastFields, data.orderNumbers || []);
+        // Await so the submit button stays disabled while the onsite engine
+        // loads / the modal opens — prevents a double-click creating two orders.
+        await onSuccess({
+          payfastUrl:    data.payfastUrl,
+          payfastFields: data.payfastFields,
+          orderNumbers:  data.orderNumbers || [],
+          onsiteUuid:    data.onsiteUuid ?? null,
+          payfastHost:   data.payfastHost ?? null,
+        });
       } catch {
         onError("Network error. Please check your connection and try again.");
       } finally {
