@@ -112,21 +112,6 @@ export async function POST(request: Request) {
       (signatureProvided === expectedFull || signatureProvided === expectedSkip);
 
     if (!signatureValid) {
-      // TEMPORARY forensic capture so a still-failing ITN is diagnosable on a
-      // dashboard ITN resend (no new payment needed). Remove once confirmed.
-      if (supabase) {
-        await supabase.from("events").insert({
-          type: "debug.payfast_itn_sig_mismatch",
-          payload: {
-            provided:           signatureProvided || "(none)",
-            expected_full:      expectedFull,
-            expected_skip:      expectedSkip,
-            passphrase_present: !!passphrase,
-            field_keys:         Array.from(params.keys()),
-            param_string:       pfParamString,
-          },
-        });
-      }
       await notifyOps({
         severity: "fatal",
         title:    "PayFast ITN signature mismatch",
@@ -394,12 +379,15 @@ export async function POST(request: Request) {
         }
       }
 
+      // AWAIT (not fire-and-forget): on Vercel serverless, un-awaited promises
+      // after the response are killed — confirmed in prod (payment.completed
+      // and order.created were silently dropped). Await so they actually land.
       if (customerId) {
-        void supabase.rpc("update_customer_stats", { p_customer_id: customerId });
+        await supabase.rpc("update_customer_stats", { p_customer_id: customerId });
       }
 
       // Log analytics event (gated on a real pending->new transition above).
-      void supabase.from("events").insert({
+      await supabase.from("events").insert({
         type:    "payment.completed",
         payload: {
           gateway:            "payfast",
@@ -449,7 +437,8 @@ export async function POST(request: Request) {
       // ── Meta Conversions API: Purchase ───────────────────────────────
       // Deterministic event_id derived from the (sorted) order numbers so
       // it matches the pixel-side Purchase fired on /checkout/success.
-      // Fire-and-forget; CAPI failure must not block ITN ack.
+      // Awaited so the server-side Purchase actually fires (un-awaited work is
+      // killed on serverless). sendMetaConversion never throws.
       if (paidRows?.length) {
         const orderId   = paidRows[0].id as string;
         const customerId = (paidRows[0].customer_id as string | null) ?? null;
@@ -471,7 +460,7 @@ export async function POST(request: Request) {
           userAgent = (sess?.user_agent as string | null) ?? null;
         }
         const sortedNumbers = [...orderNumbers].sort();
-        void sendMetaConversion({
+        await sendMetaConversion({
           event_name: "Purchase",
           event_id:   `purchase:${sortedNumbers.join(",")}`,
           event_source_url: process.env.NEXT_PUBLIC_APP_URL

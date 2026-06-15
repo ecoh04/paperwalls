@@ -559,13 +559,16 @@ export async function POST(request: Request) {
     // confirmed. Don't queue here — sending "your order is confirmed" before
     // the customer actually paid would be wrong.
 
-    // ── Fire-and-forget side effects ──────────────────────────────────────────
+    // ── Side effects ──────────────────────────────────────────────────────────
+    // AWAIT the quick DB writes: on Vercel serverless, un-awaited promises are
+    // killed once the response returns (confirmed in prod — order.created was
+    // being dropped). These are fast and run before the PayFast redirect.
     if (cartId) {
-      void supabase.from("carts").update({ status: "converted" }).eq("id", cartId);
+      await supabase.from("carts").update({ status: "converted" }).eq("id", cartId);
     }
 
     if (insertedOrders?.length) {
-      void supabase.from("events").insert({
+      await supabase.from("events").insert({
         type:        "order.created",
         session_id:  session_id ?? null,
         customer_id: customerId,
@@ -580,7 +583,7 @@ export async function POST(request: Request) {
     }
 
     if (customerId) {
-      void supabase.rpc("update_customer_stats", { p_customer_id: customerId });
+      await supabase.rpc("update_customer_stats", { p_customer_id: customerId });
     }
 
     // Meta Conversions API: InitiateCheckout (mirrors the client pixel via
