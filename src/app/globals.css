@@ -1,7 +1,12 @@
-/* Satoshi (premium modern DTC sans, by Indian Type Foundry / Fontshare) for
-   the entire site. Has weights 300-900 with personality at the heaviest cuts.
-   Headings use 900 (Black) for confident simple-luxury; body 400. */
-@import url("https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap");
+/* Satoshi (premium modern DTC sans, by Indian Type Foundry / Fontshare).
+   SELF-HOSTED from /public/fonts — same-origin woff2, no render-blocking
+   third-party @import, no extra DNS/TLS hop before first paint.
+   Weights 300-900; headings use 900 (Black), body 400. */
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-300.woff2") format("woff2"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Satoshi"; src: url("/fonts/satoshi-900.woff2") format("woff2"); font-weight: 900; font-style: normal; font-display: swap; }
 
 @tailwind base;
 @tailwind components;

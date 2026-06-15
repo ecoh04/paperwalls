@@ -1,4 +1,4 @@
-import { Configurator } from "@/components/configurator/Configurator";
+import { ConfiguratorLazy } from "@/components/configurator/ConfiguratorLazy";
 
 export const metadata = {
   title: "Design your wallpaper | PaperWalls",
@@ -21,7 +21,7 @@ export default function ConfigPage() {
       </header>
 
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
-        <Configurator />
+        <ConfiguratorLazy />
       </div>
     </main>
   );

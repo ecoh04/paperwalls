@@ -4,7 +4,8 @@ import type { CartItem, WallpaperCartItem } from "@/types/cart";
 import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
 import { getShippingCents } from "@/lib/shipping";
 import { uploadPrintImage, renamePrintFile } from "@/lib/storage";
-import { buildPayfastFormFields, generateOnsiteIdentifier, getPayfastHost } from "@/lib/payfast";
+import { buildPayfastFormFields } from "@/lib/payfast";
+import { waitUntil } from "@vercel/functions";
 import { sendMetaConversion } from "@/lib/meta/capi";
 import { calculateSubtotalCents } from "@/lib/pricing";
 import type { ShippingProvince } from "@/types/order";
@@ -474,185 +475,135 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Rename tmp uploads to orders/PW-XXXX-N.jpg ────────────────────────────
-    // Stable, traceable paths so the print team / admin search can find files
-    // by order number alone. Failure here is non-fatal — the row still has the
-    // tmp path and the file is reachable via signedPrintUrl().
-    if (insertedOrders?.length) {
-      for (let i = 0; i < insertedOrders.length; i++) {
-        const o = insertedOrders[i];
-        const row = orderRows[i];
-        if (row.product_type !== "wallpaper" || !row.image_urls?.length) continue;
-
-        const renamed: string[] = [];
-        for (let j = 0; j < row.image_urls.length; j++) {
-          const fromPath = row.image_urls[j];
-          const toPath   = `orders/${o.order_number}-${j}.jpg`;
-          try {
-            renamed.push(await renamePrintFile(fromPath, toPath));
-          } catch {
-            renamed.push(fromPath);
-          }
-        }
-
-        const { error: renameDbError } = await supabase
-          .from("orders")
-          .update({ image_url: renamed[0], image_urls: renamed })
-          .eq("id", o.id);
-        if (renameDbError) {
-          // Non-fatal — order points to tmp/ paths, signed URL still
-          // works — but log it so we know to investigate. Without this
-          // the tmp/ paths could leak into print-team workflows.
-          console.error(
-            `[checkout/create] Failed to update image paths for order ${o.order_number}:`,
-            renameDbError.message
-          );
-        }
-      }
-    }
-
-    // ── Insert order_items ────────────────────────────────────────────────────
-    // Line-item snapshot of each order. NOTE: nothing currently READS this table
-    // downstream (the print queue, analytics, and CSV export all read the orders
-    // table directly), so a failure here does not break fulfilment today — it
-    // only loses the line-item snapshot. Logged, non-fatal.
-    if (insertedOrders?.length) {
-      const orderItemRows = insertedOrders.map((o, idx) => {
-        const cartItem = cart[idx];
-        const spec = cartItem?.type === "wallpaper"
-          ? {
-              width_m:    cartItem.widthM,
-              height_m:   cartItem.heightM,
-              wall_count: cartItem.wallCount,
-              total_sqm:  cartItem.totalSqm,
-              wallpaperType: cartItem.wallpaperType,
-              material:      cartItem.material,
-              application:   cartItem.application,
-              walls:      cartItem.walls ?? [],
-            }
-          : {};
-        const qty = Math.max(1, (o.quantity as number) ?? 1);
-        return {
-          order_id:        o.id,
-          product_type:    o.product_type,
-          quantity:        qty,
-          // Per-unit price, so unit_price_cents * quantity === subtotal_cents.
-          unit_price_cents: Math.round((o.subtotal_cents as number) / qty),
-          subtotal_cents:  o.subtotal_cents,
-          spec,
-        };
-      });
-      const { error: orderItemsError } = await supabase
-        .from("order_items")
-        .insert(orderItemRows);
-      if (orderItemsError) {
-        console.error(
-          "[checkout/create] order_items insert failed for orders",
-          insertedOrders.map((o) => o.order_number).join(","),
-          orderItemsError.message
-        );
-        // Don't block checkout — the buyer is mid-flow. Log + carry on.
-      }
-    }
-
-    // order_confirmed email is queued by the PayFast webhook after payment is
-    // confirmed. Don't queue here — sending "your order is confirmed" before
-    // the customer actually paid would be wrong.
-
-    // ── Side effects ──────────────────────────────────────────────────────────
-    // AWAIT the quick DB writes: on Vercel serverless, un-awaited promises are
-    // killed once the response returns (confirmed in prod — order.created was
-    // being dropped). These are fast and run before the PayFast redirect.
-    if (cartId) {
-      await supabase.from("carts").update({ status: "converted" }).eq("id", cartId);
-    }
-
-    if (insertedOrders?.length) {
-      await supabase.from("events").insert({
-        type:        "order.created",
-        session_id:  session_id ?? null,
-        customer_id: customerId,
-        cart_id:     cartId,
-        payload: {
-          order_numbers:   orderNumbers,
-          total_cents:     totalPaymentCents,
-          item_count:      cart.length,
-          utm_source:      sessionAttribution.utm_source,
-        },
-      });
-    }
-
-    if (customerId) {
-      await supabase.rpc("update_customer_stats", { p_customer_id: customerId });
-    }
-
-    // Meta Conversions API: InitiateCheckout (mirrors the client pixel via
-    // the shared event_id passed through from the form). Fire-and-forget.
-    if (meta_event_id_init) {
-      const splitName = a.customer_name.trim().split(/\s+/);
-      const firstName = splitName[0] ?? "";
-      const lastName  = splitName.slice(1).join(" ");
-      void sendMetaConversion({
-        event_name: "InitiateCheckout",
-        event_id:   meta_event_id_init,
-        event_source_url: process.env.NEXT_PUBLIC_APP_URL
-          ? `${process.env.NEXT_PUBLIC_APP_URL}/checkout`
-          : undefined,
-        user_data: {
-          email:        a.customer_email.trim(),
-          phone:        a.customer_phone.trim(),
-          first_name:   firstName,
-          last_name:    lastName,
-          city:         a.city,
-          state:        a.province,
-          zip:          a.postal_code,
-          country_code: "ZA",
-          external_id:  customerId,
-          fbclid:       sessionAttribution.fbclid,
-          client_ip:    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
-          client_ua:    request.headers.get("user-agent") ?? null,
-        },
-        custom_data: {
-          currency:  "ZAR",
-          // Match the client pixel's InitiateCheckout value (sum of item
-          // subtotals) so Meta doesn't dedup to a divergent amount. Both sides
-          // must carry the same value for the shared event_id.
-          value:     (insertedOrders ?? []).reduce((s, o) => s + (o.subtotal_cents as number), 0) / 100,
-          num_items: cart.length,
-        },
-        meta: { customer_id: customerId ?? undefined },
-      });
-    }
-
-    const paymentParams = {
+    // Respond AS SOON AS the order exists — the buyer can pay immediately.
+    // Redirect to PayFast's hosted page is our checkout (onsite modal was
+    // evaluated and disabled: no Apple Pay, off-brand, slower, not
+    // sandbox-testable). Everything below — file renames, the line-item
+    // snapshot, analytics, customer stats, Meta CAPI — is non-essential to
+    // paying, so it runs AFTER the response via waitUntil(): the serverless
+    // function stays alive to finish it without delaying the redirect.
+    const { url: payfastUrl, fields: payfastFields } = buildPayfastFormFields({
       orderNumbers,
       amountCents:   totalPaymentCents,
       customerName:  a.customer_name.trim(),
       customerEmail: a.customer_email.trim(),
       customerPhone: a.customer_phone.trim(),
-    };
-
-    // Redirect form fields — the guaranteed fallback path (unchanged behavior).
-    const { url: payfastUrl, fields: payfastFields } = buildPayfastFormFields(paymentParams);
-
-    // Onsite modal identifier — preferred path (keeps the buyer on our domain).
-    // Best-effort: if PayFast's /onsite/process is slow/unavailable, we return a
-    // null uuid and the client silently falls back to the redirect form. This
-    // can NEVER block checkout.
-    let onsiteUuid: string | null = null;
-    try {
-      onsiteUuid = await generateOnsiteIdentifier(paymentParams);
-    } catch (e) {
-      console.error("[checkout/create] onsite identifier failed; client will use redirect fallback:", e);
-    }
-
-    return NextResponse.json({
-      payfastUrl,
-      payfastFields,
-      orderNumbers,
-      onsiteUuid,
-      payfastHost: getPayfastHost(),
     });
+
+    const db = supabase;
+    const createdOrders = insertedOrders ?? [];
+    waitUntil((async () => {
+      try {
+        // Rename tmp uploads to orders/PW-XXXX-N.jpg (stable, searchable paths).
+        // Non-fatal: files remain reachable via signedPrintUrl() on tmp paths.
+        for (let i = 0; i < createdOrders.length; i++) {
+          const o = createdOrders[i];
+          const row = orderRows[i];
+          if (row.product_type !== "wallpaper" || !row.image_urls?.length) continue;
+          const renamed: string[] = [];
+          for (let j = 0; j < row.image_urls.length; j++) {
+            const toPath = `orders/${o.order_number}-${j}.jpg`;
+            try { renamed.push(await renamePrintFile(row.image_urls[j], toPath)); }
+            catch { renamed.push(row.image_urls[j]); }
+          }
+          const { error: renameDbError } = await db
+            .from("orders")
+            .update({ image_url: renamed[0], image_urls: renamed })
+            .eq("id", o.id);
+          if (renameDbError) {
+            console.error(`[checkout/create] image path update failed for ${o.order_number}:`, renameDbError.message);
+          }
+        }
+
+        // Line-item snapshot. The orders table is the source of truth; nothing
+        // reads order_items downstream yet, so this is a future-facing copy.
+        const orderItemRows = createdOrders.map((o, idx) => {
+          const cartItem = cart[idx];
+          const spec = cartItem?.type === "wallpaper"
+            ? {
+                width_m:    cartItem.widthM,
+                height_m:   cartItem.heightM,
+                wall_count: cartItem.wallCount,
+                total_sqm:  cartItem.totalSqm,
+                wallpaperType: cartItem.wallpaperType,
+                material:      cartItem.material,
+                application:   cartItem.application,
+                walls:      cartItem.walls ?? [],
+              }
+            : {};
+          const qty = Math.max(1, (o.quantity as number) ?? 1);
+          return {
+            order_id:         o.id,
+            product_type:     o.product_type,
+            quantity:         qty,
+            unit_price_cents: Math.round((o.subtotal_cents as number) / qty),
+            subtotal_cents:   o.subtotal_cents,
+            spec,
+          };
+        });
+        const { error: orderItemsError } = await db.from("order_items").insert(orderItemRows);
+        if (orderItemsError) {
+          console.error("[checkout/create] order_items insert failed:", orderItemsError.message);
+        }
+
+        if (cartId) {
+          await db.from("carts").update({ status: "converted" }).eq("id", cartId);
+        }
+
+        await db.from("events").insert({
+          type:        "order.created",
+          session_id:  session_id ?? null,
+          customer_id: customerId,
+          cart_id:     cartId,
+          payload: {
+            order_numbers: orderNumbers,
+            total_cents:   totalPaymentCents,
+            item_count:    cart.length,
+            utm_source:    sessionAttribution.utm_source,
+          },
+        });
+
+        if (customerId) {
+          await db.rpc("update_customer_stats", { p_customer_id: customerId });
+        }
+
+        // Meta CAPI: InitiateCheckout — shares event_id with the client pixel.
+        if (meta_event_id_init) {
+          const splitName = a.customer_name.trim().split(/\s+/);
+          await sendMetaConversion({
+            event_name: "InitiateCheckout",
+            event_id:   meta_event_id_init,
+            event_source_url: process.env.NEXT_PUBLIC_APP_URL
+              ? `${process.env.NEXT_PUBLIC_APP_URL}/checkout`
+              : undefined,
+            user_data: {
+              email:        a.customer_email.trim(),
+              phone:        a.customer_phone.trim(),
+              first_name:   splitName[0] ?? "",
+              last_name:    splitName.slice(1).join(" "),
+              city:         a.city,
+              state:        a.province,
+              zip:          a.postal_code,
+              country_code: "ZA",
+              external_id:  customerId,
+              fbclid:       sessionAttribution.fbclid,
+              client_ip:    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+              client_ua:    request.headers.get("user-agent") ?? null,
+            },
+            custom_data: {
+              currency:  "ZAR",
+              value:     createdOrders.reduce((s, o) => s + (o.subtotal_cents as number), 0) / 100,
+              num_items: cart.length,
+            },
+            meta: { customer_id: customerId ?? undefined },
+          });
+        }
+      } catch (e) {
+        console.error("[checkout/create] deferred post-order work failed:", e);
+      }
+    })());
+
+    return NextResponse.json({ payfastUrl, payfastFields, orderNumbers });
   } catch (e) {
     console.error("Checkout create error:", e);
     return NextResponse.json(

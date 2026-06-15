@@ -62,6 +62,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col antialiased">
+        {/* Preconnect to PayFast so the redirect-to-checkout navigation feels
+            instant (DNS/TLS already warmed). Preload the two hot font weights
+            (400 body, 900 headings) — same-origin woff2, hoisted to <head>. */}
+        <link rel="preconnect" href="https://www.payfast.co.za" />
+        <link rel="preload" href="/fonts/satoshi-400.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/satoshi-900.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <RootLayoutClient>{children}</RootLayoutClient>
       </body>
     </html>

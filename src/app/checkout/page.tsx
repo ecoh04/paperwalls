@@ -14,93 +14,29 @@ const NEXT_STEPS = [
   { t: "Delivered free",       b: "Tracked courier across SA. Yours in 5 days." },
 ];
 
-declare global {
-  interface Window {
-    payfast_do_onsite_payment?: (
-      opts: { uuid: string },
-      callback: (result: boolean) => void,
-    ) => void;
-  }
-}
-
-// Load PayFast's onsite engine.js once. Resolves true if the global is ready,
-// false on any failure (blocked script, network) so the caller can fall back
-// to the redirect form. Cached so we never inject the script twice.
-let payfastEnginePromise: Promise<boolean> | null = null;
-function loadPayfastEngine(host: string): Promise<boolean> {
-  if (typeof window === "undefined") return Promise.resolve(false);
-  if (typeof window.payfast_do_onsite_payment === "function") return Promise.resolve(true);
-  if (payfastEnginePromise) return payfastEnginePromise;
-  payfastEnginePromise = new Promise<boolean>((resolve) => {
-    const s = document.createElement("script");
-    s.src   = `https://${host}/onsite/engine.js`;
-    s.async = true;
-    s.onload  = () => resolve(typeof window.payfast_do_onsite_payment === "function");
-    s.onerror = () => { payfastEnginePromise = null; resolve(false); };
-    document.body.appendChild(s);
-  });
-  return payfastEnginePromise;
-}
-
 export default function CheckoutPage() {
   const { items, sessionId } = useCart();
   const [error, setError] = useState<string | null>(null);
 
   const totalCents = items.reduce((s, i) => s + i.subtotalCents, 0);
 
-  // Redirect form POST — the guaranteed fallback (today's behavior, unchanged).
-  const submitRedirectForm = useCallback(
-    (payfastUrl: string, fields: Record<string, string>) => {
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = payfastUrl;
-      Object.entries(fields).forEach(([name, value]) => {
-        const input = document.createElement("input");
-        input.type  = "hidden";
-        input.name  = name;
-        input.value = value;
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
-    },
-    []
-  );
-
-  const handleSuccess = useCallback(
-    async (result: CheckoutCreateResult) => {
-      setError(null);
-      const { payfastUrl, payfastFields, orderNumbers, onsiteUuid, payfastHost } = result;
-      const successUrl = `/checkout/success?orders=${encodeURIComponent((orderNumbers || []).join(","))}`;
-
-      // Preferred path: PayFast onsite modal (buyer stays on paperwalls.co.za).
-      // Falls back to the redirect form on ANY problem, so checkout can never
-      // get stuck — worst case it behaves exactly like it does today.
-      if (onsiteUuid && payfastHost) {
-        try {
-          const ready = await loadPayfastEngine(payfastHost);
-          if (ready && typeof window.payfast_do_onsite_payment === "function") {
-            window.payfast_do_onsite_payment({ uuid: onsiteUuid }, (paid) => {
-              if (paid === true) {
-                // The ITN is the source of truth; the success page reads the order.
-                window.location.href = successUrl;
-              } else {
-                // Modal closed/cancelled — let them try again.
-                setError("Payment wasn't completed. You can try again when ready.");
-              }
-            });
-            return;
-          }
-        } catch {
-          // Any onsite failure → fall through to the redirect form below.
-        }
-      }
-
-      // Fallback: classic redirect to PayFast's hosted page.
-      submitRedirectForm(payfastUrl, payfastFields);
-    },
-    [submitRedirectForm]
-  );
+  // POST the signed fields to PayFast's hosted checkout (the redirect flow).
+  const handleSuccess = useCallback((result: CheckoutCreateResult) => {
+    setError(null);
+    const { payfastUrl, payfastFields } = result;
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = payfastUrl;
+    Object.entries(payfastFields).forEach(([name, value]) => {
+      const input = document.createElement("input");
+      input.type  = "hidden";
+      input.name  = name;
+      input.value = value;
+      form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+  }, []);
 
   const handleError = useCallback((message: string) => {
     setError(message);
