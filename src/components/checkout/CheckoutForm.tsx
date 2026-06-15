@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import Link from "next/link";
 import type { CheckoutAddress } from "@/types/checkout";
 import type { CartItem } from "@/types/cart";
 import type { ShippingProvince } from "@/types/order";
@@ -16,8 +15,14 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_NAME    = 2;
 const MIN_PHONE   = 10;
 
-const INPUT_CLASSES =
-  "block w-full rounded-pw border border-pw-stone bg-pw-bg px-4 py-3.5 pw-body text-pw-ink placeholder:text-pw-muted-light transition-colors focus:border-pw-ink focus:bg-pw-surface focus:outline-none focus:ring-2 focus:ring-pw-ink/10";
+// Border colour is set per-branch (not appended) so the error red reliably
+// overrides the default stone border instead of fighting it in the cascade.
+const INPUT_BASE =
+  "block w-full rounded-pw border bg-pw-bg px-4 py-3.5 pw-body text-pw-ink placeholder:text-pw-muted-light transition-colors focus:bg-pw-surface focus:outline-none focus:ring-2";
+const inputClass = (hasError: boolean) =>
+  hasError
+    ? `${INPUT_BASE} border-red-400 focus:border-red-500 focus:ring-red-100`
+    : `${INPUT_BASE} border-pw-stone focus:border-pw-ink focus:ring-pw-ink/10`;
 
 const LABEL_CLASSES = "pw-overline mb-2 block text-pw-muted";
 
@@ -34,6 +39,8 @@ type CheckoutFormProps = {
   onError:    (message: string) => void;
 };
 
+type FieldErrors = Partial<Record<keyof CheckoutAddress, string>>;
+
 const emptyAddress: CheckoutAddress = {
   customer_name:  "",
   customer_email: "",
@@ -45,39 +52,67 @@ const emptyAddress: CheckoutAddress = {
   postal_code:    "",
 };
 
-function validateAddress(a: CheckoutAddress): string | null {
+// Validate ALL fields and return a per-field map, so every problem is shown
+// inline at once. Messages are short, plain, and tell the buyer exactly what
+// to do — a confused buyer at checkout is a lost buyer.
+function validateAddress(a: CheckoutAddress): FieldErrors {
+  const e: FieldErrors = {};
   if (!a.customer_name?.trim() || a.customer_name.trim().length < MIN_NAME)
-    return "Please enter your full name.";
-  if (!a.customer_email?.trim()) return "Please enter your email.";
-  if (!EMAIL_REGEX.test(a.customer_email.trim())) return "Please enter a valid email address.";
-  if (!a.customer_phone?.trim()) return "Please enter your phone number.";
-  if (a.customer_phone.replace(/\D/g, "").length < MIN_PHONE)
-    return "Please enter a valid phone number.";
-  if (!a.address_line1?.trim()) return "Please enter your street address.";
-  if (!a.city?.trim()) return "Please enter your city.";
-  if (!a.province) return "Please select your province.";
-  if (!a.postal_code?.trim()) return "Please enter your postal code.";
-  return null;
+    e.customer_name = "Enter your full name.";
+  if (!a.customer_email?.trim())
+    e.customer_email = "Enter your email so we can confirm your order.";
+  else if (!EMAIL_REGEX.test(a.customer_email.trim()))
+    e.customer_email = "That email doesn’t look right — check for typos.";
+  if (!a.customer_phone?.trim())
+    e.customer_phone = "Enter a phone number for delivery updates.";
+  else if (a.customer_phone.replace(/\D/g, "").length < MIN_PHONE)
+    e.customer_phone = "Enter a valid phone number (at least 10 digits).";
+  if (!a.address_line1?.trim())
+    e.address_line1 = "Enter your street address.";
+  if (!a.city?.trim())
+    e.city = "Enter your city or town.";
+  if (!a.postal_code?.trim())
+    e.postal_code = "Enter your postal code.";
+  return e;
 }
+
+// Order to scan when focusing the first error.
+const FIELD_ORDER: (keyof CheckoutAddress)[] = [
+  "customer_name", "customer_email", "customer_phone",
+  "address_line1", "city", "postal_code",
+];
 
 export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutFormProps) {
   const { identifyCustomer } = useCart();
   const [address, setAddress] = useState<CheckoutAddress>(emptyAddress);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
   const set = useCallback((field: keyof CheckoutAddress, value: string | ShippingProvince) => {
     setAddress((prev) => ({ ...prev, [field]: value }));
+    // Clear this field's error as soon as the buyer starts fixing it.
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
   }, []);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      const err = validateAddress(address);
-      if (err) {
-        onError(err);
+
+      const fieldErrors = validateAddress(address);
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors);
+        // Take the buyer straight to the first thing to fix — no hunting.
+        const first = FIELD_ORDER.find((f) => fieldErrors[f]);
+        if (first && typeof document !== "undefined") {
+          const el = document.getElementById(first);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+          (el as HTMLElement | null)?.focus?.({ preventScroll: true });
+        }
         return;
       }
+      setErrors({});
       setSubmitting(true);
+
       const totalCents = items.reduce((s, i) => s + i.subtotalCents, 0);
       track("checkout.submitted", {
         item_count:  items.length,
@@ -135,8 +170,19 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
     [address, items, sessionId, onSuccess, onError]
   );
 
+  // Inline error message under a field.
+  const FieldError = ({ field }: { field: keyof CheckoutAddress }) =>
+    errors[field] ? (
+      <p id={`${field}-error`} className="mt-1.5 flex items-start gap-1.5 text-sm font-medium text-red-600">
+        <svg aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 9a1 1 0 012 0v4a1 1 0 11-2 0V9zm1-5a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
+        </svg>
+        {errors[field]}
+      </p>
+    ) : null;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <div className="rounded-pw-card border border-pw-stone bg-pw-surface p-6 sm:p-8">
         <Eyebrow>Where to ship it</Eyebrow>
         <h2 className="pw-h3 mt-3 text-pw-ink">Contact and delivery.</h2>
@@ -156,9 +202,12 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="name"
               value={address.customer_name}
               onChange={(e) => set("customer_name", e.target.value)}
-              className={INPUT_CLASSES}
+              className={inputClass(!!errors.customer_name)}
+              aria-invalid={!!errors.customer_name}
+              aria-describedby={errors.customer_name ? "customer_name-error" : undefined}
               placeholder="Your full name"
             />
+            <FieldError field="customer_name" />
           </div>
 
           {/* Email */}
@@ -178,9 +227,12 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
                   identifyCustomer(email, address.customer_name || undefined, address.customer_phone || undefined);
                 }
               }}
-              className={INPUT_CLASSES}
+              className={inputClass(!!errors.customer_email)}
+              aria-invalid={!!errors.customer_email}
+              aria-describedby={errors.customer_email ? "customer_email-error" : undefined}
               placeholder="your@email.com"
             />
+            <FieldError field="customer_email" />
           </div>
 
           {/* Phone */}
@@ -194,9 +246,12 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="tel"
               value={address.customer_phone}
               onChange={(e) => set("customer_phone", e.target.value)}
-              className={INPUT_CLASSES}
+              className={inputClass(!!errors.customer_phone)}
+              aria-invalid={!!errors.customer_phone}
+              aria-describedby={errors.customer_phone ? "customer_phone-error" : undefined}
               placeholder="082 123 4567"
             />
+            <FieldError field="customer_phone" />
           </div>
 
           {/* Street address (full width) */}
@@ -210,9 +265,12 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="street-address"
               value={address.address_line1}
               onChange={(e) => set("address_line1", e.target.value)}
-              className={INPUT_CLASSES}
+              className={inputClass(!!errors.address_line1)}
+              aria-invalid={!!errors.address_line1}
+              aria-describedby={errors.address_line1 ? "address_line1-error" : undefined}
               placeholder="House number, street, complex"
             />
+            <FieldError field="address_line1" />
           </div>
 
           {/* Address line 2 (full width, optional) */}
@@ -226,7 +284,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="address-line2"
               value={address.address_line2}
               onChange={(e) => set("address_line2", e.target.value)}
-              className={INPUT_CLASSES}
+              className={inputClass(false)}
               placeholder="Unit, building, suburb"
             />
           </div>
@@ -242,9 +300,12 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               autoComplete="address-level2"
               value={address.city}
               onChange={(e) => set("city", e.target.value)}
-              className={INPUT_CLASSES}
+              className={inputClass(!!errors.city)}
+              aria-invalid={!!errors.city}
+              aria-describedby={errors.city ? "city-error" : undefined}
               placeholder="Johannesburg"
             />
+            <FieldError field="city" />
           </div>
 
           {/* Province */}
@@ -256,7 +317,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
               id="province"
               value={address.province}
               onChange={(e) => set("province", e.target.value as ShippingProvince)}
-              className={INPUT_CLASSES}
+              className={inputClass(false)}
             >
               {PROVINCES.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -266,7 +327,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
             </select>
           </div>
 
-          {/* Postal code (full width on mobile, half width with city on desktop already handled by grid) */}
+          {/* Postal code (full width) */}
           <div className="sm:col-span-2">
             <label htmlFor="postal_code" className={LABEL_CLASSES}>
               Postal code <span className="text-red-500">*</span>
@@ -274,12 +335,16 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
             <input
               id="postal_code"
               type="text"
+              inputMode="numeric"
               autoComplete="postal-code"
               value={address.postal_code}
               onChange={(e) => set("postal_code", e.target.value)}
-              className={INPUT_CLASSES}
+              className={inputClass(!!errors.postal_code)}
+              aria-invalid={!!errors.postal_code}
+              aria-describedby={errors.postal_code ? "postal_code-error" : undefined}
               placeholder="2000"
             />
+            <FieldError field="postal_code" />
           </div>
         </div>
 
@@ -299,13 +364,6 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
 
       <p className="pw-small text-center text-pw-muted">
         You&rsquo;ll complete payment securely with PayFast on the next screen.
-      </p>
-
-      <p className="pw-small text-center text-pw-muted-light">
-        By continuing, you agree to our{" "}
-        <Link href="/terms" className="underline underline-offset-2 hover:text-pw-ink">Terms</Link>{" "}
-        and{" "}
-        <Link href="/privacy" className="underline underline-offset-2 hover:text-pw-ink">Privacy Policy</Link>.
       </p>
     </form>
   );
