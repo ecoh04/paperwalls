@@ -10,8 +10,7 @@ PaperWalls is materially further along than most stores at this stage: the hard,
 
 ## Do next (P0) — still pending, sequenced
 
-1. Activate Resend (API key + DNS-verified domain). · S · **blocked on DNS access**
-2. Wire + verify new Meta Pixel + CAPI (test order, confirm Purchase dedup). · S · **new account pending**
+1. Wire + verify new Meta Pixel + CAPI (test order, confirm Purchase dedup). · S · **new account pending**
 3. Capture `_fbp`/`_fbc` cookies → CAPI (EMQ ~5 → 8+, after Meta is wired). · M
 4. Tax-ready receipt in order-confirmed email (after Resend). · M
 5. Add WhatsApp (wa.me click-to-chat) — needs your WA number. · S
@@ -34,7 +33,7 @@ PaperWalls is materially further along than most stores at this stage: the hard,
 
 **Post-Purchase & Retention** — `review_request` flow (enum stub) `[TODO] P1`; `win_back` flow `[TODO] P1`; write `marketing_opt_in` at checkout `[TODO] P1`; WhatsApp shipped/delivered via SA BSP (~R0.15–0.40/msg) `[TODO] P1`; customer tracking page `[TODO] P2`.
 
-**CX & Support** — WhatsApp primary channel `[TODO] P0`; Resend support email live `[PARTIAL] P0`; in-configurator "send us your file, we'll check it free" `[PARTIAL] P1`; self-service reprint form `[PARTIAL] P2`; SLA + single-operator triage `[TODO] P2`.
+**CX & Support** — Resend transactional + support email live `[DONE] P0`; WhatsApp primary channel `[TODO] P0`; in-configurator "send us your file, we'll check it free" `[PARTIAL] P1`; self-service reprint form `[PARTIAL] P2`; SLA + single-operator triage `[TODO] P2`.
 
 **Brand & Creative** — replace AI imagery with real installs (½-day Cape Town shoot ~R3,500–6,000) `[TODO] P0`; verified reviews on PDP `[TODO] P0`; make unboxing real + photographed `[PARTIAL] P1`; IG/TikTok @paperwalls.za + UGC loop (tag-us → R150 credit) `[TODO] P1`; founder story w/ real face `[PARTIAL] P2`; branded OG card `[PARTIAL] P2`; content/SEO engine `[TODO] P2`.
 
