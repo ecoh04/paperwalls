@@ -7,6 +7,12 @@ import { RefreshButton } from "@/components/admin/RefreshButton";
 import { WindowToggle } from "@/components/admin/WindowToggle";
 import { WINDOW_OPTIONS, type WindowValue } from "@/components/admin/window-options";
 import { DeltaIndicator } from "@/components/admin/DeltaIndicator";
+import {
+  MONTHLY_REVENUE_GOAL_CENTS,
+  COSTS_CONFIGURED,
+  cogsForFinishCents,
+} from "@/lib/analytics-config";
+import type { WallpaperMaterial } from "@/types/order";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +23,17 @@ const SAST       = "Africa/Johannesburg";
 const FEE_PCT    = 0.035;          // PayFast standard rate (incl. card networks)
 const FEE_FIXED  = 200;            // 200 cents per transaction
 const VAT_PCT    = 0.15;           // SA VAT, only relevant if registered
+
+// First-party funnel event types, in journey order, for the sequential funnel.
+const FUNNEL_EVENT_TYPES = [
+  "page.viewed",
+  "pdp.viewed",
+  "config.viewed",
+  "config.image_uploaded",
+  "cart.wallpaper_added",
+  "checkout.started",
+  "checkout.submitted",
+] as const;
 
 // ──────────────────────────────────────────────────────────────────────────
 // Window math (SAST)
@@ -78,6 +95,11 @@ export default async function AnalyticsPage({
   const params      = await searchParams;
   const windowValue = isWindowValue(params.window) ? params.window : "30d";
   const win         = buildWindow(windowValue);
+
+  // Current SAST calendar month start (YYYY-MM-01), for the month-to-date goal.
+  const monthStartKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: SAST, year: "numeric", month: "2-digit",
+  }).format(new Date()) + "-01";
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -165,7 +187,6 @@ export default async function AnalyticsPage({
     { count: currentVisitors  },
     { count: previousVisitors },
     { count: liveVisitors     },
-    funnelCounts,
     sessionRows,
     dailySessionsRows,
     landingRows,
@@ -178,6 +199,11 @@ export default async function AnalyticsPage({
     attribRowsRaw,
     productRows,
     discountAgg,
+    funnelEventsRaw,
+    paidSessionRows,
+    monthRevenueRows,
+    sampleAddRows,
+    sampleOrdersRes,
   ] = await Promise.all([
     // Current + previous + live visitor counts
     supabase.from("sessions").select("id", { count: "exact", head: true })
@@ -187,42 +213,9 @@ export default async function AnalyticsPage({
     supabase.from("sessions").select("id", { count: "exact", head: true })
       .gte("last_seen_at", liveCutoff),
 
-    // Funnel: distinct sessions per stage
-    (async () => {
-      const types = [
-        ["page.viewed"],
-        ["pdp.viewed"],
-        ["config.viewed"],
-        ["config.image_uploaded"],
-        ["cart.wallpaper_added"],
-        ["checkout.started"],
-        ["checkout.submitted"],
-      ] as const;
-      const results = await Promise.all(
-        types.map(async (typeList) => {
-          const { data } = await supabase
-            .from("events")
-            .select("session_id")
-            .in("type", typeList as unknown as string[])
-            .gte("created_at", win.start)
-            .not("session_id", "is", null);
-          return new Set((data ?? []).map((r) => r.session_id as string)).size;
-        })
-      );
-      return {
-        pageviews:         results[0],
-        pdpViewed:         results[1],
-        configStarted:     results[2],
-        configImage:       results[3],
-        addedToCart:       results[4],
-        checkoutStarted:   results[5],
-        checkoutSubmitted: results[6],
-      };
-    })(),
-
     // Window's sessions for landing page / device / country aggregations + daily count
     supabase.from("sessions")
-      .select("id, first_seen_at, landing_page, country, user_agent")
+      .select("id, first_seen_at, landing_page, country, user_agent, utm_source")
       .gte("first_seen_at", win.start),
 
     // Daily session counts (SAST) — derived from sessions table inline
@@ -377,6 +370,42 @@ export default async function AnalyticsPage({
         .reduce((s, r) => s + Number(r.discount_cents), 0);
       return { count: (data ?? []).length, total_cents: totalDiscount };
     })(),
+
+    // Funnel events (session_id + type) for the sequential, by-source funnel
+    supabase.from("events")
+      .select("session_id, type")
+      .in("type", FUNNEL_EVENT_TYPES as unknown as string[])
+      .gte("created_at", win.start)
+      .not("session_id", "is", null),
+
+    // Sessions with a paid order in window (order_paid stage + per-source paid)
+    supabase.from("orders")
+      .select("session_id")
+      .gte("created_at", win.start)
+      .not("status", "in", "(pending,cancelled)")
+      .is("refunded_at", null)
+      .is("deleted_at", null)
+      .not("session_id", "is", null),
+
+    // Month-to-date daily revenue (goal tracker, independent of the window)
+    supabase.from("v_daily_revenue")
+      .select("day, paid_revenue_cents, paid_orders")
+      .gte("day", monthStartKey),
+
+    // Sample-pack adds (distinct sessions that added a sample to cart)
+    supabase.from("events")
+      .select("session_id")
+      .eq("type", "cart.sample_added")
+      .gte("created_at", win.start)
+      .not("session_id", "is", null),
+
+    // Paid sample-pack orders in window
+    supabase.from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("product_type", "sample_pack")
+      .gte("created_at", win.start)
+      .not("status", "in", "(pending,cancelled)")
+      .is("deleted_at", null),
   ]);
 
   // Build daily sessions array (SAST-bucketed)
@@ -487,19 +516,112 @@ export default async function AnalyticsPage({
     ? (bounceData.bouncedSessions / bounceData.totalSessions) * 100
     : null;
 
+  // ── Command-center derived layer ────────────────────────────────────────
+
+  // Session -> source / device maps (from this window's sessions)
+  const sessSource = new Map<string, string>();
+  for (const r of (sessionRows.data ?? []) as { id: string; utm_source: string | null }[]) {
+    sessSource.set(r.id, r.utm_source || "(direct)");
+  }
+
+  // Sessions that reached a paid order (the order_paid stage)
+  const paidSessionIds = new Set(
+    ((paidSessionRows.data ?? []) as { session_id: string | null }[])
+      .map((r) => r.session_id).filter(Boolean) as string[],
+  );
+
+  // Sequential funnel: per session, the FURTHEST stage reached. Counting
+  // "reached stage N or later" makes the drop-off monotonic and honest,
+  // unlike the old independent per-stage counts.
+  const stageIdx = new Map<string, number>(FUNNEL_EVENT_TYPES.map((t, i): [string, number] => [t, i]));
+  const PAID_STAGE = FUNNEL_EVENT_TYPES.length; // index after the last event stage
+  const furthest = new Map<string, number>();
+  for (const e of (funnelEventsRaw.data ?? []) as { session_id: string; type: string }[]) {
+    const idx = stageIdx.get(e.type);
+    if (idx === undefined) continue;
+    const cur = furthest.get(e.session_id) ?? -1;
+    if (idx > cur) furthest.set(e.session_id, idx);
+  }
+  paidSessionIds.forEach((sid) => furthest.set(sid, PAID_STAGE));
+
+  const reachedSeq = new Array<number>(PAID_STAGE + 1).fill(0);
+  furthest.forEach((f) => {
+    for (let i = 0; i <= f; i++) reachedSeq[i]++;
+  });
+
+  // Funnel by source: stage reach per top source
+  type SrcFunnel = { source: string; landed: number; config: number; cart: number; paid: number; revenue_cents: number };
+  const srcFunnelMap = new Map<string, SrcFunnel>();
+  const ensureSrc = (src: string): SrcFunnel => {
+    let row = srcFunnelMap.get(src);
+    if (!row) { row = { source: src, landed: 0, config: 0, cart: 0, paid: 0, revenue_cents: 0 }; srcFunnelMap.set(src, row); }
+    return row;
+  };
+  furthest.forEach((f, sid) => {
+    const row = ensureSrc(sessSource.get(sid) ?? "(direct)");
+    row.landed += 1;
+    if (f >= 2) row.config += 1;            // config.viewed or later
+    if (f >= 4) row.cart += 1;              // cart.wallpaper_added or later
+    if (f >= PAID_STAGE) row.paid += 1;     // order_paid
+  });
+  // Fold paid-order revenue onto each source (from the attribution rows)
+  for (const r of paidOrderRows) {
+    ensureSrc(r.utm_source || "(direct)").revenue_cents += Number(r.total_cents);
+  }
+  const sourceFunnel = Array.from(srcFunnelMap.values())
+    .filter((r) => r.landed > 0) // drop order-only sources with no in-window sessions (phantom rows)
+    .sort((a, b) => b.revenue_cents - a.revenue_cents || b.landed - a.landed)
+    .slice(0, 6);
+
+  // Sample packs (a separate, shorter funnel — they never enter the configurator)
+  const sampleAdds   = new Set(((sampleAddRows.data ?? []) as { session_id: string }[]).map((r) => r.session_id)).size;
+  const sampleOrders = sampleOrdersRes.count ?? 0;
+
+  // Month-to-date revenue + run-rate (goal tracker, window-independent)
+  const mtdRows    = (monthRevenueRows.data ?? []) as { day: string; paid_revenue_cents: number; paid_orders: number }[];
+  const mtdRevenue = mtdRows.reduce((s, r) => s + Number(r.paid_revenue_cents), 0);
+  const mtdOrders  = mtdRows.reduce((s, r) => s + Number(r.paid_orders), 0);
+  const nowSast    = new Intl.DateTimeFormat("en-CA", { timeZone: SAST, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const dayOfMonth  = Math.max(1, parseInt(nowSast.slice(8, 10), 10));
+  const daysInMonth = new Date(parseInt(nowSast.slice(0, 4), 10), parseInt(nowSast.slice(5, 7), 10), 0).getDate();
+  const monthRunRate = Math.round((mtdRevenue / dayOfMonth) * daysInMonth);
+  const goalPct = MONTHLY_REVENUE_GOAL_CENTS > 0 ? (mtdRevenue / MONTHLY_REVENUE_GOAL_CENTS) * 100 : null;
+
+  // Contribution margin is WALLPAPER-ONLY: COGS comes from the wallpaper
+  // product mix, so the revenue basis must be wallpaper revenue too, not the
+  // all-product netSales (which includes sample packs that carry no COGS here).
+  const wallpaperRevenue = product.reduce((s, p) => s + p.revenue_cents, 0);
+  let cogsCents: number | null = null;
+  if (COSTS_CONFIGURED) {
+    cogsCents = product.reduce((s, p) => {
+      if (!["satin", "matte", "linen"].includes(p.finish)) return s; // skip unknown finish, don't coerce to satin
+      return s + (cogsForFinishCents(p.finish as WallpaperMaterial, p.total_sqm, p.orders) ?? 0);
+    }, 0);
+  }
+  const marginCents = cogsCents != null ? wallpaperRevenue - cogsCents : null;
+  const marginPct   = cogsCents != null && wallpaperRevenue > 0 ? ((wallpaperRevenue - cogsCents) / wallpaperRevenue) * 100 : null;
+
+  // Insights — rule-based, computed from data we already have.
+  const insights = buildInsights({
+    reachedSeq, sourceFunnel, product, deviceRows,
+    bounceRate, abandonedValueCents: abandonedAgg.items_value_cents,
+    conversionRate, prevConversionRate, marginPct,
+  });
+
   // ── Sparkline points (always last 14 days regardless of window)
   const sparkPoints = filled.slice(-14).map((r, i) => ({ x: i, y: Number(r.paid_revenue_cents) }));
 
-  // Funnel for chart
+  // Funnel for chart — SEQUENTIAL (reached this stage or further), so the
+  // stage-to-stage drop-off is real. reachedSeq[0..7] maps to the 8 stages.
   const funnel = [
-    { rank: 1, stage: "pageview",           sessions: funnelCounts.pageviews },
-    { rank: 2, stage: "pdp_viewed",         sessions: funnelCounts.pdpViewed },
-    { rank: 3, stage: "config_started",     sessions: funnelCounts.configStarted },
-    { rank: 4, stage: "config_image",       sessions: funnelCounts.configImage },
-    { rank: 5, stage: "add_to_cart",        sessions: funnelCounts.addedToCart },
-    { rank: 6, stage: "checkout_started",   sessions: funnelCounts.checkoutStarted },
-    { rank: 7, stage: "checkout_submitted", sessions: funnelCounts.checkoutSubmitted },
-    { rank: 8, stage: "order_paid",         sessions: currentOrders },
+    { rank: 1, stage: "pageview",           sessions: reachedSeq[0] },
+    { rank: 2, stage: "pdp_viewed",         sessions: reachedSeq[1] },
+    { rank: 3, stage: "config_started",     sessions: reachedSeq[2] },
+    { rank: 4, stage: "config_image",       sessions: reachedSeq[3] },
+    { rank: 5, stage: "add_to_cart",        sessions: reachedSeq[4] },
+    { rank: 6, stage: "checkout_started",   sessions: reachedSeq[5] },
+    { rank: 7, stage: "checkout_submitted", sessions: reachedSeq[6] },
+    { rank: 8, stage: "order_paid",         sessions: reachedSeq[7] },
   ];
 
   const loadedAt = Date.now();
@@ -523,6 +645,20 @@ export default async function AnalyticsPage({
           <RefreshButton initialLoadedAt={loadedAt} />
         </div>
       </header>
+
+      {/* ── Goal + run rate ─────────────────────────────────────────── */}
+      <GoalStrip
+        mtdRevenue={mtdRevenue}
+        mtdOrders={mtdOrders}
+        goalCents={MONTHLY_REVENUE_GOAL_CENTS}
+        goalPct={goalPct}
+        runRate={monthRunRate}
+        dayOfMonth={dayOfMonth}
+        daysInMonth={daysInMonth}
+      />
+
+      {/* ── What to do (auto-surfaced insights) ─────────────────────── */}
+      {insights.length > 0 && <InsightsPanel insights={insights} />}
 
       {/* ── System health (collapsed by default) ────────────────────────
           Operator doesn't need to see every tile every visit. A top-level
@@ -663,6 +799,17 @@ export default async function AnalyticsPage({
         </div>
       </Section>
 
+      {/* ── Unit economics ───────────────────────────────────────────── */}
+      <Section title="Unit economics" note="margin and ad efficiency">
+        <UnitEconomics
+          marginCents={marginCents}
+          marginPct={marginPct}
+          netSales={wallpaperRevenue}
+          cogsCents={cogsCents}
+          costsConfigured={COSTS_CONFIGURED}
+        />
+      </Section>
+
       {/* ── Trend (3 mini charts) ────────────────────────────────────── */}
       <Section title="Daily trend" note={win.label.toLowerCase()}>
         <div className="grid gap-4 lg:grid-cols-3">
@@ -700,8 +847,28 @@ export default async function AnalyticsPage({
       </Section>
 
       {/* ── Funnel ───────────────────────────────────────────────────── */}
-      <Section title="Conversion funnel" note={`unique sessions per stage · ${win.label.toLowerCase()}`}>
+      <Section title="Conversion funnel" note={`sessions reaching each stage · ${win.label.toLowerCase()}`}>
         <FunnelChart data={funnel} />
+      </Section>
+
+      {/* ── Channels (funnel + economics by source) ─────────────────── */}
+      <Section title="Channels" note="where each source converts">
+        <PanelCard title="By source" subtitle="Sessions, funnel rates and revenue per traffic source">
+          <ChannelTable rows={sourceFunnel} />
+        </PanelCard>
+      </Section>
+
+      {/* ── Sample packs (separate funnel; never enter the configurator) ── */}
+      <Section title="Sample packs" note="the R150-credit funnel · separate from the wallpaper funnel above">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <SmallStat label="Sample adds"   value={fmtInt(sampleAdds)}   sub="sessions that added a sample pack" />
+          <SmallStat label="Sample orders" value={fmtInt(sampleOrders)} sub={`paid · ${win.label.toLowerCase()}`} />
+          <SmallStat
+            label="Add → order"
+            value={sampleAdds > 0 ? `${Math.round((sampleOrders / sampleAdds) * 100)}%` : "—"}
+            sub="sample add to paid sample"
+          />
+        </div>
       </Section>
 
       {/* ── Acquisition ──────────────────────────────────────────────── */}
@@ -919,23 +1086,6 @@ export default async function AnalyticsPage({
         </div>
       </Section>
 
-      {/* ── Profit (placeholder) ─────────────────────────────────────── */}
-      <Section title="Profit & margin" note="needs cost data">
-        <PanelCard
-          title="Configure costs to see margin"
-          subtitle="Cost per m² per finish, fulfilment cost, packaging cost"
-        >
-          <p className="text-sm text-stone-600">
-            We can compute gross margin and per-finish profit once you give us the unit costs
-            for satin / matte / linen and the fulfilment overhead. Lives outside this dashboard
-            so you don&rsquo;t expose your margins to anyone with admin access by accident.
-          </p>
-          <p className="mt-2 text-sm text-stone-500">
-            <span className="font-medium text-stone-900">{formatZarCents(totalCollected)}</span> collected this window.
-            Subtract your cost basis to see margin.
-          </p>
-        </PanelCard>
-      </Section>
     </div>
   );
 }
@@ -1159,4 +1309,242 @@ function agoString(iso: string): string {
   if (h < 1)  return `${Math.max(1, Math.floor(h * 60))} min ago`;
   if (h < 24) return `${Math.floor(h)}h ago`;
   return `${Math.floor(h / 24)}d ago`;
+}
+
+function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ──────────────────────────────────────────────────────────────────────────
+// Command center: goal, insights, channels, unit economics
+// ──────────────────────────────────────────────────────────────────────────
+
+function GoalStrip({
+  mtdRevenue, mtdOrders, goalCents, goalPct, runRate, dayOfMonth, daysInMonth,
+}: {
+  mtdRevenue: number; mtdOrders: number; goalCents: number;
+  goalPct: number | null; runRate: number; dayOfMonth: number; daysInMonth: number;
+}) {
+  const hasGoal = goalCents > 0 && goalPct != null;
+  const onPace  = hasGoal && runRate >= goalCents;
+  const pct     = hasGoal ? Math.min(100, Math.max(0, goalPct as number)) : 0;
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-stone-500">Revenue this month</p>
+          <p className="mt-1 text-3xl font-semibold tabular-nums text-stone-900">{formatZarCents(mtdRevenue)}</p>
+          <p className="mt-0.5 text-xs text-stone-500">
+            {mtdOrders} order{mtdOrders === 1 ? "" : "s"} · day {dayOfMonth} of {daysInMonth}
+          </p>
+        </div>
+        {hasGoal ? (
+          <div className="text-right">
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ring-1 ${onPace ? "bg-green-50 text-green-700 ring-green-200" : "bg-amber-50 text-amber-800 ring-amber-200"}`}>
+              <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${onPace ? "bg-green-500" : "bg-amber-500"}`} />
+              {onPace ? "On pace" : "Behind pace"}
+            </span>
+            <p className="mt-1 text-xs text-stone-500">Run rate {formatZarCents(runRate)} / {formatZarCents(goalCents)}</p>
+          </div>
+        ) : (
+          <p className="max-w-xs text-right text-xs text-stone-500">
+            Run rate {formatZarCents(runRate)}/mo. Set MONTHLY_REVENUE_GOAL_CENTS in analytics-config.ts to track pace.
+          </p>
+        )}
+      </div>
+      {hasGoal && (
+        <div className="mt-4">
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
+            <div className="h-full rounded-full bg-pw-accent" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="mt-1.5 flex justify-between text-xs text-stone-500">
+            <span>{(goalPct as number).toFixed(0)}% to goal</span>
+            <span>{formatZarCents(goalCents)} target</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type Insight = { tone: "danger" | "warn" | "info"; title: string; text: string };
+
+function InsightsPanel({ insights }: { insights: Insight[] }) {
+  const dot: Record<Insight["tone"], string> = {
+    danger: "bg-red-500", warn: "bg-amber-500", info: "bg-blue-500",
+  };
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <h2 className="text-sm font-semibold text-stone-900">What to do</h2>
+      <ul className="mt-3 space-y-3">
+        {insights.map((ins, i) => (
+          <li key={i} className="flex gap-3">
+            <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dot[ins.tone]}`} />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-stone-900">{ins.title}</p>
+              {ins.text && <p className="text-sm text-stone-600">{ins.text}</p>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ChannelTable({
+  rows,
+}: {
+  rows: { source: string; landed: number; config: number; cart: number; paid: number; revenue_cents: number }[];
+}) {
+  if (rows.length === 0) return <Empty msg="No traffic in this window yet." />;
+  const pctOf = (n: number, dnm: number) => (dnm > 0 ? `${Math.round((n / dnm) * 100)}%` : "—");
+  return (
+    <div>
+      <Table
+        head={["Source", "Sessions", "Config", "Cart", "Orders", "CR", "Revenue", "ROAS"]}
+        rows={rows.map((r) => ([
+          <span key="s" className="font-medium text-stone-900">{r.source}</span>,
+          fmtInt(r.landed),
+          pctOf(r.config, r.landed),
+          pctOf(r.cart, r.landed),
+          fmtInt(r.paid),
+          <span key="cr" className={r.paid > 0 ? "font-medium text-stone-900" : "text-stone-400"}>{pctOf(r.paid, r.landed)}</span>,
+          formatZarCents(r.revenue_cents),
+          <span key="roas" className="text-stone-400">—</span>,
+        ]))}
+        align={["left", "right", "right", "right", "right", "right", "right", "right"]}
+      />
+      <p className="mt-3 text-xs text-stone-500">
+        Add ad spend per source to unlock ROAS, CAC and profit per channel.
+      </p>
+    </div>
+  );
+}
+
+function Configure({ text }: { text: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-stone-300 bg-stone-50 p-3">
+      <p className="text-sm text-stone-600">{text}</p>
+    </div>
+  );
+}
+
+function UnitEconomics({
+  marginCents, marginPct, netSales, cogsCents, costsConfigured,
+}: {
+  marginCents: number | null; marginPct: number | null; netSales: number;
+  cogsCents: number | null; costsConfigured: boolean;
+}) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <PanelCard title="Contribution margin" subtitle={costsConfigured ? "net sales minus cost of goods" : "needs unit costs"}>
+        {costsConfigured && marginPct != null ? (
+          <div>
+            <p className="text-2xl font-semibold tabular-nums text-stone-900">{marginPct.toFixed(0)}%</p>
+            <p className="mt-1 text-sm text-stone-600">{formatZarCents(marginCents ?? 0)} margin on {formatZarCents(netSales)} net sales</p>
+            <p className="mt-0.5 text-xs text-stone-500">Cost of goods {formatZarCents(cogsCents ?? 0)}</p>
+          </div>
+        ) : (
+          <Configure text="Add cost per m² per finish in analytics-config.ts to see gross margin per order and per finish." />
+        )}
+      </PanelCard>
+      <PanelCard title="ROAS &amp; CAC" subtitle="ad efficiency">
+        <Configure text="Connect ad spend (a manual ad_spend entry) to compute blended and per-channel ROAS and CAC." />
+      </PanelCard>
+      <PanelCard title="LTV : CAC" subtitle="payback health">
+        <Configure text="Unlocks once both unit costs and ad spend are set, using lifetime value from the customers table." />
+      </PanelCard>
+    </div>
+  );
+}
+
+function buildInsights(d: {
+  reachedSeq: number[];
+  sourceFunnel: { source: string; landed: number; config: number; cart: number; paid: number; revenue_cents: number }[];
+  product: { finish: string; application: string; orders: number; revenue_cents: number; total_sqm: number }[];
+  deviceRows: { mobile: number; desktop: number; unknown: number };
+  bounceRate: number | null;
+  abandonedValueCents: number;
+  conversionRate: number;
+  prevConversionRate: number;
+  marginPct: number | null;
+}): Insight[] {
+  const out: Insight[] = [];
+  const STAGE_LABELS = ["pageviews", "PDP views", "configurator opens", "image uploads", "add-to-cart", "checkout starts", "checkout submits", "paid orders"];
+  const totalSessions = d.reachedSeq[0] ?? 0;
+
+  if (totalSessions < 5) {
+    return [{ tone: "info", title: "Not enough traffic yet", text: "Insights sharpen once a few dozen sessions land. The tracking pipeline is live." }];
+  }
+
+  // Biggest funnel leak (largest % drop where the prior stage has real volume)
+  let worst = { drop: 0, from: -1 };
+  for (let i = 1; i < d.reachedSeq.length; i++) {
+    const prev = d.reachedSeq[i - 1], cur = d.reachedSeq[i];
+    if (prev >= 15) { const drop = (prev - cur) / prev; if (drop > worst.drop) worst = { drop, from: i - 1 }; }
+  }
+  if (worst.from >= 0 && worst.drop >= 0.5) {
+    out.push({
+      tone: worst.drop >= 0.8 ? "danger" : "warn",
+      title: `Biggest drop-off: ${STAGE_LABELS[worst.from]} to ${STAGE_LABELS[worst.from + 1]}`,
+      text: `${Math.round(worst.drop * 100)}% of sessions are lost at this step. Best place to focus CRO next.`,
+    });
+  }
+
+  // Source conversion spread
+  const sized = d.sourceFunnel.filter((s) => s.landed >= 15 && s.source !== "(direct)");
+  if (sized.length >= 1) {
+    const withCr = sized.map((s) => ({ ...s, cr: s.paid / s.landed })).sort((a, b) => b.cr - a.cr);
+    const best = withCr[0];
+    if (best.paid > 0) out.push({ tone: "info", title: `${best.source} is your best-converting source`, text: `${(best.cr * 100).toFixed(1)}% of its sessions buy. Lean into what works there.` });
+    const worstSrc = withCr[withCr.length - 1];
+    if (withCr.length >= 2 && worstSrc.cr < best.cr / 3 && worstSrc.landed >= 25) {
+      out.push({ tone: "warn", title: `${worstSrc.source} converts poorly`, text: `${worstSrc.landed} sessions at ${(worstSrc.cr * 100).toFixed(1)}% CR. Rework the creative or cut the spend.` });
+    }
+  }
+
+  // Highest-AOV finish that is under-exposed
+  const finishAgg = new Map<string, { orders: number; revenue: number }>();
+  for (const p of d.product) {
+    const curr = finishAgg.get(p.finish) ?? { orders: 0, revenue: 0 };
+    curr.orders += p.orders; curr.revenue += p.revenue_cents;
+    finishAgg.set(p.finish, curr);
+  }
+  const finishes = Array.from(finishAgg.entries()).map(([finish, v]) => ({ finish, aov: v.orders > 0 ? v.revenue / v.orders : 0, orders: v.orders }));
+  const totalFinishOrders = finishes.reduce((s, f) => s + f.orders, 0);
+  if (totalFinishOrders >= 5) {
+    const topAov = [...finishes].sort((a, b) => b.aov - a.aov)[0];
+    const share = topAov.orders / totalFinishOrders;
+    if (topAov.aov > 0 && share < 0.4) {
+      out.push({ tone: "info", title: `${cap(topAov.finish)} has the highest average order`, text: `${formatZarCents(Math.round(topAov.aov))} per order but only ${Math.round(share * 100)}% of orders. Worth featuring higher.` });
+    }
+  }
+
+  // Mobile share
+  const devTotal = d.deviceRows.mobile + d.deviceRows.desktop + d.deviceRows.unknown;
+  if (devTotal >= 20) {
+    const mobShare = d.deviceRows.mobile / devTotal;
+    if (mobShare >= 0.6) out.push({ tone: "info", title: `${Math.round(mobShare * 100)}% of traffic is on mobile`, text: "Mobile is where the money is. Keep the mobile configurator and checkout sharp." });
+  }
+
+  // Abandoned cart value
+  if (d.abandonedValueCents >= 100000) {
+    out.push({ tone: "warn", title: `${formatZarCents(d.abandonedValueCents)} sitting in abandoned carts`, text: "Abandoned-cart recovery email is your cheapest revenue. Wire it up and shorten the cron." });
+  }
+
+  // High bounce
+  if (d.bounceRate != null && d.bounceRate >= 70 && totalSessions >= 30) {
+    out.push({ tone: "warn", title: `Bounce rate is ${d.bounceRate.toFixed(0)}%`, text: "Most sessions leave after one page. Check landing relevance and load speed." });
+  }
+
+  // Margin
+  if (d.marginPct != null && d.marginPct < 30) {
+    out.push({ tone: "warn", title: `Contribution margin is ${d.marginPct.toFixed(0)}%`, text: "Thin for a made-to-order product. Revisit pricing or the cost basis." });
+  }
+
+  // Conversion trend
+  if (d.prevConversionRate > 0 && d.conversionRate > 0 && d.conversionRate < d.prevConversionRate * 0.7) {
+    out.push({ tone: "warn", title: "Conversion rate is dropping", text: `Down to ${d.conversionRate.toFixed(2)}% from ${d.prevConversionRate.toFixed(2)}% the prior period.` });
+  }
+
+  const rank: Record<Insight["tone"], number> = { danger: 0, warn: 1, info: 2 };
+  return out.sort((a, b) => rank[a.tone] - rank[b.tone]).slice(0, 5);
 }
