@@ -279,14 +279,9 @@ export function CartDrawer() {
               variant="primary"
               size="lg"
               className="w-full"
-              onClick={() => {
-                track("checkout.started", {
-                  item_count:  items.length,
-                  total_cents: totalCents,
-                  source:      "cart_drawer",
-                });
-                closeCart();
-              }}
+              // checkout.started now fires on the /checkout page mount (one
+              // source of truth for every entry path), so the drawer just closes.
+              onClick={closeCart}
             >
               Checkout · {formatZar(totalCents)}
             </Button>

@@ -9,11 +9,14 @@ type Stage = {
 };
 
 const STAGE_LABELS: Record<string, string> = {
-  pageview:         "Pageview",
-  config_started:   "Configurator opened",
-  add_to_cart:      "Added to cart",
-  checkout_started: "Started checkout",
-  order_paid:       "Order paid",
+  pageview:           "Pageview",
+  pdp_viewed:         "PDP viewed",
+  config_started:     "Configurator opened",
+  config_image:       "Image uploaded",
+  add_to_cart:        "Added to cart",
+  checkout_started:   "Started checkout",
+  checkout_submitted: "Submitted checkout",
+  order_paid:         "Order paid",
 };
 
 function pct(n: number): string {

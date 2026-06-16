@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import type { CartItem } from "@/types/cart";
 import { metaPixelTrack } from "@/components/MetaPixel";
 import { mintEventId } from "@/lib/meta/event-id";
+import { track } from "@/lib/analytics";
 
 const STORAGE_KEY = "paperwalls-cart";
 const SESSION_KEY = "paperwalls-session";
@@ -224,6 +225,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       router.push("/checkout");
     } else {
       setIsCartOpen(true);
+    }
+
+    // First-party add-to-cart — fired HERE at the cart chokepoint (not in the
+    // configurator leaf) so EVERY add is captured, including the sample-pack
+    // path, which never touches the configurator and was previously invisible.
+    // Type-specific names let the admin funnel query the wallpaper journey.
+    if (item.type === "wallpaper") {
+      track("cart.wallpaper_added", {
+        value_cents:    item.subtotalCents,
+        material:       item.material,
+        application:    item.application,
+        wallpaper_type: item.wallpaperType,
+        total_sqm:      item.totalSqm,
+        wall_count:     item.wallCount,
+      });
+    } else {
+      track("cart.sample_added", {
+        value_cents: item.subtotalCents,
+        quantity:    item.quantity,
+      });
     }
 
     // Meta Pixel: AddToCart. event_id minted here is what server-side

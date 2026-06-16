@@ -191,9 +191,12 @@ export default async function AnalyticsPage({
     (async () => {
       const types = [
         ["page.viewed"],
+        ["pdp.viewed"],
         ["config.viewed"],
-        ["config.added_to_cart"],
+        ["config.image_uploaded"],
+        ["cart.wallpaper_added"],
         ["checkout.started"],
+        ["checkout.submitted"],
       ] as const;
       const results = await Promise.all(
         types.map(async (typeList) => {
@@ -206,7 +209,15 @@ export default async function AnalyticsPage({
           return new Set((data ?? []).map((r) => r.session_id as string)).size;
         })
       );
-      return { pageviews: results[0], configStarted: results[1], addedToCart: results[2], checkoutStarted: results[3] };
+      return {
+        pageviews:         results[0],
+        pdpViewed:         results[1],
+        configStarted:     results[2],
+        configImage:       results[3],
+        addedToCart:       results[4],
+        checkoutStarted:   results[5],
+        checkoutSubmitted: results[6],
+      };
     })(),
 
     // Window's sessions for landing page / device / country aggregations + daily count
@@ -481,11 +492,14 @@ export default async function AnalyticsPage({
 
   // Funnel for chart
   const funnel = [
-    { rank: 1, stage: "pageview",         sessions: funnelCounts.pageviews },
-    { rank: 2, stage: "config_started",   sessions: funnelCounts.configStarted },
-    { rank: 3, stage: "add_to_cart",      sessions: funnelCounts.addedToCart },
-    { rank: 4, stage: "checkout_started", sessions: funnelCounts.checkoutStarted },
-    { rank: 5, stage: "order_paid",       sessions: currentOrders },
+    { rank: 1, stage: "pageview",           sessions: funnelCounts.pageviews },
+    { rank: 2, stage: "pdp_viewed",         sessions: funnelCounts.pdpViewed },
+    { rank: 3, stage: "config_started",     sessions: funnelCounts.configStarted },
+    { rank: 4, stage: "config_image",       sessions: funnelCounts.configImage },
+    { rank: 5, stage: "add_to_cart",        sessions: funnelCounts.addedToCart },
+    { rank: 6, stage: "checkout_started",   sessions: funnelCounts.checkoutStarted },
+    { rank: 7, stage: "checkout_submitted", sessions: funnelCounts.checkoutSubmitted },
+    { rank: 8, stage: "order_paid",         sessions: currentOrders },
   ];
 
   const loadedAt = Date.now();

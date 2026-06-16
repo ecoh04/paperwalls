@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { useCart } from "@/contexts/CartContext";
 import { CheckoutForm, type CheckoutCreateResult } from "@/components/checkout/CheckoutForm";
 import { Button } from "@/components/ui/Button";
 import { formatZar } from "@/lib/pricing";
+import { track } from "@/lib/analytics";
 
 const NEXT_STEPS = [
   { t: "Order confirmed",      b: "Payment received, file reviewed within 2 hours." },
@@ -19,6 +20,22 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
 
   const totalCents = items.reduce((s, i) => s + i.subtotalCents, 0);
+
+  // Funnel: checkout reached. Fire once, when the cart first hydrates with
+  // items. This is the single source of truth for the "started checkout"
+  // stage — it covers EVERY entry path (wallpaper's straight-to-checkout
+  // jump, the cart drawer, the full /cart page, a refresh), where the old
+  // drawer-only event missed wallpaper buyers entirely.
+  const checkoutStartedRef = useRef(false);
+  useEffect(() => {
+    if (checkoutStartedRef.current || items.length === 0) return;
+    checkoutStartedRef.current = true;
+    track("checkout.started", {
+      item_count:  items.length,
+      total_cents: items.reduce((s, i) => s + i.subtotalCents, 0),
+      source:      "checkout_page",
+    });
+  }, [items]);
 
   // POST the signed fields to PayFast's hosted checkout (the redirect flow).
   const handleSuccess = useCallback((result: CheckoutCreateResult) => {

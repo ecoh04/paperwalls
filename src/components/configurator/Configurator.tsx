@@ -273,6 +273,24 @@ export function Configurator() {
     return "Finish setting up to continue.";
   }, [canAddToCart, dimensionsValid, imageUploaded]);
 
+  // Funnel: in-configurator milestones, each fired once. These bracket the
+  // configurator so the funnel shows where buyers stall (opened it · uploaded
+  // an image · entered a size · added to cart) instead of one opaque step.
+  const anyImageUploaded = !!state.imagePreviewUrl || state.walls.some((w) => w.imagePreviewUrl);
+  const imageEventRef = useRef(false);
+  useEffect(() => {
+    if (imageEventRef.current || !anyImageUploaded) return;
+    imageEventRef.current = true;
+    track("config.image_uploaded");
+  }, [anyImageUploaded]);
+
+  const sizeEventRef = useRef(false);
+  useEffect(() => {
+    if (sizeEventRef.current || !dimensionsValid) return;
+    sizeEventRef.current = true;
+    track("config.size_entered", { total_sqm: totalSqm });
+  }, [dimensionsValid, totalSqm]);
+
   // ── Add to cart ────────────────────────────────────────────────────────
   const handleAddToCart = useCallback(async () => {
     setSubmitError(null);
@@ -335,15 +353,9 @@ export function Configurator() {
           imageQuality:  cartQuality(state.imageWidthPx ?? null, state.imageHeightPx ?? null, state.widthM, state.heightM),
         });
       }
-      // Cart drawer auto-opens via CartContext.addItem so the buyer sees
-      // their new item without losing their place on the configurator.
-      track("config.added_to_cart", {
-        wall_count:    state.wallCount,
-        total_sqm:     totalSqm,
-        material:      state.material,
-        application:   state.application,
-        subtotal_cents: subtotalCents,
-      });
+      // Add-to-cart tracking fires from CartContext.addItem (the single
+      // chokepoint every add flows through) as cart.wallpaper_added, so the
+      // sample-pack path is captured too. Don't track it here in the leaf.
     } catch (err) {
       console.error("Add-to-cart failed:", err);
       setSubmitError("Something went wrong while preparing your order. Please try again.");
