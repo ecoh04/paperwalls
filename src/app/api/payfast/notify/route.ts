@@ -460,7 +460,7 @@ export async function POST(request: Request) {
           userAgent = (sess?.user_agent as string | null) ?? null;
         }
         const sortedNumbers = [...orderNumbers].sort();
-        await sendMetaConversion({
+        const purchaseCapi = await sendMetaConversion({
           event_name: "Purchase",
           event_id:   `purchase:${sortedNumbers.join(",")}`,
           event_source_url: process.env.NEXT_PUBLIC_APP_URL
@@ -492,6 +492,13 @@ export async function POST(request: Request) {
           },
           meta: { order_id: orderId, customer_id: customerId ?? undefined },
         });
+        // Surface the CAPI result in runtime logs. The !ok warning is keep-worthy
+        // (only fires when CAPI is broken); the ok info line is temporary.
+        if (purchaseCapi.ok) {
+          console.info("[Meta CAPI] Purchase sent"); // TEMP(meta-verify): remove after verifying live
+        } else {
+          console.warn(`[Meta CAPI] Purchase NOT sent: ${purchaseCapi.reason ?? "unknown"}`);
+        }
       }
 
       // Quiet success — verbose enough to find in logs by greppable prefix

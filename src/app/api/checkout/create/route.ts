@@ -588,7 +588,7 @@ export async function POST(request: Request) {
         // Meta CAPI: InitiateCheckout — shares event_id with the client pixel.
         if (meta_event_id_init) {
           const splitName = a.customer_name.trim().split(/\s+/);
-          await sendMetaConversion({
+          const icCapi = await sendMetaConversion({
             event_name: "InitiateCheckout",
             event_id:   meta_event_id_init,
             event_source_url: process.env.NEXT_PUBLIC_APP_URL
@@ -619,6 +619,13 @@ export async function POST(request: Request) {
             },
             meta: { customer_id: customerId ?? undefined },
           });
+          // Surface the CAPI result in runtime logs. The !ok warning is keep-worthy
+          // (only fires when CAPI is broken); the ok info line is temporary.
+          if (icCapi.ok) {
+            console.info("[Meta CAPI] InitiateCheckout sent"); // TEMP(meta-verify): remove after verifying live
+          } else {
+            console.warn(`[Meta CAPI] InitiateCheckout NOT sent: ${icCapi.reason ?? "unknown"}`);
+          }
         }
       } catch (e) {
         console.error("[checkout/create] deferred post-order work failed:", e);
