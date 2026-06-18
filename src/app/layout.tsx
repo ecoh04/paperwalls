@@ -50,6 +50,14 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+  // Meta (Facebook) domain verification. Renders
+  // <meta name="facebook-domain-verification" content="…"> in <head> on every
+  // page, including the homepage, which is what Meta checks.
+  verification: {
+    other: {
+      "facebook-domain-verification": "kpvp3lv7ke4g72f9fim4ylvgv2jfzz",
+    },
+  },
 };
 
 import { RootLayoutClient } from "@/components/RootLayoutClient";
