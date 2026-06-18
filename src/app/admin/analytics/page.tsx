@@ -9,6 +9,8 @@ import { WINDOW_OPTIONS, type WindowValue } from "@/components/admin/window-opti
 import { DeltaIndicator } from "@/components/admin/DeltaIndicator";
 import {
   MONTHLY_REVENUE_GOAL_CENTS,
+  MONTHLY_AD_SPEND_CENTS,
+  AD_SPEND_CONFIGURED,
   COSTS_CONFIGURED,
   cogsForFinishCents,
 } from "@/lib/analytics-config";
@@ -134,8 +136,12 @@ export default async function AnalyticsPage({
     filled.push(map.get(key) ?? { day: key, paid_orders: 0, paid_revenue_cents: 0, refunded_orders: 0 });
   }
 
-  // Split current / previous windows
-  const winStartKey  = filled[Math.max(0, filled.length - win.chartDays)]?.day ?? filled[0]?.day;
+  // Split current / previous windows. winStartKey is the SAST day key of the
+  // window start, taken directly from win.start. (The old filled.length-chartDays
+  // index mis-selected for "today": filled spans only [yesterday, today] but
+  // chartDays is 7, so it picked yesterday and Today double-counted two days.)
+  const winStartKey  = new Intl.DateTimeFormat("en-CA", { timeZone: SAST, year: "numeric", month: "2-digit", day: "2-digit" })
+    .format(new Date(win.start));
   const currentRows  = filled.filter((r) => r.day >= winStartKey);
   const previousRows = filled.filter((r) => r.day <  winStartKey);
 
@@ -300,26 +306,32 @@ export default async function AnalyticsPage({
       .order("total_spent_cents", { ascending: false })
       .limit(8),
 
-    // Abandoned carts: cart rows older than 1h with no orders + items, in window
+    // Abandoned carts via view_abandoned_carts (joins carts→sessions→customers,
+    // already excludes converted carts; no fragile .in() id list that breaks at
+    // volume). Idle ≥ 1h, has items, returns a small recovery worklist.
     (async () => {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const { data: carts } = await supabase
-        .from("carts")
-        .select("id, updated_at, status")
-        .gte("updated_at", win.start)
+      const { data } = await supabase
+        .from("view_abandoned_carts")
+        .select("cart_id, customer_email, customer_name, cart_value_cents, item_count, updated_at")
+        .gt("item_count", 0)
+        .gt("cart_value_cents", 0)
         .lt("updated_at", oneHourAgo)
-        .neq("status", "converted");
-      const cartIds = ((carts ?? []) as { id: string }[]).map((c) => c.id);
-      if (cartIds.length === 0) return { count: 0, items_value_cents: 0 };
-      const { data: items } = await supabase
-        .from("cart_items")
-        .select("cart_id, subtotal_cents")
-        .in("cart_id", cartIds);
-      // Only carts that actually had items
-      const cartsWithItems = new Set(((items ?? []) as { cart_id: string }[]).map((i) => i.cart_id));
-      const value = ((items ?? []) as { cart_id: string; subtotal_cents: number }[])
-        .reduce((s, i) => s + Number(i.subtotal_cents), 0);
-      return { count: cartsWithItems.size, items_value_cents: value };
+        .order("cart_value_cents", { ascending: false })
+        .limit(50);
+      const rows = (data ?? []) as {
+        cart_id: string; customer_email: string | null; customer_name: string | null;
+        cart_value_cents: number; item_count: number; updated_at: string;
+      }[];
+      const value = rows.reduce((s, r) => s + Number(r.cart_value_cents), 0);
+      return {
+        count: rows.length,
+        items_value_cents: value,
+        items: rows.slice(0, 6).map((r) => ({
+          email: r.customer_email, name: r.customer_name,
+          value_cents: Number(r.cart_value_cents), itemCount: Number(r.item_count), updated_at: r.updated_at,
+        })),
+      };
     })(),
 
     // Bounce rate: % of sessions in window with ≤1 page.viewed event
@@ -348,6 +360,7 @@ export default async function AnalyticsPage({
     supabase.from("orders")
       .select("utm_source, utm_medium, utm_campaign, total_cents, subtotal_cents, shipping_cents, discount_cents, refunded_at, status")
       .gte("created_at", win.start)
+      .eq("is_test", false)
       .is("deleted_at", null),
 
     // Product mix
@@ -357,7 +370,8 @@ export default async function AnalyticsPage({
       .gte("created_at", win.start)
       .not("status", "in", "(pending,cancelled)")
       .is("refunded_at", null)
-      .is("deleted_at", null),
+      .is("deleted_at", null)
+      .eq("is_test", false),
 
     // Discount usage (separate aggregation across all orders in window)
     (async () => {
@@ -365,6 +379,7 @@ export default async function AnalyticsPage({
         .select("discount_cents, discount_code")
         .gte("created_at", win.start)
         .gt("discount_cents", 0)
+        .eq("is_test", false)
         .is("deleted_at", null);
       const totalDiscount = ((data ?? []) as { discount_cents: number }[])
         .reduce((s, r) => s + Number(r.discount_cents), 0);
@@ -380,11 +395,12 @@ export default async function AnalyticsPage({
 
     // Sessions with a paid order in window (order_paid stage + per-source paid)
     supabase.from("orders")
-      .select("session_id")
+      .select("session_id, product_type")
       .gte("created_at", win.start)
       .not("status", "in", "(pending,cancelled)")
       .is("refunded_at", null)
       .is("deleted_at", null)
+      .eq("is_test", false)
       .not("session_id", "is", null),
 
     // Month-to-date daily revenue (goal tracker, independent of the window)
@@ -405,7 +421,27 @@ export default async function AnalyticsPage({
       .eq("product_type", "sample_pack")
       .gte("created_at", win.start)
       .not("status", "in", "(pending,cancelled)")
-      .is("deleted_at", null),
+      .is("refunded_at", null)
+      .is("deleted_at", null)
+      .eq("is_test", false),
+  ]);
+
+  // ── Extra data: Meta CAPI health, retention, monthly revenue trend ───────
+  const monthTrendStart = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const [capiRows, retentionRows, monthTrendRows] = await Promise.all([
+    // Meta CAPI audit — last 24h of server sends, newest first
+    supabase.from("capi_events")
+      .select("event_type, status, created_at")
+      .gte("created_at", new Date(Date.now() - 24 * HOUR).toISOString())
+      .order("created_at", { ascending: false }),
+    // Retention — paying customers (total_orders/total_spent are now paid-only, non-test)
+    supabase.from("customers")
+      .select("total_orders, total_spent_cents")
+      .gt("total_orders", 0),
+    // Revenue by month for the trend (v_daily_revenue already excludes test orders)
+    supabase.from("v_daily_revenue")
+      .select("day, paid_revenue_cents, paid_orders")
+      .gte("day", monthTrendStart),
   ]);
 
   // Build daily sessions array (SAST-bucketed)
@@ -470,13 +506,18 @@ export default async function AnalyticsPage({
   const avgOrderSqm = wallpaperOrders > 0 ? (totalSqm / wallpaperOrders) : 0;
 
   // ── Install-method split (DIY vs Pro), wallpaper only ──────────────────
-  const diyOrders = product.filter((p) => p.application === "diy")
+  // application_method is a 3-value enum: diy | diy_kit | pro_installer. Both
+  // diy and diy_kit are self-install; only pro_installer is Pro. (The old code
+  // counted "diy" only and a dead "installer" alias, silently dropping diy_kit.)
+  const isDiyApp = (a: string) => a === "diy" || a === "diy_kit";
+  const isProApp = (a: string) => a === "pro_installer";
+  const diyOrders = product.filter((p) => isDiyApp(p.application))
     .reduce((s, r) => s + r.orders, 0);
-  const diyRevenue = product.filter((p) => p.application === "diy")
+  const diyRevenue = product.filter((p) => isDiyApp(p.application))
     .reduce((s, r) => s + r.revenue_cents, 0);
-  const proOrders = product.filter((p) => p.application === "pro_installer" || p.application === "installer")
+  const proOrders = product.filter((p) => isProApp(p.application))
     .reduce((s, r) => s + r.orders, 0);
-  const proRevenue = product.filter((p) => p.application === "pro_installer" || p.application === "installer")
+  const proRevenue = product.filter((p) => isProApp(p.application))
     .reduce((s, r) => s + r.revenue_cents, 0);
   const totalInstallOrders = diyOrders + proOrders;
   const proAovCents = proOrders > 0 ? Math.round(proRevenue / proOrders) : 0;
@@ -524,9 +565,13 @@ export default async function AnalyticsPage({
     sessSource.set(r.id, r.utm_source || "(direct)");
   }
 
-  // Sessions that reached a paid order (the order_paid stage)
+  // Sessions that reached a paid WALLPAPER order (the order_paid stage). Sample
+  // orders are excluded here — they never enter the configurator, so counting
+  // them would inflate every wallpaper funnel stage via the monotonic rollup.
+  // Sample packs have their own funnel below.
   const paidSessionIds = new Set(
-    ((paidSessionRows.data ?? []) as { session_id: string | null }[])
+    ((paidSessionRows.data ?? []) as { session_id: string | null; product_type: string | null }[])
+      .filter((r) => r.product_type === "wallpaper")
       .map((r) => r.session_id).filter(Boolean) as string[],
   );
 
@@ -548,6 +593,16 @@ export default async function AnalyticsPage({
   furthest.forEach((f) => {
     for (let i = 0; i <= f; i++) reachedSeq[i]++;
   });
+
+  // Per-stage OWN-event counts: sessions that actually fired THIS stage's event
+  // (not the monotonic rollup). Lets the funnel render "not tracked yet" for a
+  // stage whose event isn't recording, instead of a phantom inherited count.
+  const ownStageSessions = FUNNEL_EVENT_TYPES.map(() => new Set<string>());
+  for (const e of (funnelEventsRaw.data ?? []) as { session_id: string; type: string }[]) {
+    const i = stageIdx.get(e.type);
+    if (i !== undefined && e.session_id) ownStageSessions[i].add(e.session_id);
+  }
+  const ownStageCounts = ownStageSessions.map((s) => s.size);
 
   // Funnel by source: stage reach per top source
   type SrcFunnel = { source: string; landed: number; config: number; cart: number; paid: number; revenue_cents: number };
@@ -601,6 +656,42 @@ export default async function AnalyticsPage({
   const marginCents = cogsCents != null ? wallpaperRevenue - cogsCents : null;
   const marginPct   = cogsCents != null && wallpaperRevenue > 0 ? ((wallpaperRevenue - cogsCents) / wallpaperRevenue) * 100 : null;
 
+  // ── Meta CAPI health (24h server-send audit) ─────────────────────────────
+  const capiList = (capiRows.data ?? []) as { event_type: string; status: string; created_at: string }[];
+  const capiByType = new Map<string, number>();
+  for (const e of capiList) if (e.status === "sent") capiByType.set(e.event_type, (capiByType.get(e.event_type) ?? 0) + 1);
+  const capiSent24h     = capiList.filter((e) => e.status === "sent").length;
+  const capiFailures24h = capiList.filter((e) => e.status !== "sent").length;
+  const capiLastSentAt  = capiList.find((e) => e.status === "sent")?.created_at ?? null;
+  const capiPurchase24h = capiByType.get("Purchase") ?? 0;
+
+  // ── Retention ────────────────────────────────────────────────────────────
+  const retList = (retentionRows.data ?? []) as { total_orders: number; total_spent_cents: number }[];
+  const payingCustomers = retList.length;
+  const repeatCustomers = retList.filter((c) => Number(c.total_orders) >= 2).length;
+  const repeatRatePct   = payingCustomers > 0 ? (repeatCustomers / payingCustomers) * 100 : null;
+  const avgLtvCents     = payingCustomers > 0 ? Math.round(retList.reduce((s, c) => s + Number(c.total_spent_cents), 0) / payingCustomers) : 0;
+  const ordersPerCust   = payingCustomers > 0 ? retList.reduce((s, c) => s + Number(c.total_orders), 0) / payingCustomers : 0;
+
+  // ── Monthly revenue trend (last ~12 months, SAST) ────────────────────────
+  const monthAgg = new Map<string, number>();
+  for (const r of (monthTrendRows.data ?? []) as { day: string; paid_revenue_cents: number }[]) {
+    const mk = (r.day ?? "").slice(0, 7);
+    if (mk) monthAgg.set(mk, (monthAgg.get(mk) ?? 0) + Number(r.paid_revenue_cents));
+  }
+  const monthSeries = Array.from(monthAgg.entries()).sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([day, value]) => ({ day, value }));
+  const momGrowthPct = monthSeries.length >= 2 && monthSeries[monthSeries.length - 2].value > 0
+    ? ((monthSeries[monthSeries.length - 1].value - monthSeries[monthSeries.length - 2].value) / monthSeries[monthSeries.length - 2].value) * 100
+    : null;
+
+  // ── Ad efficiency (blended; lights up when MONTHLY_AD_SPEND_CENTS is set) ──
+  const roas        = AD_SPEND_CONFIGURED ? mtdRevenue / MONTHLY_AD_SPEND_CENTS : null;
+  const cacCents    = AD_SPEND_CONFIGURED && newCustomers > 0 ? Math.round(MONTHLY_AD_SPEND_CENTS / newCustomers) : null;
+  const ltvCacRatio = cacCents != null && cacCents > 0 ? avgLtvCents / cacCents : null;
+
+  // ── Low-data / pre-launch flag (real, non-test orders only) ──────────────
+  const preLaunch = mtdOrders === 0 && currentOrders === 0;
+
   // Insights — rule-based, computed from data we already have.
   const insights = buildInsights({
     reachedSeq, sourceFunnel, product, deviceRows,
@@ -614,14 +705,14 @@ export default async function AnalyticsPage({
   // Funnel for chart — SEQUENTIAL (reached this stage or further), so the
   // stage-to-stage drop-off is real. reachedSeq[0..7] maps to the 8 stages.
   const funnel = [
-    { rank: 1, stage: "pageview",           sessions: reachedSeq[0] },
-    { rank: 2, stage: "pdp_viewed",         sessions: reachedSeq[1] },
-    { rank: 3, stage: "config_started",     sessions: reachedSeq[2] },
-    { rank: 4, stage: "config_image",       sessions: reachedSeq[3] },
-    { rank: 5, stage: "add_to_cart",        sessions: reachedSeq[4] },
-    { rank: 6, stage: "checkout_started",   sessions: reachedSeq[5] },
-    { rank: 7, stage: "checkout_submitted", sessions: reachedSeq[6] },
-    { rank: 8, stage: "order_paid",         sessions: reachedSeq[7] },
+    { rank: 1, stage: "pageview",           sessions: reachedSeq[0], own: ownStageCounts[0] },
+    { rank: 2, stage: "pdp_viewed",         sessions: reachedSeq[1], own: ownStageCounts[1] },
+    { rank: 3, stage: "config_started",     sessions: reachedSeq[2], own: ownStageCounts[2] },
+    { rank: 4, stage: "config_image",       sessions: reachedSeq[3], own: ownStageCounts[3] },
+    { rank: 5, stage: "add_to_cart",        sessions: reachedSeq[4], own: ownStageCounts[4] },
+    { rank: 6, stage: "checkout_started",   sessions: reachedSeq[5], own: ownStageCounts[5] },
+    { rank: 7, stage: "checkout_submitted", sessions: reachedSeq[6], own: ownStageCounts[6] },
+    { rank: 8, stage: "order_paid",         sessions: reachedSeq[7], own: paidSessionIds.size },
   ];
 
   const loadedAt = Date.now();
@@ -633,7 +724,7 @@ export default async function AnalyticsPage({
         <div>
           <h1 className="text-2xl font-bold text-stone-900">Analytics</h1>
           <p className="mt-1 text-sm text-stone-600">
-            First-party data from your own events table. No ad-blocker loss, no consent throttling.
+            Your store at a glance. All times SAST · your own test orders are excluded.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -645,6 +736,12 @@ export default async function AnalyticsPage({
           <RefreshButton initialLoadedAt={loadedAt} />
         </div>
       </header>
+
+      {preLaunch && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">
+          <span className="font-medium">Pre-launch.</span> No real paid orders yet — your own test orders are excluded from every number here. Treat any trends below as directional until real traffic lands.
+        </div>
+      )}
 
       {/* ── Goal + run rate ─────────────────────────────────────────── */}
       <GoalStrip
@@ -659,6 +756,16 @@ export default async function AnalyticsPage({
 
       {/* ── What to do (auto-surfaced insights) ─────────────────────── */}
       {insights.length > 0 && <InsightsPanel insights={insights} />}
+
+      {/* ── Meta tracking health ────────────────────────────────────── */}
+      <MetaHealthCard
+        sent24h={capiSent24h}
+        failures24h={capiFailures24h}
+        purchase24h={capiPurchase24h}
+        lastSentAt={capiLastSentAt}
+        byType={Array.from(capiByType.entries()).map(([type, count]) => ({ type, count }))}
+        paidOrders={currentOrders}
+      />
 
       {/* ── System health (collapsed by default) ────────────────────────
           Operator doesn't need to see every tile every visit. A top-level
@@ -768,6 +875,7 @@ export default async function AnalyticsPage({
             label="Conversion rate"
             value={conversionRate > 0 ? `${conversionRate.toFixed(2)}%` : "—"}
             delta={<DeltaIndicator current={Number(conversionRate.toFixed(2))} previous={Number(prevConversionRate.toFixed(2))} label={win.vsLabel} />}
+            status={conversionRate >= 2 ? "good" : conversionRate > 0 && conversionRate < 1 ? "bad" : "neutral"}
           />
           <StatCard
             label="Orders"
@@ -794,7 +902,7 @@ export default async function AnalyticsPage({
             label="Bounce rate"
             value={bounceRate == null ? "—" : `${bounceRate.toFixed(1)}%`}
             delta={<span className="text-xs text-stone-500">single-page sessions</span>}
-            goodIfUp={false}
+            status={bounceRate == null ? "neutral" : bounceRate >= 70 ? "bad" : bounceRate < 40 ? "good" : "neutral"}
           />
         </div>
       </Section>
@@ -807,6 +915,11 @@ export default async function AnalyticsPage({
           netSales={wallpaperRevenue}
           cogsCents={cogsCents}
           costsConfigured={COSTS_CONFIGURED}
+          roas={roas}
+          cacCents={cacCents}
+          ltvCacRatio={ltvCacRatio}
+          avgLtvCents={avgLtvCents}
+          adSpendConfigured={AD_SPEND_CONFIGURED}
         />
       </Section>
 
@@ -844,6 +957,20 @@ export default async function AnalyticsPage({
             />
           </ChartTile>
         </div>
+      </Section>
+
+      {/* ── Monthly trend ───────────────────────────────────────────── */}
+      <Section
+        title="Revenue by month"
+        note={momGrowthPct != null ? `${momGrowthPct >= 0 ? "+" : ""}${momGrowthPct.toFixed(0)}% vs last month` : "last 12 months"}
+      >
+        <PanelCard title="Monthly revenue" subtitle="paid revenue per calendar month (SAST), test orders excluded">
+          {monthSeries.length === 0 ? (
+            <Empty msg="No paid months yet — this fills in as real orders land." />
+          ) : (
+            <LineChart data={monthSeries} height={200} color="#C4622D" fill="rgba(196,98,45,0.10)" format="zar_cents" label="revenue" />
+          )}
+        </PanelCard>
       </Section>
 
       {/* ── Funnel ───────────────────────────────────────────────────── */}
@@ -977,16 +1104,50 @@ export default async function AnalyticsPage({
           </PanelCard>
 
           <PanelCard title="Abandoned carts" subtitle="Carts with items, idle ≥ 1h, never paid">
-            <div className="space-y-2">
-              <p className="text-3xl font-semibold tabular-nums text-stone-900">{fmtInt(abandonedAgg.count)}</p>
-              <p className="text-sm text-stone-600">
-                ≈ {formatZarCents(abandonedAgg.items_value_cents)} of unrealised revenue
-              </p>
+            <div className="space-y-3">
+              <div>
+                <p className="text-3xl font-semibold tabular-nums text-stone-900">{fmtInt(abandonedAgg.count)}</p>
+                <p className="text-sm text-stone-600">≈ {formatZarCents(abandonedAgg.items_value_cents)} of unrealised revenue</p>
+              </div>
+              {abandonedAgg.items.length > 0 ? (
+                <ul className="divide-y divide-stone-100 border-t border-stone-100">
+                  {abandonedAgg.items.map((it, i) => (
+                    <li key={i} className="flex items-center justify-between gap-2 py-1.5 text-sm">
+                      <span className="min-w-0 truncate text-stone-700">{it.name || it.email || "Guest"}</span>
+                      <span className="shrink-0 tabular-nums text-stone-900">{formatZarCents(it.value_cents)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-stone-500">No abandoned carts with items right now.</p>
+              )}
               <p className="text-xs text-stone-500">
-                Abandoned-cart email recovery: configure once cron + Resend are wired.
+                Recovery emails are your cheapest revenue (Resend is live) — wire the abandoned-cart flow to win these back.
               </p>
             </div>
           </PanelCard>
+        </div>
+      </Section>
+
+      {/* ── Retention ────────────────────────────────────────────────── */}
+      <Section title="Retention" note="lifetime · paid customers only">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <SmallStat label="Paying customers" value={fmtInt(payingCustomers)} sub="placed a paid order" />
+          <SmallStat
+            label="Repeat rate"
+            value={repeatRatePct == null ? "—" : `${repeatRatePct.toFixed(0)}%`}
+            sub={`${repeatCustomers} bought 2+ times`}
+          />
+          <SmallStat
+            label="Orders / customer"
+            value={payingCustomers > 0 ? ordersPerCust.toFixed(2) : "—"}
+            sub="lifetime average"
+          />
+          <SmallStat
+            label="Avg LTV"
+            value={payingCustomers > 0 ? formatZarCents(avgLtvCents) : "—"}
+            sub="revenue per customer"
+          />
         </div>
       </Section>
 
@@ -1021,19 +1182,33 @@ export default async function AnalyticsPage({
             <PanelCard title="Finish × install" subtitle="Orders, m², and revenue">
               {product.length === 0 ? <Empty msg="No wallpaper orders in this window." /> : (
                 <Table
-                  head={["Finish", "Install", "Orders", "m²", "Revenue"]}
-                  rows={product.map((r) => [
-                    <span key="f" className="capitalize">{r.finish}</span>,
-                    r.application === "diy"
-                      ? <span className="text-stone-700">DIY</span>
-                      : r.application === "pro_installer" || r.application === "installer"
-                        ? <span className="font-medium text-purple-700">Pro</span>
-                        : r.application,
-                    fmtInt(r.orders),
-                    r.total_sqm.toFixed(1),
-                    formatZarCents(r.revenue_cents),
-                  ])}
-                  align={["left", "left", "right", "right", "right"]}
+                  head={COSTS_CONFIGURED ? ["Finish", "Install", "Orders", "m²", "Revenue", "Margin"] : ["Finish", "Install", "Orders", "m²", "Revenue"]}
+                  rows={product.map((r) => {
+                    const cells: React.ReactNode[] = [
+                      <span key="f" className="capitalize">{r.finish}</span>,
+                      r.application === "diy" || r.application === "diy_kit"
+                        ? <span className="text-stone-700">DIY{r.application === "diy_kit" ? " kit" : ""}</span>
+                        : r.application === "pro_installer"
+                          ? <span className="font-medium text-purple-700">Pro</span>
+                          : r.application,
+                      fmtInt(r.orders),
+                      r.total_sqm.toFixed(1),
+                      formatZarCents(r.revenue_cents),
+                    ];
+                    if (COSTS_CONFIGURED) {
+                      const cogs = ["satin", "matte", "linen"].includes(r.finish)
+                        ? (cogsForFinishCents(r.finish as WallpaperMaterial, r.total_sqm, r.orders) ?? null)
+                        : null;
+                      const mPct = cogs != null && r.revenue_cents > 0 ? ((r.revenue_cents - cogs) / r.revenue_cents) * 100 : null;
+                      cells.push(
+                        mPct != null
+                          ? <span key="m" className={mPct < 30 ? "text-amber-700" : "text-stone-900"}>{`${Math.round(mPct)}%`}</span>
+                          : <span key="m" className="text-stone-400">—</span>,
+                      );
+                    }
+                    return cells;
+                  })}
+                  align={COSTS_CONFIGURED ? ["left", "left", "right", "right", "right", "right"] : ["left", "left", "right", "right", "right"]}
                 />
               )}
             </PanelCard>
@@ -1123,20 +1298,22 @@ function PanelCard({
 }
 
 function StatCard({
-  label, value, delta, sub, spark,
+  label, value, delta, sub, spark, status = "neutral",
 }: {
   label: string;
   value: string;
   delta: React.ReactNode;
   sub?:  string;
   spark?: React.ReactNode;
-  goodIfUp?: boolean;
+  /** Threshold colour for the value: good=green, bad=red, neutral=ink. */
+  status?: "good" | "bad" | "neutral";
 }) {
+  const valueColor = status === "good" ? "text-green-700" : status === "bad" ? "text-red-700" : "text-stone-900";
   return (
     <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{label}</p>
       <div className="mt-1 flex items-end justify-between gap-2">
-        <p className="text-2xl font-semibold tabular-nums text-stone-900">{value}</p>
+        <p className={`text-2xl font-semibold tabular-nums ${valueColor}`}>{value}</p>
         {spark}
       </div>
       <div className="mt-1 flex items-center justify-between gap-2">
@@ -1389,6 +1566,50 @@ function InsightsPanel({ insights }: { insights: Insight[] }) {
   );
 }
 
+function MetaHealthCard({
+  sent24h, failures24h, purchase24h, lastSentAt, byType, paidOrders,
+}: {
+  sent24h: number; failures24h: number; purchase24h: number;
+  lastSentAt: string | null; byType: { type: string; count: number }[]; paidOrders: number;
+}) {
+  // Warn if real paid orders happened but no Purchase reached Meta, or any send failed.
+  const missingPurchase = paidOrders > 0 && purchase24h === 0;
+  const tone = failures24h > 0 || missingPurchase ? "warn" : sent24h > 0 ? "ok" : "neutral";
+  const dot  = tone === "warn" ? "bg-amber-500" : tone === "ok" ? "bg-green-500" : "bg-stone-400";
+  const headline = tone === "warn"
+    ? (missingPurchase ? "Paid orders aren't reaching Meta" : `${failures24h} CAPI send${failures24h === 1 ? "" : "s"} failed in 24h`)
+    : sent24h > 0 ? "Server tracking healthy" : "No server events in the last 24h";
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span aria-hidden className={`h-2 w-2 rounded-full ${dot}`} />
+          <h2 className="text-sm font-semibold text-stone-900">Meta tracking (Conversions API)</h2>
+          <span className="text-xs text-stone-500">{headline}</span>
+        </div>
+        <span className="text-xs text-stone-500">
+          {lastSentAt ? `Last send ${agoString(lastSentAt)}` : "No sends yet"}
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <MiniStat label="Sent 24h"     value={fmtInt(sent24h)} />
+        <MiniStat label="Purchase 24h" value={fmtInt(purchase24h)} />
+        <MiniStat label="Failed 24h"   value={fmtInt(failures24h)} tone={failures24h > 0 ? "warn" : undefined} />
+        <MiniStat label="Event types"  value={byType.length ? byType.map((b) => `${b.type} ${b.count}`).join(" · ") : "—"} small />
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, tone, small }: { label: string; value: string; tone?: "warn"; small?: boolean }) {
+  return (
+    <div className="rounded-lg border border-stone-200 bg-stone-50/50 p-3">
+      <p className="text-[11px] font-medium uppercase tracking-wider text-stone-500">{label}</p>
+      <p className={`mt-1 ${small ? "text-xs leading-snug" : "text-lg"} font-semibold tabular-nums ${tone === "warn" ? "text-amber-700" : "text-stone-900"}`}>{value}</p>
+    </div>
+  );
+}
+
 function ChannelTable({
   rows,
 }: {
@@ -1429,16 +1650,19 @@ function Configure({ text }: { text: string }) {
 
 function UnitEconomics({
   marginCents, marginPct, netSales, cogsCents, costsConfigured,
+  roas, cacCents, ltvCacRatio, avgLtvCents, adSpendConfigured,
 }: {
   marginCents: number | null; marginPct: number | null; netSales: number;
   cogsCents: number | null; costsConfigured: boolean;
+  roas: number | null; cacCents: number | null; ltvCacRatio: number | null;
+  avgLtvCents: number; adSpendConfigured: boolean;
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <PanelCard title="Contribution margin" subtitle={costsConfigured ? "net sales minus cost of goods" : "needs unit costs"}>
         {costsConfigured && marginPct != null ? (
           <div>
-            <p className="text-2xl font-semibold tabular-nums text-stone-900">{marginPct.toFixed(0)}%</p>
+            <p className={`text-2xl font-semibold tabular-nums ${marginPct < 30 ? "text-amber-700" : "text-stone-900"}`}>{marginPct.toFixed(0)}%</p>
             <p className="mt-1 text-sm text-stone-600">{formatZarCents(marginCents ?? 0)} margin on {formatZarCents(netSales)} net sales</p>
             <p className="mt-0.5 text-xs text-stone-500">Cost of goods {formatZarCents(cogsCents ?? 0)}</p>
           </div>
@@ -1446,11 +1670,27 @@ function UnitEconomics({
           <Configure text="Add cost per m² per finish in analytics-config.ts to see gross margin per order and per finish." />
         )}
       </PanelCard>
-      <PanelCard title="ROAS &amp; CAC" subtitle="ad efficiency">
-        <Configure text="Connect ad spend (a manual ad_spend entry) to compute blended and per-channel ROAS and CAC." />
+      <PanelCard title="Blended ROAS &amp; CAC" subtitle="this month vs ad spend">
+        {adSpendConfigured && roas != null ? (
+          <div>
+            <p className={`text-2xl font-semibold tabular-nums ${roas >= 2 ? "text-green-700" : roas < 1 ? "text-red-700" : "text-stone-900"}`}>{roas.toFixed(2)}×</p>
+            <p className="mt-1 text-sm text-stone-600">revenue per R1 of ad spend</p>
+            <p className="mt-0.5 text-xs text-stone-500">{cacCents != null ? `CAC ${formatZarCents(cacCents)} / new customer` : "CAC needs new customers this month"}</p>
+          </div>
+        ) : (
+          <Configure text="Set MONTHLY_AD_SPEND_CENTS in analytics-config.ts to compute blended ROAS and CAC." />
+        )}
       </PanelCard>
       <PanelCard title="LTV : CAC" subtitle="payback health">
-        <Configure text="Unlocks once both unit costs and ad spend are set, using lifetime value from the customers table." />
+        {adSpendConfigured && ltvCacRatio != null ? (
+          <div>
+            <p className={`text-2xl font-semibold tabular-nums ${ltvCacRatio >= 3 ? "text-green-700" : ltvCacRatio < 1 ? "text-red-700" : "text-stone-900"}`}>{ltvCacRatio.toFixed(1)} : 1</p>
+            <p className="mt-1 text-sm text-stone-600">avg LTV {formatZarCents(avgLtvCents)} vs CAC {cacCents != null ? formatZarCents(cacCents) : "—"}</p>
+            <p className="mt-0.5 text-xs text-stone-500">3:1 or better is healthy</p>
+          </div>
+        ) : (
+          <Configure text="Unlocks once ad spend is set, using lifetime value from the customers table." />
+        )}
       </PanelCard>
     </div>
   );

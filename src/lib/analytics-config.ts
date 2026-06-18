@@ -12,8 +12,21 @@ import type { WallpaperMaterial } from "@/types/order";
 /**
  * Monthly revenue target in CENTS. Drives the goal bar + run-rate pace.
  * Example: R250,000 => 25_000_000. Set to 0 to hide the goal tracker.
+ * Current: R10,000/mo starter target.
  */
-export const MONTHLY_REVENUE_GOAL_CENTS = 0;
+export const MONTHLY_REVENUE_GOAL_CENTS = 1_000_000;
+
+/**
+ * What you spent on ads this calendar month, in CENTS (blended across Meta /
+ * Google). Drives blended ROAS + CAC + LTV:CAC. 0 = not set (those tiles stay
+ * in a "configure to unlock" state). Update it monthly; for now it is a single
+ * blended number, not per-channel.
+ * Example: R8,000 spend => 800_000.
+ */
+export const MONTHLY_AD_SPEND_CENTS = 0;
+
+/** True once a monthly ad spend is entered, so ROAS/CAC can be computed. */
+export const AD_SPEND_CONFIGURED = MONTHLY_AD_SPEND_CENTS > 0;
 
 /**
  * Your cost basis per square metre, per finish, in CENTS (ink + substrate +
