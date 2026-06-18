@@ -1,8 +1,10 @@
 # PaperWalls — 7-Figure DTC Infrastructure Checklist
 
-> Pinned 2026-06-15 (updated after the checkout-speed + launch-hardening sprint). Phase: **activation, proof, compliance.**
+> Pinned 2026-06-15 · updated 2026-06-18 (tracking + Meta + analytics sprint). Phase: **activation, proof, compliance.**
 
 > **✓ Shipped since pinned:** PayFast signature + onConflict bugs fixed (ITN verified live); checkout speed (redirect-default, removed onsite round-trip, self-hosted font, lazy configurator, `waitUntil` deferrals); inline per-field checkout error UX; VAT-copy fix; Meta cross-border privacy disclosure; security headers; dead-Stitch removal; Organization + Product JSON-LD; quality-verdict persisted on orders; new favicon; old Meta pixel purged (clean slate for the new account).
+>
+> **✓ Shipped 2026-06-18 (tracking + Meta + analytics sprint):** rebuilt the first-party funnel (pdp.viewed; checkout.started on /checkout mount; add-to-cart moved to the cart chokepoint = `cart.wallpaper_added` + `cart.sample_added`; config image/size events) → admin funnel is now **8 sequential stages**; analytics **command center** rebuild (month-to-date goal + run-rate, auto "what to do" insights, sequential by-source funnel, channel economics, unit-economics scaffold, sample-pack panel) with owner config at `src/lib/analytics-config.ts`; **Meta Pixel + CAPI WIRED & DEPLOYED** on the new account (pixel `1555913832788701`) — real `_fbp`/`_fbc` + buyer IP on both server events, `CustomizeProduct` event, Graph API v19→v22 (v19 had expired 2026-05-21), InitiateCheckout `content_ids`, System-User token + env vars live. Verified by research + adversarial payment-path review. Final step: one test order to confirm dedup + EMQ.
 
 ## Executive Summary
 
@@ -10,20 +12,25 @@ PaperWalls is materially further along than most stores at this stage: the hard,
 
 ## Do next (P0) — still pending, sequenced
 
-1. Wire + verify new Meta Pixel + CAPI (test order, confirm Purchase dedup). · S · **new account pending**
-3. Capture `_fbp`/`_fbc` cookies → CAPI (EMQ ~5 → 8+, after Meta is wired). · M
-4. Tax-ready receipt in order-confirmed email (after Resend). · M
-5. Add WhatsApp (wa.me click-to-chat) — needs your WA number. · S
-6. Vercel Hobby → Pro (~R380/mo) — unblocks 5-min crons. · S
-7. Wire abandoned-cart recovery end-to-end (needs Resend + Pro). · M
-8. Sticky mobile add-to-cart + live-price bar — next conversion win. · M
-9. Rate-limit public POST routes (Upstash free). · M
-10. Error tracking (Sentry). · M
-11. Real install photography + reviews system. · M–L
+1. **Verify Meta end-to-end:** one test order → confirm Purchase shows Browser+Server "deduplicated" + EMQ 7+ in Events Manager (server side is checkable in the `capi_events` table). Meta is now WIRED + deployed. · S
+2. **Decide Business-Manager isolation** — Option A (separate BM for PaperWalls) vs B (stay in the shared BM that holds flagged financial pixels). A BM-wide restriction would freeze PaperWalls's pixel too; "separate ad account, same BM" is NOT isolation. · owner call
+3. **Email reliability:** send shipped/delivered **inline** (today they're queue-only, drained by the once-daily Hobby cron) + fix the re-notify idempotency key + correct the "sends within 5 min" UI copy. · M
+4. **Quality-warning softening:** lower BORDERLINE 0.55→0.45 in `lib/quality.ts` + reframe copy from alarm to a quiet note (math is correct; it only over-fires on low-res test images + zoom). · S
+5. **SEO:** home / PDP / `/samples` / `/faq` are client components so they share one generic root title — add per-folder server `layout.tsx` metadata + FAQPage JSON-LD + a real footer link sitemap. · M
+6. Tax-ready receipt in order-confirmed email. · M
+7. Sticky mobile add-to-cart + above-the-fold PDP price (the conversion batch). · M
+8. Vercel Hobby → Pro (~R380/mo) — unblocks 5-min crons + abandoned-cart cadence. · S
+9. Wire abandoned-cart recovery end-to-end (needs Pro). · M
+10. Rate-limit public POST routes (Upstash free) — also the prerequisite for any AddToCart CAPI mirror. · M
+11. Error tracking (Sentry). · M
+12. Real install photography + reviews system. · M–L
+13. WhatsApp (wa.me click-to-chat) — needs your WA number. · S
+
+**Deferred (recommended, not blockers):** AddToCart/ViewContent CAPI mirror (after rate-limiting); configurator "Add to cart" jumps straight to /checkout (rename or open the drawer first); Purchase `content_ids` → real catalog SKU (once a Meta catalog is connected); success-page Purchase pixel paid-status gate.
 
 ## By area (status-tagged)
 
-**Acquisition** — Meta live+verified `[PARTIAL] P0`; `_fbp/_fbc` capture `[TODO] P0`; Google Ads via stored `gclid` `[PARTIAL] P1`; monthly UGC/creative engine (3–5 SA micro-creators @ R1.5k–R5k) `[TODO] P1`; value-based lookalikes from `customers` `[PARTIAL] P1`; Product/Org JSON-LD shipped, Search Console verify pending `[PARTIAL] P1`.
+**Acquisition** — Meta Pixel+CAPI wired+deployed on the new account (final test-order verify pending) `[PARTIAL] P0`; `_fbp/_fbc` + buyer-IP capture into CAPI `[DONE] P0`; `CustomizeProduct` configurator event `[DONE]`; Graph API pinned to v22 (v19 expired) `[DONE]`; Google Ads via stored `gclid` `[PARTIAL] P1`; monthly UGC/creative engine (3–5 SA micro-creators @ R1.5k–R5k) `[TODO] P1`; value-based lookalikes from `customers` `[PARTIAL] P1`; Product/Org JSON-LD shipped, Search Console verify pending `[PARTIAL] P1`.
 
 **Conversion & CRO** — checkout speed (redirect + waitUntil + lazy configurator) `[DONE] P0`; inline checkout error UX `[DONE] P1`; self-host Satoshi font `[DONE] P1`; sticky mobile bar `[TODO] P0`; per-m² price anchoring ("most walls R2,800–4,500") `[PARTIAL] P1`; SA payment-method logos `[PARTIAL] P1`; honest urgency cue `[TODO] P2`.
 
@@ -37,7 +44,7 @@ PaperWalls is materially further along than most stores at this stage: the hard,
 
 **Brand & Creative** — replace AI imagery with real installs (½-day Cape Town shoot ~R3,500–6,000) `[TODO] P0`; verified reviews on PDP `[TODO] P0`; make unboxing real + photographed `[PARTIAL] P1`; IG/TikTok @paperwalls.za + UGC loop (tag-us → R150 credit) `[TODO] P1`; founder story w/ real face `[PARTIAL] P2`; branded OG card `[PARTIAL] P2`; content/SEO engine `[TODO] P2`.
 
-**Data & Analytics** — Meta dedup verified `[PARTIAL] P0`; contribution-margin engine (dashboard has a "needs cost data" placeholder) `[TODO] P0`; CAC/ROAS/LTV:CAC layer + manual `ad_spend` table `[TODO] P0`; server-side ViewContent/AddToCart CAPI `[PARTIAL] P1`; join events→customers + cohort/repeat view `[PARTIAL] P1`; CAPI-failure alerting `[PARTIAL] P1`; POPIA-safe analytics retention `[PARTIAL] P2`.
+**Data & Analytics** — full-journey first-party funnel + **8-stage sequential** admin funnel `[DONE] P0`; analytics **command center** (MTD goal/run-rate, auto "what to do" insights, by-source funnel, channel table, sample-pack panel) `[DONE] P0`; Meta dedup confirm pending a test order `[PARTIAL] P0`; contribution-margin engine **scaffolded** (set unit costs in `analytics-config.ts` to light it up) `[PARTIAL] P0`; CAC/ROAS/LTV:CAC layer + manual `ad_spend` table `[TODO] P0`; server-side ViewContent/AddToCart CAPI mirror `[TODO] P1` (after rate-limiting); join events→customers + cohort/repeat view `[PARTIAL] P1`; CAPI audit trail in `capi_events` `[DONE]`; POPIA-safe analytics retention `[PARTIAL] P2`.
 
 **Infrastructure & Reliability** — security headers (HSTS etc.) `[DONE] P1` (CSP still a report-only follow-up); remove dead Stitch webhook + stale SQL/docs `[DONE] P2`; Vercel Pro `[TODO] P0`; Sentry `[TODO] P0`; rate limiting `[TODO] P0`; uptime/synthetic monitor + `/api/health` `[TODO] P1`; Supabase PITR + restore drill `[PARTIAL] P1`; incident runbook + secret rotation `[TODO] P2`.
 
