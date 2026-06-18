@@ -26,6 +26,15 @@ const inputClass = (hasError: boolean) =>
 
 const LABEL_CLASSES = "pw-overline mb-2 block text-pw-muted";
 
+// Read a browser cookie. Used for Meta's _fbp/_fbc, which we forward to the
+// server so the CAPI Purchase/InitiateCheckout events match at high quality.
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = document.cookie.match(new RegExp("(?:^|; )" + escaped + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 export type CheckoutCreateResult = {
   payfastUrl:    string;
   payfastFields: Record<string, string>;
@@ -145,6 +154,8 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
             cart:               items,
             session_id:         sessionId,
             meta_event_id_init: checkoutEventId,
+            fbp:                readCookie("_fbp"),
+            fbc:                readCookie("_fbc"),
           }),
         });
         const data = await res.json();

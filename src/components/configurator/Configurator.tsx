@@ -17,6 +17,8 @@ import { PreviewEditStep } from "./PreviewEditStep";
 import { OrderSummaryPanel } from "./OrderSummaryPanel";
 import { ConfigAlert } from "./ConfigAlert";
 import { track } from "@/lib/analytics";
+import { metaPixelTrack } from "@/components/MetaPixel";
+import { mintEventId } from "@/lib/meta/event-id";
 
 const MAX_SIZE_MB = 50;
 const ACCEPT      = "image/jpeg,image/png,image/webp";
@@ -290,6 +292,27 @@ export function Configurator() {
     sizeEventRef.current = true;
     track("config.size_entered", { total_sqm: totalSqm });
   }, [dimensionsValid, totalSqm]);
+
+  // Meta CustomizeProduct — fired ONCE when the buyer has meaningfully engaged
+  // the configurator (image + a valid wall size), carrying the live price. This
+  // is Meta's standard event for "reached a product configuration tool"; it's a
+  // high-intent mid-funnel signal Meta can optimise toward while purchase volume
+  // is still low at launch. event_id is minted for future CAPI mirroring.
+  const customizeFiredRef = useRef(false);
+  useEffect(() => {
+    if (customizeFiredRef.current) return;
+    if (!anyImageUploaded || !dimensionsValid) return;
+    customizeFiredRef.current = true;
+    metaPixelTrack("CustomizeProduct", {
+      event_id:     mintEventId("CustomizeProduct"),
+      value_cents:  subtotalCents,
+      currency:     "ZAR",
+      content_type: "product",
+      content_ids:  ["custom_wallpaper"],
+      content_name: `Custom wallpaper (${state.material})`,
+      num_items:    1,
+    });
+  }, [anyImageUploaded, dimensionsValid, subtotalCents, state.material]);
 
   // ── Add to cart ────────────────────────────────────────────────────────
   const handleAddToCart = useCallback(async () => {

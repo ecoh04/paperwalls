@@ -29,13 +29,21 @@ function validateProvince(p: string): p is ShippingProvince {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { address, cart, session_id, meta_event_id_init } = body as {
+    const { address, cart, session_id, meta_event_id_init, fbp: bodyFbp, fbc: bodyFbc } = body as {
       address?: CheckoutAddress;
       cart?: CartItem[];
       session_id?: string;
       /** Pixel-side InitiateCheckout event_id to dedup the CAPI side against. */
       meta_event_id_init?: string;
+      /** Real Meta _fbp/_fbc cookies for CAPI match quality. */
+      fbp?: string;
+      fbc?: string;
     };
+    const fbp = bodyFbp?.trim() || null;
+    const fbc = bodyFbc?.trim() || null;
+    // Buyer's real IP, from THEIR request, stored on the order so the PayFast
+    // webhook Purchase CAPI can use it (the webhook only sees PayFast's IP).
+    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
 
     if (!address || !cart || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: "Missing address or cart." }, { status: 400 });
@@ -140,6 +148,9 @@ export async function POST(request: Request) {
       utm_content: string | null;
       fbclid: string | null;
       gclid: string | null;
+      fbp: string | null;
+      fbc: string | null;
+      client_ip: string | null;
     };
 
     const orderRows: OrderRow[] = [];
@@ -296,6 +307,9 @@ export async function POST(request: Request) {
       const baseRow = {
         ...customerFields,
         ...sessionAttribution,
+        fbp,
+        fbc,
+        client_ip: clientIp,
         discount_cents: itemDiscount,
         discount_code:  itemDiscountCode,
         subtotal_cents: item.subtotalCents,
@@ -591,13 +605,17 @@ export async function POST(request: Request) {
               country_code: "ZA",
               external_id:  customerId,
               fbclid:       sessionAttribution.fbclid,
-              client_ip:    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+              fbp,
+              fbc,
+              client_ip:    clientIp,
               client_ua:    request.headers.get("user-agent") ?? null,
             },
             custom_data: {
-              currency:  "ZAR",
-              value:     createdOrders.reduce((s, o) => s + (o.subtotal_cents as number), 0) / 100,
-              num_items: cart.length,
+              currency:     "ZAR",
+              value:        createdOrders.reduce((s, o) => s + (o.subtotal_cents as number), 0) / 100,
+              num_items:    cart.length,
+              content_type: "product",
+              content_ids:  cart.map((i) => (i.type === "sample_pack" ? "sample_pack" : "custom_wallpaper")),
             },
             meta: { customer_id: customerId ?? undefined },
           });

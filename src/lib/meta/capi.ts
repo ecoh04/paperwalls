@@ -14,7 +14,11 @@
 import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-const GRAPH_VERSION = "v19.0";
+// Graph API versions expire ~2 years after release. v19.0 expired 2026-05-21,
+// so we default to v22.0 (the safe floor Meta still accepts) and allow an env
+// override so the next forced bump is config, not a code change. Re-bump ~3
+// months before the chosen version's expiry.
+const GRAPH_VERSION = process.env.META_GRAPH_API_VERSION?.trim() || "v22.0";
 
 // Must stay in lockstep with the capi_events_event_type_check DB constraint
 // (Purchase, InitiateCheckout, AddToCart, ViewContent, Lead). 'PageView' is
@@ -40,6 +44,8 @@ type UserData = {
   client_ip?:    string | null;
   client_ua?:    string | null;
   fbclid?:       string | null;
+  fbp?:          string | null;        // real _fbp browser cookie (NOT hashed)
+  fbc?:          string | null;        // real _fbc click cookie (NOT hashed); beats fbclid synthesis
 };
 
 type CustomData = {
@@ -114,7 +120,10 @@ export async function sendMetaConversion(args: SendArgs): Promise<{ ok: boolean;
   const ex = hash(ud.external_id);                               if (ex) userData.external_id = [ex];
   if (ud.client_ip)  userData.client_ip_address  = ud.client_ip;
   if (ud.client_ua)  userData.client_user_agent  = ud.client_ua;
-  const fbc = buildFbc(ud.fbclid, eventTime);                    if (fbc) userData.fbc = fbc;
+  // fbp/fbc are first-party cookies, sent verbatim (NEVER hashed). The real
+  // _fbc cookie beats the fbclid-synthesized fallback for match quality.
+  const fbc = ud.fbc?.trim() || buildFbc(ud.fbclid, eventTime);  if (fbc) userData.fbc = fbc;
+  if (ud.fbp?.trim())                                            userData.fbp = ud.fbp.trim();
 
   const event: Record<string, unknown> = {
     event_name:        args.event_name,

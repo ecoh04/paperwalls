@@ -444,7 +444,7 @@ export async function POST(request: Request) {
         const customerId = (paidRows[0].customer_id as string | null) ?? null;
         const { data: orderForCapi } = await supabase
           .from("orders")
-          .select("customer_name, customer_email, customer_phone, city, province, postal_code, utm_source, fbclid, session_id")
+          .select("customer_name, customer_email, customer_phone, city, province, postal_code, utm_source, fbclid, fbp, fbc, client_ip, session_id")
           .eq("id", orderId)
           .maybeSingle();
         const splitName = (orderForCapi?.customer_name ?? "").trim().split(/\s+/);
@@ -477,6 +477,9 @@ export async function POST(request: Request) {
             country_code: "ZA",
             external_id:  customerId,
             fbclid:       (orderForCapi?.fbclid as string | null) ?? null,
+            fbp:          (orderForCapi?.fbp as string | null) ?? null,
+            fbc:          (orderForCapi?.fbc as string | null) ?? null,
+            client_ip:    (orderForCapi?.client_ip as string | null) ?? null,
             client_ua:    userAgent,
           },
           custom_data: {
