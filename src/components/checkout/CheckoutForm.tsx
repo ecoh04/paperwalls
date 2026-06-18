@@ -35,6 +35,35 @@ function readCookie(name: string): string | null {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
+// First-touch attribution (Meta/Google click ids + UTMs) read synchronously
+// from the URL and the session-persisted copy. Sent in the checkout body so a
+// fast mobile buyer never loses the ad's fbclid to the debounced session sync
+// (which can land AFTER a quick checkout, saving the order with fbclid null).
+function readAttribution(): {
+  fbclid: string | null; gclid: string | null;
+  utm_source: string | null; utm_medium: string | null;
+  utm_campaign: string | null; utm_content: string | null;
+} {
+  const empty = { fbclid: null, gclid: null, utm_source: null, utm_medium: null, utm_campaign: null, utm_content: null };
+  if (typeof window === "undefined") return empty;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const get = (k: string): string | null => {
+      const v = params.get(k);
+      if (v) return v;
+      try { return sessionStorage.getItem(`pw_${k}`); } catch { return null; }
+    };
+    return {
+      fbclid:       get("fbclid"),
+      gclid:        get("gclid"),
+      utm_source:   get("utm_source"),
+      utm_medium:   get("utm_medium"),
+      utm_campaign: get("utm_campaign"),
+      utm_content:  get("utm_content"),
+    };
+  } catch { return empty; }
+}
+
 export type CheckoutCreateResult = {
   payfastUrl:    string;
   payfastFields: Record<string, string>;
@@ -156,6 +185,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
             meta_event_id_init: checkoutEventId,
             fbp:                readCookie("_fbp"),
             fbc:                readCookie("_fbc"),
+            attribution:        readAttribution(),
           }),
         });
         const data = await res.json();

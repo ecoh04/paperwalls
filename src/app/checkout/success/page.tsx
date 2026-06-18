@@ -24,6 +24,7 @@ type SearchParams = { orders?: string };
 
 type OrderRow = {
   order_number:       string;
+  status:             string | null;
   customer_name:      string | null;
   customer_email:     string | null;
   product_type:       string | null;
@@ -57,7 +58,7 @@ async function fetchOrders(orderNumbers: string[]): Promise<OrderRow[]> {
   const { data } = await supabaseAdmin
     .from("orders")
     .select(
-      "order_number, customer_name, customer_email, product_type, application_method, image_url, image_urls, total_cents, total_sqm, wall_count, wallpaper_style, quantity"
+      "order_number, status, customer_name, customer_email, product_type, application_method, image_url, image_urls, total_cents, total_sqm, wall_count, wallpaper_style, quantity"
     )
     .in("order_number", orderNumbers);
   return (data ?? []) as OrderRow[];
@@ -118,10 +119,19 @@ export default async function CheckoutSuccessPage({
   const greeting = primary?.customer_name ? `Thank you, ${firstName(primary.customer_name)}.` : "Thank you.";
   const maskedEmail = maskEmail(primary?.customer_email);
 
+  // Only fire the browser Purchase pixel when every fetched order is actually
+  // paid. This page can be refreshed, bookmarked, or hit by a bot / a cancelled
+  // return; firing on those would report phantom conversions + revenue to Meta.
+  // (The authoritative Purchase is the server-side CAPI from the PayFast ITN,
+  // which shares this event_id so a real later payment still dedups cleanly.)
+  const allPaid = orders.length > 0 && orders.every(
+    (o) => o.status !== "pending" && o.status !== "cancelled",
+  );
+
   return (
     <Suspense>
       <CartClearOnMount />
-      {orderNumbers.length > 0 && (
+      {orderNumbers.length > 0 && allPaid && (
         <PurchasePixelTrigger
           orderNumbers={orderNumbers}
           valueCents={orders.reduce((s, o) => s + Number(o.total_cents ?? 0), 0)}

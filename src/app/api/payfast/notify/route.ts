@@ -497,7 +497,11 @@ export async function POST(request: Request) {
         if (purchaseCapi.ok) {
           console.info("[Meta CAPI] Purchase sent"); // TEMP(meta-verify): remove after verifying live
         } else {
-          console.warn(`[Meta CAPI] Purchase NOT sent: ${purchaseCapi.reason ?? "unknown"}`);
+          await notifyOps({
+            severity: "warn",
+            title: "Meta CAPI Purchase failed to send",
+            fields: { orders: orderNumbers.join(","), reason: purchaseCapi.reason ?? "unknown" },
+          });
         }
       }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { notifyOps } from "@/lib/alerts";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_EMAIL_LENGTH = 254;
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
   // 23505 = unique_violation. Treat as success.
   if (error && error.code !== "23505") {
     console.error("[subscribe] insert failed:", error);
+    await notifyOps({ severity: "warn", title: "Subscribe insert failed", fields: { code: error.code ?? "", message: error.message ?? "" } });
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 

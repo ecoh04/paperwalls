@@ -76,8 +76,10 @@ function captureSessionInit(): SessionInit {
     const peek = (k: string): string | undefined =>
       params.get(k) || sessionStorage.getItem(`pw_${k}`) || undefined;
 
-    // Persist click-ids across same-session navigations.
-    for (const k of ["fbclid", "gclid"]) {
+    // Persist click-ids AND UTMs across same-session navigations. Meta only
+    // appends fbclid to the landing URL, so without persisting utm_* a Meta
+    // visitor who navigates (SPA) loses them and reclassifies as "(direct)".
+    for (const k of ["fbclid", "gclid", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) {
       const v = params.get(k);
       if (v) sessionStorage.setItem(`pw_${k}`, v);
     }

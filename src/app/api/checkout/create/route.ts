@@ -7,6 +7,7 @@ import { uploadPrintImage, renamePrintFile } from "@/lib/storage";
 import { buildPayfastFormFields } from "@/lib/payfast";
 import { waitUntil } from "@vercel/functions";
 import { sendMetaConversion } from "@/lib/meta/capi";
+import { notifyOps } from "@/lib/alerts";
 import { calculateSubtotalCents } from "@/lib/pricing";
 import type { ShippingProvince } from "@/types/order";
 
@@ -29,7 +30,7 @@ function validateProvince(p: string): p is ShippingProvince {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { address, cart, session_id, meta_event_id_init, fbp: bodyFbp, fbc: bodyFbc } = body as {
+    const { address, cart, session_id, meta_event_id_init, fbp: bodyFbp, fbc: bodyFbc, attribution: bodyAttr } = body as {
       address?: CheckoutAddress;
       cart?: CartItem[];
       session_id?: string;
@@ -38,6 +39,13 @@ export async function POST(request: Request) {
       /** Real Meta _fbp/_fbc cookies for CAPI match quality. */
       fbp?: string;
       fbc?: string;
+      /** First-touch attribution read client-side (URL + sessionStorage),
+       *  preferred over the session row a fast mobile buyer can outrun. */
+      attribution?: {
+        fbclid?: string | null; gclid?: string | null;
+        utm_source?: string | null; utm_medium?: string | null;
+        utm_campaign?: string | null; utm_content?: string | null;
+      };
     };
     const fbp = bodyFbp?.trim() || null;
     const fbc = bodyFbc?.trim() || null;
@@ -109,6 +117,26 @@ export async function POST(request: Request) {
       } catch {
         // Non-fatal: attribution just won't be on orders
       }
+    }
+
+    // Prefer client-supplied attribution (read synchronously at submit from the
+    // URL + sessionStorage) over the session row. The session row is written by
+    // a debounced fire-and-forget sync that a fast mobile buyer can outrun,
+    // leaving fbclid/utm null on exactly the ad-driven orders we most want to
+    // attribute. Fall back to the session value when the body field is absent.
+    if (bodyAttr) {
+      // Trust nothing from the client: clamp each field so a crafted URL can't
+      // bloat the order row or the Meta payload. Falls back to the session value.
+      const clamp = (v: unknown): string | null =>
+        typeof v === "string" && v.trim() ? v.trim().slice(0, 200) : null;
+      sessionAttribution = {
+        utm_source:   clamp(bodyAttr.utm_source)   ?? sessionAttribution.utm_source,
+        utm_medium:   clamp(bodyAttr.utm_medium)   ?? sessionAttribution.utm_medium,
+        utm_campaign: clamp(bodyAttr.utm_campaign) ?? sessionAttribution.utm_campaign,
+        utm_content:  clamp(bodyAttr.utm_content)  ?? sessionAttribution.utm_content,
+        fbclid:       clamp(bodyAttr.fbclid)       ?? sessionAttribution.fbclid,
+        gclid:        clamp(bodyAttr.gclid)        ?? sessionAttribution.gclid,
+      };
     }
 
     // ── Build order rows ──────────────────────────────────────────────────────
@@ -635,6 +663,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ payfastUrl, payfastFields, orderNumbers });
   } catch (e) {
     console.error("Checkout create error:", e);
+    await notifyOps({
+      severity: "fatal",
+      title: "Checkout create failed",
+      detail: e instanceof Error ? `${e.message}\n${e.stack ?? ""}` : String(e),
+    });
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Something went wrong. Please try again." },
       { status: 500 }
