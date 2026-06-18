@@ -172,9 +172,13 @@ export async function sendMetaConversion(args: SendArgs): Promise<{ ok: boolean;
     errorReason = err instanceof Error ? err.message : "Unknown CAPI error";
   }
 
-  // Audit row — never blocks the response.
+  // Audit row. Awaited (NOT fire-and-forget): an un-awaited insert gets killed
+  // when the serverless function freezes after the response, which is exactly
+  // why CAPI events reached Meta (EMQ 8.0) but capi_events stayed empty. Both
+  // call sites already await sendMetaConversion in latency-tolerant contexts
+  // (the ITN is server-to-server; checkout's CAPI runs inside waitUntil).
   if (supabaseAdmin) {
-    void supabaseAdmin.from("capi_events").insert({
+    const { error: auditError } = await supabaseAdmin.from("capi_events").insert({
       event_type:    args.event_name,
       order_id:      args.meta?.order_id    ?? null,
       customer_id:   args.meta?.customer_id ?? null,
@@ -189,6 +193,9 @@ export async function sendMetaConversion(args: SendArgs): Promise<{ ok: boolean;
       response:      typeof responseBody === "object" ? (responseBody as Record<string, unknown>) : null,
       status:        okResult ? "sent" : "failed",
     });
+    if (auditError) {
+      console.warn(`[Meta CAPI] audit insert failed (${args.event_name}): ${auditError.message}`);
+    }
   }
 
   return { ok: okResult, reason: errorReason, response: responseBody };
