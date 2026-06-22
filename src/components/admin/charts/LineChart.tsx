@@ -48,6 +48,13 @@ function formatValue(n: number, format: ChartFormat): string {
   }
 }
 
+function fmtDay(day: string, opts: Intl.DateTimeFormatOptions): string {
+  // Hour buckets ("09:00") and rollup labels ("wk of 9 Jun") aren't dates —
+  // show them verbatim instead of "Invalid Date".
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return day;
+  return new Date(day).toLocaleDateString("en-ZA", opts);
+}
+
 export function LineChart({
   data,
   height  = 220,
@@ -204,7 +211,7 @@ export function LineChart({
 
         {!compact && xTicks.map((p) => (
           <text key={`xt-${p.i}`} x={p.x} y={height - 8} fontSize={10} fill="#8A8175" textAnchor="middle">
-            {new Date(p.d.day).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+            {fmtDay(p.d.day, { day: "numeric", month: "short" })}
           </text>
         ))}
       </svg>
@@ -219,7 +226,7 @@ export function LineChart({
           }}
         >
           <div className="truncate text-stone-300">
-            {new Date(points[hover].d.day).toLocaleDateString("en-ZA", { weekday: "short", day: "numeric", month: "short" })}
+            {fmtDay(points[hover].d.day, { weekday: "short", day: "numeric", month: "short" })}
           </div>
           <div className="mt-0.5">
             {label && <span className="mr-1 text-stone-400">{label}</span>}

@@ -1,9 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { formatZarCents } from "@/lib/admin-labels";
+import { LineChart } from "@/components/admin/charts/LineChart";
 import { FunnelChart } from "@/components/admin/charts/FunnelChart";
 import { SparklineChart } from "@/components/admin/charts/SparklineChart";
 import { RefreshButton } from "@/components/admin/RefreshButton";
 import { PeriodPicker } from "@/components/admin/PeriodPicker";
+import { SpendInput } from "@/components/admin/SpendInput";
 import { MetricTrend } from "@/components/admin/MetricTrend";
 import { type WindowValue, isWindowValue, isYmd } from "@/components/admin/window-options";
 import { DeltaIndicator } from "@/components/admin/DeltaIndicator";
@@ -815,6 +818,88 @@ export default async function AnalyticsPage({
   ];
   const anyHealthWarn = healthTones.some((t) => t === "warn") || capiFailures24h > 0 || (currentOrders > 0 && capiPurchase24h === 0);
 
+  // ── v3 cockpit: ad spend → MER / net profit / verdict, + intraday ────────
+  const granularity: "hour" | "day" | "week" | "month" =
+    win.chartDays === 1 ? "hour" : win.chartDays <= 92 ? "day" : win.chartDays <= 400 ? "week" : "month";
+  const singleDay = granularity === "hour";
+
+  const spendStartYmd  = sastYmdOf(new Date(win.start));
+  const spendEndYmd    = sastYmdOf(new Date(new Date(win.end).getTime() - 1));
+  const spendInputDate = singleDay ? spendStartYmd : sastTodayYmd();
+  let windowSpendCents   = 0;
+  let inputDaySpendCents = 0;
+  if (supabaseAdmin) {
+    const { data: spendRows } = await supabaseAdmin
+      .from("daily_ad_spend").select("spend_date, amount_cents")
+      .gte("spend_date", spendStartYmd).lte("spend_date", spendEndYmd);
+    for (const r of (spendRows ?? []) as { spend_date: string; amount_cents: number }[]) {
+      windowSpendCents += Number(r.amount_cents);
+      if (r.spend_date === spendInputDate) inputDaySpendCents = Number(r.amount_cents);
+    }
+    if (!singleDay && inputDaySpendCents === 0) {
+      const { data: td } = await supabaseAdmin.from("daily_ad_spend").select("amount_cents").eq("spend_date", spendInputDate).maybeSingle();
+      inputDaySpendCents = Number(td?.amount_cents ?? 0);
+    }
+  }
+
+  const adSpendCents   = windowSpendCents;
+  const adSpendSet     = adSpendCents > 0;
+  const netProfitCents = totalCollected - (cogsCents ?? 0) - cardFees - refundsTotal - adSpendCents;
+  const netMarginPct   = totalCollected > 0 ? (netProfitCents / totalCollected) * 100 : null;
+  const mer            = adSpendSet ? currentRevenue / adSpendCents : null;
+  const contribFraction = (COSTS_CONFIGURED && marginPct != null && marginPct > 0) ? marginPct / 100 : null;
+  const breakevenMer   = contribFraction ? 1 / contribFraction : null;
+  const newCacCents    = adSpendSet && newCustomers > 0 ? Math.round(adSpendCents / newCustomers) : null;
+
+  let verdictWord = "Enter spend";
+  let verdictTone: "scale" | "hold" | "cut" | "setup" = "setup";
+  let verdictReason = "Add your ad spend to see profit, MER and the daily call.";
+  if (adSpendSet && mer != null) {
+    if (breakevenMer != null) {
+      if (mer >= breakevenMer * 1.2)      { verdictWord = "Scale";     verdictTone = "scale"; verdictReason = `MER ${mer.toFixed(2)}× beats breakeven ${breakevenMer.toFixed(2)}× — every extra rand spent is profitable.`; }
+      else if (mer < breakevenMer)        { verdictWord = "Pull back"; verdictTone = "cut";   verdictReason = `MER ${mer.toFixed(2)}× is below breakeven ${breakevenMer.toFixed(2)}× — you're losing money on ads.`; }
+      else                                { verdictWord = "Hold";      verdictTone = "hold";  verdictReason = `MER ${mer.toFixed(2)}× sits near breakeven ${breakevenMer.toFixed(2)}× — watch it before scaling.`; }
+    } else {
+      if (mer >= 3)        { verdictWord = "Scale";     verdictTone = "scale"; verdictReason = `MER ${mer.toFixed(2)}×. Set cost/m² (COGS) in analytics-config.ts for a true breakeven line.`; }
+      else if (mer < 1.5)  { verdictWord = "Pull back"; verdictTone = "cut";   verdictReason = `MER ${mer.toFixed(2)}× is low. Set cost/m² (COGS) for a true breakeven line.`; }
+      else                 { verdictWord = "Hold";      verdictTone = "hold";  verdictReason = `MER ${mer.toFixed(2)}×. Set cost/m² (COGS) for a true breakeven line.`; }
+    }
+  }
+  const profitSteps = [
+    { label: "Revenue",   value: totalCollected, kind: "start" as const },
+    ...(cogsCents != null ? [{ label: "COGS", value: -cogsCents, kind: "neg" as const }] : []),
+    { label: "Card fees", value: -cardFees,      kind: "neg" as const },
+    { label: "Refunds",   value: -refundsTotal,  kind: "neg" as const },
+    { label: "Ad spend",  value: -adSpendCents,  kind: "neg" as const },
+    { label: "Net profit", value: netProfitCents, kind: "total" as const },
+  ];
+
+  // Intraday cumulative revenue (single-day windows only): the day vs the prior day.
+  let intradayToday: { day: string; value: number }[] = [];
+  let intradayPrev:  { day: string; value: number }[] = [];
+  if (singleDay) {
+    const dayYmd     = spendStartYmd;
+    const prevDayYmd = sastYmdOf(new Date(win.prevStart));
+    const isTodayDay = dayYmd === sastTodayYmd();
+    const { data: hourRows } = await supabase.from("v_hourly_revenue")
+      .select("hour, paid_revenue_cents")
+      .gte("hour", `${prevDayYmd}T00:00:00`)
+      .lt("hour", `${addDaysYmd(dayYmd, 1)}T00:00:00`);
+    const byHour = new Map<string, number>();
+    for (const r of (hourRows ?? []) as { hour: string; paid_revenue_cents: number }[]) {
+      const h = String(r.hour ?? "");
+      byHour.set(`${h.slice(0, 10)} ${h.slice(11, 13)}`, Number(r.paid_revenue_cents));
+    }
+    const nowHour = Math.min(23, Math.max(0, Number(new Intl.DateTimeFormat("en-GB", { timeZone: SAST, hour: "2-digit", hour12: false }).format(new Date())) % 24));
+    const cum = (ymd: string, clip: number) => {
+      const out: { day: string; value: number }[] = []; let acc = 0;
+      for (let h = 0; h <= clip; h++) { acc += byHour.get(`${ymd} ${String(h).padStart(2, "0")}`) ?? 0; out.push({ day: `${String(h).padStart(2, "0")}:00`, value: acc }); }
+      return out;
+    };
+    intradayToday = cum(dayYmd, isTodayDay ? nowHour : 23);
+    intradayPrev  = cum(prevDayYmd, 23);
+  }
+
   const loadedAt = Date.now();
 
   return (
@@ -846,17 +931,46 @@ export default async function AnalyticsPage({
         </div>
       )}
 
-      {/* ════ BAND 1 · THE ANSWER ════ */}
-      <Band label="The answer">
-        <GoalStrip
-          mtdRevenue={mtdRevenue}
-          mtdOrders={mtdOrders}
-          goalCents={MONTHLY_REVENUE_GOAL_CENTS}
-          goalPct={goalPct}
-          runRate={monthRunRate}
-          dayOfMonth={dayOfMonth}
-          daysInMonth={daysInMonth}
+      {/* ════ BAND 1 · ARE WE PROFITABLE TODAY? ════ */}
+      <Band label="Are we profitable today?">
+        <ProfitVerdict
+          verdictWord={verdictWord}
+          verdictTone={verdictTone}
+          verdictReason={verdictReason}
+          netProfitCents={netProfitCents}
+          netMarginPct={netMarginPct}
+          mer={mer}
+          breakevenMer={breakevenMer}
+          newCacCents={newCacCents}
+          periodLabel={win.label}
+          spendInput={<SpendInput spendDate={spendInputDate} label={singleDay ? win.label : "Today's"} initialCents={inputDaySpendCents} />}
         />
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <PanelCard title="Profit after ad spend" subtitle={`${win.label.toLowerCase()} · revenue → net`}>
+            <FinanceWaterfall steps={profitSteps} />
+            {cogsCents == null && <p className="mt-2 text-xs text-stone-500">COGS not included yet — set cost/m² per finish in analytics-config.ts for a true gross margin.</p>}
+          </PanelCard>
+          {singleDay ? (
+            <PanelCard title="Intraday pace" subtitle="cumulative revenue · this day vs the prior day">
+              {intradayToday.length === 0 ? (
+                <Empty msg="No hourly data yet — fills in as orders land through the day." />
+              ) : (
+                <LineChart data={intradayToday} compareData={intradayPrev} compareLabel="prior day" height={224} color="#C4622D" fill="rgba(196,98,45,0.10)" format="zar_cents" label="revenue" />
+              )}
+            </PanelCard>
+          ) : (
+            <GoalStrip
+              mtdRevenue={mtdRevenue}
+              mtdOrders={mtdOrders}
+              goalCents={MONTHLY_REVENUE_GOAL_CENTS}
+              goalPct={goalPct}
+              runRate={monthRunRate}
+              dayOfMonth={dayOfMonth}
+              daysInMonth={daysInMonth}
+            />
+          )}
+        </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
@@ -1861,6 +1975,59 @@ function FinanceWaterfall({ steps }: { steps: { label: string; value: number; ki
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function ProfitVerdict({
+  verdictWord, verdictTone, verdictReason, netProfitCents, netMarginPct, mer, breakevenMer, newCacCents, periodLabel, spendInput,
+}: {
+  verdictWord: string; verdictTone: "scale" | "hold" | "cut" | "setup"; verdictReason: string;
+  netProfitCents: number; netMarginPct: number | null; mer: number | null; breakevenMer: number | null;
+  newCacCents: number | null; periodLabel: string; spendInput: React.ReactNode;
+}) {
+  const chip = {
+    scale: "bg-green-50 text-green-700 ring-green-200",
+    hold:  "bg-amber-50 text-amber-800 ring-amber-200",
+    cut:   "bg-red-50 text-red-700 ring-red-200",
+    setup: "bg-stone-100 text-stone-600 ring-stone-300",
+  }[verdictTone];
+  const fillCls = verdictTone === "cut" ? "bg-red-400" : verdictTone === "scale" ? "bg-green-500" : verdictTone === "hold" ? "bg-amber-400" : "bg-stone-300";
+  const scaleMax = Math.max(0.01, Math.max(mer ?? 0, breakevenMer ?? 0) * 1.3);
+  const merW = mer != null ? Math.min(100, (mer / scaleMax) * 100) : 0;
+  const beW  = breakevenMer != null ? Math.min(100, (breakevenMer / scaleMax) * 100) : null;
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-stone-500">Net profit after ad spend · {periodLabel.toLowerCase()}</p>
+          <p className={`mt-1 text-4xl font-semibold tabular-nums ${netProfitCents >= 0 ? "text-green-700" : "text-red-700"}`}>
+            {netProfitCents < 0 ? "−" : ""}{formatZarCents(Math.abs(netProfitCents))}
+          </p>
+          <p className="mt-0.5 text-xs text-stone-500">
+            {netMarginPct != null ? `${netMarginPct.toFixed(0)}% net margin` : "after fees + refunds + ad spend"}
+            {newCacCents != null ? ` · CAC ${formatZarCents(newCacCents)} / new customer` : ""}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <span className={`inline-flex items-center rounded-full px-3.5 py-1 text-sm font-semibold uppercase tracking-wide ring-1 ${chip}`}>{verdictWord}</span>
+          {spendInput}
+        </div>
+      </div>
+
+      {mer != null && (
+        <div className="mt-4">
+          <div className="flex justify-between text-xs text-stone-500">
+            <span>MER {mer.toFixed(2)}×</span>
+            <span>{breakevenMer != null ? `breakeven ${breakevenMer.toFixed(2)}×` : "set COGS for breakeven"}</span>
+          </div>
+          <div className="relative mt-1 h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
+            <div className={`h-full rounded-full ${fillCls}`} style={{ width: `${Math.max(2, merW)}%` }} />
+            {beW != null && <div className="absolute top-0 h-full w-0.5 bg-stone-700" style={{ left: `${beW}%` }} title="breakeven" />}
+          </div>
+        </div>
+      )}
+      <p className="mt-3 text-sm text-stone-600">{verdictReason}</p>
     </div>
   );
 }
