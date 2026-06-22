@@ -4,8 +4,8 @@ import { LineChart } from "@/components/admin/charts/LineChart";
 import { FunnelChart } from "@/components/admin/charts/FunnelChart";
 import { SparklineChart } from "@/components/admin/charts/SparklineChart";
 import { RefreshButton } from "@/components/admin/RefreshButton";
-import { WindowToggle } from "@/components/admin/WindowToggle";
-import { WINDOW_OPTIONS, type WindowValue } from "@/components/admin/window-options";
+import { PeriodPicker } from "@/components/admin/PeriodPicker";
+import { type WindowValue, isWindowValue, isYmd } from "@/components/admin/window-options";
 import { DeltaIndicator } from "@/components/admin/DeltaIndicator";
 import {
   MONTHLY_REVENUE_GOAL_CENTS,
@@ -19,7 +19,7 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = { window?: string };
+type SearchParams = { window?: string; from?: string; to?: string };
 
 const SAST       = "Africa/Johannesburg";
 const FEE_PCT    = 0.035;          // PayFast standard rate (incl. card networks)
@@ -42,45 +42,98 @@ const FUNNEL_EVENT_TYPES = [
 // ──────────────────────────────────────────────────────────────────────────
 
 type WindowSpec = {
-  start:        string;
-  prevStart:    string;
-  chartDays:    number;
-  label:        string;
-  vsLabel:      string;
+  start:     string;   // ISO, inclusive lower bound (SAST day start)
+  end:       string;   // ISO, exclusive upper bound (now, or period end)
+  prevStart: string;   // ISO, start of the equal-length previous period
+  chartDays: number;
+  label:     string;
+  vsLabel:   string;
+  mode:      string;   // active preset value, or "custom"
+  from?:     string;   // YYYY-MM-DD (custom only)
+  to?:       string;   // YYYY-MM-DD (custom only)
 };
 
-function todayStartUtc(): Date {
-  const ymd = new Intl.DateTimeFormat("en-CA", {
-    timeZone: SAST, year: "numeric", month: "2-digit", day: "2-digit",
-  }).format(new Date());
-  return new Date(`${ymd}T00:00:00+02:00`);
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function sastTodayYmd(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: SAST, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+function sastYmdOf(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: SAST, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+function sastMidnightIso(ymd: string): string {
+  return new Date(`${ymd}T00:00:00+02:00`).toISOString();
+}
+function addDaysYmd(ymd: string, days: number): string {
+  // SAST has no DST, so adding whole days in ms is exact.
+  return sastYmdOf(new Date(new Date(`${ymd}T00:00:00+02:00`).getTime() + days * DAY_MS));
+}
+function fmtDmy(ymd: string): string {
+  return new Date(`${ymd}T00:00:00+02:00`).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function buildWindow(value: WindowValue): WindowSpec {
-  const t = todayStartUtc();
-  const day = 24 * 60 * 60 * 1000;
-  switch (value) {
-    case "today":  return { start: t.toISOString(),
-                            prevStart: new Date(t.getTime() - day).toISOString(),
-                            chartDays: 7,
-                            label: "Today", vsLabel: "vs yesterday" };
-    case "7d":     return { start: new Date(t.getTime() - 6 * day).toISOString(),
-                            prevStart: new Date(t.getTime() - 13 * day).toISOString(),
-                            chartDays: 7,
-                            label: "Last 7 days", vsLabel: "vs prior 7d" };
-    case "30d":    return { start: new Date(t.getTime() - 29 * day).toISOString(),
-                            prevStart: new Date(t.getTime() - 59 * day).toISOString(),
-                            chartDays: 30,
-                            label: "Last 30 days", vsLabel: "vs prior 30d" };
-    case "90d":    return { start: new Date(t.getTime() - 89 * day).toISOString(),
-                            prevStart: new Date(t.getTime() - 179 * day).toISOString(),
-                            chartDays: 90,
-                            label: "Last 90 days", vsLabel: "vs prior 90d" };
+function buildWindow(p: { window?: string; from?: string; to?: string }): WindowSpec {
+  const today  = sastTodayYmd();
+  const nowIso = new Date().toISOString();
+
+  // Custom explicit range takes precedence over presets.
+  if (isYmd(p.from) && isYmd(p.to)) {
+    const [a, b] = p.from <= p.to ? [p.from, p.to] : [p.to, p.from];
+    const start  = sastMidnightIso(a);
+    const end    = sastMidnightIso(addDaysYmd(b, 1)); // exclusive: include the whole 'to' day
+    const rangeDays = Math.max(1, Math.round((new Date(end).getTime() - new Date(start).getTime()) / DAY_MS));
+    return {
+      start, end,
+      prevStart: sastMidnightIso(addDaysYmd(a, -rangeDays)),
+      chartDays: rangeDays,
+      label: a === b ? fmtDmy(a) : `${fmtDmy(a)} – ${fmtDmy(b)}`,
+      vsLabel: "vs prior period",
+      mode: "custom", from: a, to: b,
+    };
   }
-}
 
-function isWindowValue(s: string | undefined): s is WindowValue {
-  return WINDOW_OPTIONS.some((o) => o.value === s);
+  const mode: WindowValue = isWindowValue(p.window) ? p.window : "30d";
+
+  const rolling = (days: number, label: string): WindowSpec => {
+    const startYmd = addDaysYmd(today, -(days - 1));
+    return {
+      start: sastMidnightIso(startYmd), end: nowIso,
+      prevStart: sastMidnightIso(addDaysYmd(startYmd, -days)),
+      chartDays: days, label, vsLabel: `vs prior ${days}d`, mode,
+    };
+  };
+
+  switch (mode) {
+    case "today":
+      return { start: sastMidnightIso(today), end: nowIso, prevStart: sastMidnightIso(addDaysYmd(today, -1)), chartDays: 1, label: "Today", vsLabel: "vs yesterday", mode };
+    case "yesterday": {
+      const y = addDaysYmd(today, -1);
+      return { start: sastMidnightIso(y), end: sastMidnightIso(today), prevStart: sastMidnightIso(addDaysYmd(y, -1)), chartDays: 1, label: "Yesterday", vsLabel: "vs prior day", mode };
+    }
+    case "7d":  return rolling(7,  "Last 7 days");
+    case "90d": return rolling(90, "Last 90 days");
+    case "this_month": {
+      const first   = today.slice(0, 7) + "-01";
+      const elapsed = Math.max(1, parseInt(today.slice(8, 10), 10));
+      return { start: sastMidnightIso(first), end: nowIso, prevStart: sastMidnightIso(addDaysYmd(first, -elapsed)), chartDays: elapsed, label: "This month", vsLabel: "vs prior period", mode };
+    }
+    case "last_month": {
+      const thisFirst = today.slice(0, 7) + "-01";
+      const lastFirst = addDaysYmd(thisFirst, -1).slice(0, 7) + "-01";
+      const start = sastMidnightIso(lastFirst);
+      const end   = sastMidnightIso(thisFirst);
+      const days  = Math.max(1, Math.round((new Date(end).getTime() - new Date(start).getTime()) / DAY_MS));
+      return { start, end, prevStart: sastMidnightIso(addDaysYmd(lastFirst, -days)), chartDays: days, label: "Last month", vsLabel: "vs prior month", mode };
+    }
+    case "this_year": {
+      const first = today.slice(0, 4) + "-01-01";
+      const days  = Math.max(1, Math.round((new Date(nowIso).getTime() - new Date(sastMidnightIso(first)).getTime()) / DAY_MS) + 1);
+      return { start: sastMidnightIso(first), end: nowIso, prevStart: sastMidnightIso(addDaysYmd(first, -days)), chartDays: days, label: "This year", vsLabel: "vs prior period", mode };
+    }
+    case "30d":
+    default:
+      return rolling(30, "Last 30 days");
+  }
 }
 
 const fmtInt = (n: number) => n.toLocaleString();
@@ -94,9 +147,8 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const params      = await searchParams;
-  const windowValue = isWindowValue(params.window) ? params.window : "30d";
-  const win         = buildWindow(windowValue);
+  const params = await searchParams;
+  const win    = buildWindow(params);
 
   // Current SAST calendar month start (YYYY-MM-01), for the month-to-date goal.
   const monthStartKey = new Intl.DateTimeFormat("en-CA", {
@@ -125,14 +177,12 @@ export default async function AnalyticsPage({
   const map = new Map<string, DailyRev>();
   for (const r of (revRows ?? []) as DailyRev[]) map.set(r.day, r);
 
-  // Backfill missing days
+  // Backfill missing days across [prevStart, last day of the selected period].
   const filled: DailyRev[] = [];
-  const dayMs   = 24 * 60 * 60 * 1000;
-  const startMs = new Date(win.prevStart).getTime();
-  const todayMs = todayStartUtc().getTime();
-  for (let t = startMs; t <= todayMs; t += dayMs) {
-    const key = new Intl.DateTimeFormat("en-CA", { timeZone: SAST, year: "numeric", month: "2-digit", day: "2-digit" })
-      .format(new Date(t));
+  const startMs   = new Date(win.prevStart).getTime();
+  const lastDayMs = new Date(sastMidnightIso(sastYmdOf(new Date(new Date(win.end).getTime() - 1)))).getTime();
+  for (let t = startMs; t <= lastDayMs; t += DAY_MS) {
+    const key = sastYmdOf(new Date(t));
     filled.push(map.get(key) ?? { day: key, paid_orders: 0, paid_revenue_cents: 0, refunded_orders: 0 });
   }
 
@@ -213,7 +263,7 @@ export default async function AnalyticsPage({
   ] = await Promise.all([
     // Current + previous + live visitor counts
     supabase.from("sessions").select("id", { count: "exact", head: true })
-      .gte("first_seen_at", win.start),
+      .gte("first_seen_at", win.start).lt("first_seen_at", win.end),
     supabase.from("sessions").select("id", { count: "exact", head: true })
       .gte("first_seen_at", win.prevStart).lt("first_seen_at", win.start),
     supabase.from("sessions").select("id", { count: "exact", head: true })
@@ -222,19 +272,20 @@ export default async function AnalyticsPage({
     // Window's sessions for landing page / device / country aggregations + daily count
     supabase.from("sessions")
       .select("id, first_seen_at, landing_page, country, user_agent, utm_source")
-      .gte("first_seen_at", win.start),
+      .gte("first_seen_at", win.start).lt("first_seen_at", win.end),
 
     // Daily session counts (SAST) — derived from sessions table inline
     supabase.from("sessions")
       .select("first_seen_at")
-      .gte("first_seen_at", new Date(startMs).toISOString()),
+      .gte("first_seen_at", new Date(startMs).toISOString())
+      .lt("first_seen_at", win.end),
 
     // Top landing paths in window
     (async () => {
       const { data } = await supabase
         .from("sessions")
         .select("landing_page")
-        .gte("first_seen_at", win.start)
+        .gte("first_seen_at", win.start).lt("first_seen_at", win.end)
         .not("landing_page", "is", null);
       const counts = new Map<string, number>();
       for (const r of (data ?? []) as { landing_page: string | null }[]) {
@@ -253,7 +304,7 @@ export default async function AnalyticsPage({
         .from("events")
         .select("payload")
         .eq("type", "page.viewed")
-        .gte("created_at", win.start);
+        .gte("created_at", win.start).lt("created_at", win.end);
       const counts = new Map<string, number>();
       for (const r of (data ?? []) as { payload: { path?: string } | null }[]) {
         const path = (r.payload?.path ?? "").split("?")[0];
@@ -271,7 +322,7 @@ export default async function AnalyticsPage({
       const { data } = await supabase
         .from("sessions")
         .select("user_agent")
-        .gte("first_seen_at", win.start);
+        .gte("first_seen_at", win.start).lt("first_seen_at", win.end);
       let mobile = 0, desktop = 0, unknown = 0;
       for (const r of (data ?? []) as { user_agent: string | null }[]) {
         const ua = r.user_agent ?? "";
@@ -287,7 +338,7 @@ export default async function AnalyticsPage({
       const { data } = await supabase
         .from("sessions")
         .select("country")
-        .gte("first_seen_at", win.start);
+        .gte("first_seen_at", win.start).lt("first_seen_at", win.end);
       const counts = new Map<string, number>();
       for (const r of (data ?? []) as { country: string | null }[]) {
         const c = r.country ?? "Unknown";
@@ -338,7 +389,7 @@ export default async function AnalyticsPage({
     (async () => {
       const { data: sessRows } = await supabase
         .from("sessions").select("id")
-        .gte("first_seen_at", win.start);
+        .gte("first_seen_at", win.start).lt("first_seen_at", win.end);
       const sids = ((sessRows ?? []) as { id: string }[]).map((s) => s.id);
       if (sids.length === 0) return { bouncedSessions: 0, totalSessions: 0 };
       const { data: pvRows } = await supabase
@@ -359,7 +410,7 @@ export default async function AnalyticsPage({
     // Attribution / orders for fees + discount accounting
     supabase.from("orders")
       .select("utm_source, utm_medium, utm_campaign, total_cents, subtotal_cents, shipping_cents, discount_cents, refunded_at, status")
-      .gte("created_at", win.start)
+      .gte("created_at", win.start).lt("created_at", win.end)
       .eq("is_test", false)
       .is("deleted_at", null),
 
@@ -367,7 +418,7 @@ export default async function AnalyticsPage({
     supabase.from("orders")
       .select("wallpaper_style, application_method, total_cents, total_sqm, customer_id")
       .eq("product_type", "wallpaper")
-      .gte("created_at", win.start)
+      .gte("created_at", win.start).lt("created_at", win.end)
       .not("status", "in", "(pending,cancelled)")
       .is("refunded_at", null)
       .is("deleted_at", null)
@@ -377,7 +428,7 @@ export default async function AnalyticsPage({
     (async () => {
       const { data } = await supabase.from("orders")
         .select("discount_cents, discount_code")
-        .gte("created_at", win.start)
+        .gte("created_at", win.start).lt("created_at", win.end)
         .gt("discount_cents", 0)
         .eq("is_test", false)
         .is("deleted_at", null);
@@ -390,13 +441,13 @@ export default async function AnalyticsPage({
     supabase.from("events")
       .select("session_id, type")
       .in("type", FUNNEL_EVENT_TYPES as unknown as string[])
-      .gte("created_at", win.start)
+      .gte("created_at", win.start).lt("created_at", win.end)
       .not("session_id", "is", null),
 
     // Sessions with a paid order in window (order_paid stage + per-source paid)
     supabase.from("orders")
       .select("session_id, product_type")
-      .gte("created_at", win.start)
+      .gte("created_at", win.start).lt("created_at", win.end)
       .not("status", "in", "(pending,cancelled)")
       .is("refunded_at", null)
       .is("deleted_at", null)
@@ -412,14 +463,14 @@ export default async function AnalyticsPage({
     supabase.from("events")
       .select("session_id")
       .eq("type", "cart.sample_added")
-      .gte("created_at", win.start)
+      .gte("created_at", win.start).lt("created_at", win.end)
       .not("session_id", "is", null),
 
     // Paid sample-pack orders in window
     supabase.from("orders")
       .select("id", { count: "exact", head: true })
       .eq("product_type", "sample_pack")
-      .gte("created_at", win.start)
+      .gte("created_at", win.start).lt("created_at", win.end)
       .not("status", "in", "(pending,cancelled)")
       .is("refunded_at", null)
       .is("deleted_at", null)
@@ -453,7 +504,8 @@ export default async function AnalyticsPage({
     sessionsByDay.set(key, (sessionsByDay.get(key) ?? 0) + 1);
   }
   const dailySessions = filled.map((r) => ({ day: r.day, value: sessionsByDay.get(r.day) ?? 0 }));
-  const currentDailySessions = dailySessions.filter((d) => d.day >= winStartKey);
+  const currentDailySessions  = dailySessions.filter((d) => d.day >= winStartKey);
+  const previousDailySessions = dailySessions.filter((d) => d.day <  winStartKey);
 
   // Conversion rate: paid orders / sessions
   const conversionRate = (currentVisitors ?? 0) > 0
@@ -732,7 +784,7 @@ export default async function AnalyticsPage({
             <span aria-hidden className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
             {(liveVisitors ?? 0)} live
           </span>
-          <WindowToggle active={windowValue} />
+          <PeriodPicker active={win.mode} activeLabel={win.label} from={win.from} to={win.to} />
           <RefreshButton initialLoadedAt={loadedAt} />
         </div>
       </header>
@@ -929,6 +981,8 @@ export default async function AnalyticsPage({
           <ChartTile label="Visitors" total={fmtInt(currentVisitors ?? 0)}>
             <LineChart
               data={currentDailySessions}
+              compareData={previousDailySessions}
+              compareLabel="previous"
               height={180}
               color="#3F7CAA"
               fill="rgba(63,124,170,0.12)"
@@ -939,6 +993,8 @@ export default async function AnalyticsPage({
           <ChartTile label="Orders" total={fmtInt(currentOrders)}>
             <LineChart
               data={currentRows.map((d) => ({ day: d.day, value: Number(d.paid_orders) }))}
+              compareData={previousRows.map((d) => ({ day: d.day, value: Number(d.paid_orders) }))}
+              compareLabel="previous"
               height={180}
               color="#1A1714"
               fill="rgba(26,23,20,0.08)"
@@ -949,6 +1005,8 @@ export default async function AnalyticsPage({
           <ChartTile label="Revenue" total={formatZarCents(currentRevenue)}>
             <LineChart
               data={currentRows.map((d) => ({ day: d.day, value: Number(d.paid_revenue_cents) }))}
+              compareData={previousRows.map((d) => ({ day: d.day, value: Number(d.paid_revenue_cents) }))}
+              compareLabel="previous"
               height={180}
               color="#C4622D"
               fill="rgba(196,98,45,0.10)"
