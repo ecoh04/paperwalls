@@ -16,7 +16,7 @@ export type LinePoint = {
 
 // Server components can't pass functions to client components, so format is a
 // string discriminator rather than a formatY callback.
-export type ChartFormat = "zar_cents" | "int" | "decimal";
+export type ChartFormat = "zar_cents" | "int" | "decimal" | "percent";
 
 type Props = {
   data:           LinePoint[];
@@ -38,6 +38,8 @@ function formatValue(n: number, format: ChartFormat): string {
       return new Intl.NumberFormat("en-ZA", {
         style: "currency", currency: "ZAR", minimumFractionDigits: 0,
       }).format(n / 100);
+    case "percent":
+      return `${n.toFixed(n < 10 ? 2 : 1)}%`;
     case "decimal":
       return n.toFixed(2);
     case "int":

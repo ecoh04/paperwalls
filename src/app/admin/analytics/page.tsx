@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatZarCents } from "@/lib/admin-labels";
-import { LineChart } from "@/components/admin/charts/LineChart";
 import { FunnelChart } from "@/components/admin/charts/FunnelChart";
 import { SparklineChart } from "@/components/admin/charts/SparklineChart";
 import { RefreshButton } from "@/components/admin/RefreshButton";
 import { PeriodPicker } from "@/components/admin/PeriodPicker";
+import { MetricTrend } from "@/components/admin/MetricTrend";
 import { type WindowValue, isWindowValue, isYmd } from "@/components/admin/window-options";
 import { DeltaIndicator } from "@/components/admin/DeltaIndicator";
 import {
@@ -524,18 +524,6 @@ export default async function AnalyticsPage({
   const orderRows = (attribRowsRaw.data ?? []) as OrderUtm[];
   const paidOrderRows = orderRows.filter((r) => r.status !== "pending" && r.status !== "cancelled" && r.refunded_at == null);
 
-  const attribAgg = new Map<string, { utm_source: string; utm_medium: string; utm_campaign: string; orders: number; revenue_cents: number }>();
-  for (const r of paidOrderRows) {
-    const src = r.utm_source   || "(direct)";
-    const med = r.utm_medium   || "(none)";
-    const cmp = r.utm_campaign || "(none)";
-    const k = `${src}|${med}|${cmp}`;
-    const cur = attribAgg.get(k);
-    if (cur) { cur.orders += 1; cur.revenue_cents += Number(r.total_cents); }
-    else      attribAgg.set(k, { utm_source: src, utm_medium: med, utm_campaign: cmp, orders: 1, revenue_cents: Number(r.total_cents) });
-  }
-  const attribution = Array.from(attribAgg.values()).sort((a, b) => b.revenue_cents - a.revenue_cents).slice(0, 10);
-
   // ── Product mix ────────────────────────────────────────────────────────
   type ProductRow = { wallpaper_style: string | null; application_method: string | null; total_cents: number; total_sqm: number | null; customer_id: string | null };
   const productAgg = new Map<string, { finish: string; application: string; orders: number; revenue_cents: number; total_sqm: number }>();
@@ -751,9 +739,6 @@ export default async function AnalyticsPage({
     conversionRate, prevConversionRate, marginPct,
   });
 
-  // ── Sparkline points (always last 14 days regardless of window)
-  const sparkPoints = filled.slice(-14).map((r, i) => ({ x: i, y: Number(r.paid_revenue_cents) }));
-
   // Funnel for chart — SEQUENTIAL (reached this stage or further), so the
   // stage-to-stage drop-off is real. reachedSeq[0..7] maps to the 8 stages.
   const funnel = [
@@ -767,10 +752,73 @@ export default async function AnalyticsPage({
     { rank: 8, stage: "order_paid",         sessions: reachedSeq[7], own: paidSessionIds.size },
   ];
 
+  // ── Per-metric daily series (scoped to the selected period) + comparison ──
+  const revData = currentRows.map((d) => ({ day: d.day, value: Number(d.paid_revenue_cents) }));
+  const revPrev = previousRows.map((d) => ({ day: d.day, value: Number(d.paid_revenue_cents) }));
+  const ordData = currentRows.map((d) => ({ day: d.day, value: Number(d.paid_orders) }));
+  const ordPrev = previousRows.map((d) => ({ day: d.day, value: Number(d.paid_orders) }));
+  const crData  = currentRows.map((d, i) => {
+    const sess = currentDailySessions[i]?.value ?? 0;
+    return { day: d.day, value: sess > 0 ? (Number(d.paid_orders) / sess) * 100 : 0 };
+  });
+  const crPrev  = previousRows.map((d, i) => {
+    const sess = previousDailySessions[i]?.value ?? 0;
+    return { day: d.day, value: sess > 0 ? (Number(d.paid_orders) / sess) * 100 : 0 };
+  });
+  const sparkOf   = (arr: { value: number }[]) => arr.map((p, i) => ({ x: i, y: Number(p.value) }));
+  const showSpark = win.chartDays >= 3;  // suppress sparks on Today / Yesterday
+
+  // Hero trend metrics (the switchable chart).
+  const trendMetrics = [
+    { key: "revenue",  label: "Revenue",   total: formatZarCents(currentRevenue),  color: "#C4622D", fill: "rgba(196,98,45,0.10)",  format: "zar_cents" as const, data: revData, compareData: revPrev, deltaPct: previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : null },
+    { key: "orders",   label: "Orders",    total: fmtInt(currentOrders),           color: "#1A1714", fill: "rgba(26,23,20,0.08)",   format: "int" as const,       data: ordData, compareData: ordPrev, deltaPct: previousOrders > 0 ? ((currentOrders - previousOrders) / previousOrders) * 100 : null },
+    { key: "visitors", label: "Visitors",  total: fmtInt(currentVisitors ?? 0),    color: "#3F7CAA", fill: "rgba(63,124,170,0.12)", format: "int" as const,       data: currentDailySessions, compareData: previousDailySessions, deltaPct: (previousVisitors ?? 0) > 0 ? (((currentVisitors ?? 0) - (previousVisitors ?? 0)) / (previousVisitors ?? 1)) * 100 : null },
+    { key: "cr",       label: "Conv. rate", total: conversionRate > 0 ? `${conversionRate.toFixed(2)}%` : "—", color: "#0F6E56", fill: "rgba(29,158,117,0.10)", format: "percent" as const, data: crData, compareData: crPrev, deltaPct: prevConversionRate > 0 ? ((conversionRate - prevConversionRate) / prevConversionRate) * 100 : null },
+  ];
+
+  // Biggest funnel leak (worst drop into a tracked stage) for the headline.
+  const FUNNEL_STAGE_NAMES = ["Pageview", "PDP viewed", "Configurator opened", "Image uploaded", "Added to cart", "Started checkout", "Submitted checkout", "Order paid"];
+  let leakIdx = -1, leakDrop = 0;
+  for (let i = 1; i < funnel.length; i++) {
+    const prev = Number(funnel[i - 1].sessions), cur = Number(funnel[i].sessions);
+    const notTracked = (funnel[i].own ?? 0) === 0 && cur > 0;
+    if (!notTracked && prev > 0) { const d = (prev - cur) / prev; if (d > leakDrop) { leakDrop = d; leakIdx = i; } }
+  }
+  const biggestLeak = leakIdx > 0 ? {
+    from: FUNNEL_STAGE_NAMES[leakIdx - 1], to: FUNNEL_STAGE_NAMES[leakIdx],
+    lostPct: Math.round(leakDrop * 100),
+    lostCount: Number(funnel[leakIdx - 1].sessions) - Number(funnel[leakIdx].sessions),
+    fromCount: Number(funnel[leakIdx - 1].sessions),
+  } : null;
+
+  // Finance waterfall (collected → fees → refunds → to your bank); adds up to netDeposit.
+  const waterfall = [
+    { label: "Collected",    value: totalCollected, kind: "start" as const },
+    { label: "Card fees",    value: -cardFees,      kind: "neg"   as const },
+    { label: "Refunds",      value: -refundsTotal,  kind: "neg"   as const },
+    { label: "To your bank", value: netDeposit,     kind: "total" as const },
+  ];
+
+  // Repeat-purchase tail (share of paying customers by lifetime order count).
+  const repeat1  = retList.filter((c) => Number(c.total_orders) === 1).length;
+  const repeat2  = retList.filter((c) => Number(c.total_orders) === 2).length;
+  const repeat3p = retList.filter((c) => Number(c.total_orders) >= 3).length;
+
+  // System-health tones, hoisted so both the header status dot and the
+  // collapsed Operations block at the bottom can use them.
+  const healthTones: ("ok" | "warn" | "neutral")[] = [
+    !lastPaymentEvt.data ? "neutral" : ageHours(lastPaymentEvt.data.created_at) > 72 ? "neutral" : "ok",
+    !lastDrainEvt.data ? "warn" : ageHours(lastDrainEvt.data.created_at) > 1 ? "warn" : "ok",
+    (pendingEmails.count ?? 0) > 20 ? "warn" : "ok",
+    !lastReconcileEvt.data ? "warn" : ageHours(lastReconcileEvt.data.created_at) > 36 ? "warn" : "ok",
+    (eventsLastHour.count ?? 0) > 0 ? "ok" : "neutral",
+  ];
+  const anyHealthWarn = healthTones.some((t) => t === "warn") || capiFailures24h > 0 || (currentOrders > 0 && capiPurchase24h === 0);
+
   const loadedAt = Date.now();
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       {/* ── Header ────────────────────────────────────────────────────── */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -784,6 +832,9 @@ export default async function AnalyticsPage({
             <span aria-hidden className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
             {(liveVisitors ?? 0)} live
           </span>
+          <a href="#operations" title="System status" className={`inline-flex h-7 w-7 items-center justify-center rounded-full ring-1 ${anyHealthWarn ? "bg-amber-50 ring-amber-200" : "bg-green-50 ring-green-200"}`}>
+            <span aria-hidden className={`h-2 w-2 rounded-full ${anyHealthWarn ? "bg-amber-500" : "bg-green-500"}`} />
+          </a>
           <PeriodPicker active={win.mode} activeLabel={win.label} from={win.from} to={win.to} />
           <RefreshButton initialLoadedAt={loadedAt} />
         </div>
@@ -795,151 +846,38 @@ export default async function AnalyticsPage({
         </div>
       )}
 
-      {/* ── Goal + run rate ─────────────────────────────────────────── */}
-      <GoalStrip
-        mtdRevenue={mtdRevenue}
-        mtdOrders={mtdOrders}
-        goalCents={MONTHLY_REVENUE_GOAL_CENTS}
-        goalPct={goalPct}
-        runRate={monthRunRate}
-        dayOfMonth={dayOfMonth}
-        daysInMonth={daysInMonth}
-      />
+      {/* ════ BAND 1 · THE ANSWER ════ */}
+      <Band label="The answer">
+        <GoalStrip
+          mtdRevenue={mtdRevenue}
+          mtdOrders={mtdOrders}
+          goalCents={MONTHLY_REVENUE_GOAL_CENTS}
+          goalPct={goalPct}
+          runRate={monthRunRate}
+          dayOfMonth={dayOfMonth}
+          daysInMonth={daysInMonth}
+        />
 
-      {/* ── What to do (auto-surfaced insights) ─────────────────────── */}
-      {insights.length > 0 && <InsightsPanel insights={insights} />}
-
-      {/* ── Meta tracking health ────────────────────────────────────── */}
-      <MetaHealthCard
-        sent24h={capiSent24h}
-        failures24h={capiFailures24h}
-        purchase24h={capiPurchase24h}
-        lastSentAt={capiLastSentAt}
-        byType={Array.from(capiByType.entries()).map(([type, count]) => ({ type, count }))}
-        paidOrders={currentOrders}
-      />
-
-      {/* ── System health (collapsed by default) ────────────────────────
-          Operator doesn't need to see every tile every visit. A top-level
-          dot summary tells them whether to expand: green = all good, amber =
-          something needs attention. Click to expand into the full grid. */}
-      {(() => {
-        // Pre-compute tones once so the summary dot reflects them.
-        const tones: ("ok" | "warn" | "neutral")[] = [
-          !lastPaymentEvt.data ? "neutral"
-            : ageHours(lastPaymentEvt.data.created_at) > 72 ? "neutral"
-            : "ok",
-          !lastDrainEvt.data ? "warn"
-            : ageHours(lastDrainEvt.data.created_at) > 1 ? "warn"
-            : "ok",
-          (pendingEmails.count ?? 0) > 20 ? "warn" : "ok",
-          !lastReconcileEvt.data ? "warn"
-            : ageHours(lastReconcileEvt.data.created_at) > 36 ? "warn"
-            : "ok",
-          (eventsLastHour.count ?? 0) > 0 ? "ok" : "neutral",
-        ];
-        const anyWarn   = tones.some((t) => t === "warn");
-        const summaryDot = anyWarn ? "bg-amber-500"   : "bg-green-500";
-        const summaryTxt = anyWarn ? "Needs attention" : "All systems nominal";
-
-        return (
-          <details className="group rounded-xl border border-stone-200 bg-white">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-stone-50">
-              <div className="flex items-center gap-3">
-                <span aria-hidden className={`h-2 w-2 rounded-full ${summaryDot}`} />
-                <span className="text-sm font-semibold text-stone-900">System health</span>
-                <span className="text-xs text-stone-500">{summaryTxt}</span>
-              </div>
-              <span aria-hidden className="text-xs text-stone-400 transition-transform group-open:rotate-90">›</span>
-            </summary>
-
-            <div className="border-t border-stone-200 p-5">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                <HealthTile
-                  label="Last paid order"
-                  value={lastPaymentEvt.data ? agoString(lastPaymentEvt.data.created_at) : "Never"}
-                  tone={tones[0]}
-                  sub={lastPaymentEvt.data
-                    ? `Webhook fired ${new Date(lastPaymentEvt.data.created_at).toLocaleString("en-ZA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
-                    : "No PayFast ITN received yet"}
-                />
-                <HealthTile
-                  label="Email drainer"
-                  value={lastDrainEvt.data ? `Last ran ${agoString(lastDrainEvt.data.created_at)}` : "Never run"}
-                  tone={tones[1]}
-                  sub={!resendKeySetCheck.set ? "RESEND_API_KEY not set" : "Should run every 5 min"}
-                />
-                <HealthTile
-                  label="Email queue"
-                  value={`${pendingEmails.count ?? 0} pending`}
-                  tone={tones[2]}
-                  sub={(failedEmailsRecent.data?.length ?? 0) > 0
-                    ? `${failedEmailsRecent.data?.length} failed in last 24h`
-                    : "No failures in last 24h"}
-                />
-                <HealthTile
-                  label="Reconciliation"
-                  value={lastReconcileEvt.data ? `Last ran ${agoString(lastReconcileEvt.data.created_at)}` : "Never run"}
-                  tone={tones[3]}
-                  sub="Cron should hit /api/cron/reconcile-payments daily"
-                />
-                <HealthTile
-                  label="Traffic in last hour"
-                  value={`${(eventsLastHour.count ?? 0).toLocaleString()} events`}
-                  tone={tones[4]}
-                  sub={(eventsLastHour.count ?? 0) > 0
-                    ? "Tracker pipeline is alive"
-                    : "No traffic yet — pre-launch"}
-                />
-              </div>
-
-              {(failedEmailsRecent.data?.length ?? 0) > 0 && (
-                <details className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <summary className="cursor-pointer text-sm font-medium text-amber-900">
-                    Recent email failures ({failedEmailsRecent.data?.length})
-                  </summary>
-                  <ul className="mt-3 space-y-2">
-                    {(failedEmailsRecent.data ?? []).map((r) => (
-                      <li key={r.id} className="text-xs text-amber-900/80">
-                        <span className="font-mono">{r.type}</span>
-                        {" · "}
-                        {r.last_attempt_at && new Date(r.last_attempt_at).toLocaleString("en-ZA")}
-                        {r.error && <p className="mt-0.5 font-mono text-[11px] text-amber-900/70">{r.error}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </div>
-          </details>
-        );
-      })()}
-
-      {/* ── At a glance ──────────────────────────────────────────────── */}
-      <Section title={win.label} note="All values in SAST">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
-            label="Visitors"
-            value={fmtInt(currentVisitors ?? 0)}
-            delta={<DeltaIndicator current={currentVisitors ?? 0} previous={previousVisitors ?? 0} label={win.vsLabel} />}
+            label="Revenue"
+            value={formatZarCents(currentRevenue)}
+            delta={<DeltaIndicator current={currentRevenue} previous={previousRevenue} label={win.vsLabel} />}
+            spark={showSpark ? <SparklineChart data={sparkOf(revData)} color="#C4622D" /> : undefined}
           />
           <StatCard
             label="Conversion rate"
             value={conversionRate > 0 ? `${conversionRate.toFixed(2)}%` : "—"}
             delta={<DeltaIndicator current={Number(conversionRate.toFixed(2))} previous={Number(prevConversionRate.toFixed(2))} label={win.vsLabel} />}
             status={conversionRate >= 2 ? "good" : conversionRate > 0 && conversionRate < 1 ? "bad" : "neutral"}
+            spark={showSpark ? <SparklineChart data={sparkOf(crData)} color="#0F6E56" /> : undefined}
           />
           <StatCard
             label="Orders"
             value={fmtInt(currentOrders)}
             delta={<DeltaIndicator current={currentOrders} previous={previousOrders} label={win.vsLabel} />}
             sub={currentRefunds > 0 ? `${currentRefunds} refunded` : undefined}
-          />
-          <StatCard
-            label="Revenue"
-            value={formatZarCents(currentRevenue)}
-            delta={<DeltaIndicator current={currentRevenue} previous={previousRevenue} label={win.vsLabel} />}
-            spark={<SparklineChart data={sparkPoints} />}
+            spark={showSpark ? <SparklineChart data={sparkOf(ordData)} color="#1A1714" /> : undefined}
           />
           <StatCard
             label="Average order"
@@ -950,375 +888,342 @@ export default async function AnalyticsPage({
                 : <span className="text-xs text-stone-400">{win.vsLabel}</span>
             }
           />
-          <StatCard
-            label="Bounce rate"
-            value={bounceRate == null ? "—" : `${bounceRate.toFixed(1)}%`}
-            delta={<span className="text-xs text-stone-500">single-page sessions</span>}
-            status={bounceRate == null ? "neutral" : bounceRate >= 70 ? "bad" : bounceRate < 40 ? "good" : "neutral"}
-          />
         </div>
-      </Section>
 
-      {/* ── Unit economics ───────────────────────────────────────────── */}
-      <Section title="Unit economics" note="margin and ad efficiency">
-        <UnitEconomics
-          marginCents={marginCents}
-          marginPct={marginPct}
-          netSales={wallpaperRevenue}
-          cogsCents={cogsCents}
-          costsConfigured={COSTS_CONFIGURED}
-          roas={roas}
-          cacCents={cacCents}
-          ltvCacRatio={ltvCacRatio}
-          avgLtvCents={avgLtvCents}
-          adSpendConfigured={AD_SPEND_CONFIGURED}
-        />
-      </Section>
+        {insights.length > 0 && <InsightsPanel insights={insights} />}
+      </Band>
 
-      {/* ── Trend (3 mini charts) ────────────────────────────────────── */}
-      <Section title="Daily trend" note={win.label.toLowerCase()}>
-        <div className="grid gap-4 lg:grid-cols-3">
-          <ChartTile label="Visitors" total={fmtInt(currentVisitors ?? 0)}>
-            <LineChart
-              data={currentDailySessions}
-              compareData={previousDailySessions}
-              compareLabel="previous"
-              height={180}
-              color="#3F7CAA"
-              fill="rgba(63,124,170,0.12)"
-              format="int"
-              label="visitors"
-            />
-          </ChartTile>
-          <ChartTile label="Orders" total={fmtInt(currentOrders)}>
-            <LineChart
-              data={currentRows.map((d) => ({ day: d.day, value: Number(d.paid_orders) }))}
-              compareData={previousRows.map((d) => ({ day: d.day, value: Number(d.paid_orders) }))}
-              compareLabel="previous"
-              height={180}
-              color="#1A1714"
-              fill="rgba(26,23,20,0.08)"
-              format="int"
-              label="orders"
-            />
-          </ChartTile>
-          <ChartTile label="Revenue" total={formatZarCents(currentRevenue)}>
-            <LineChart
-              data={currentRows.map((d) => ({ day: d.day, value: Number(d.paid_revenue_cents) }))}
-              compareData={previousRows.map((d) => ({ day: d.day, value: Number(d.paid_revenue_cents) }))}
-              compareLabel="previous"
-              height={180}
-              color="#C4622D"
-              fill="rgba(196,98,45,0.10)"
-              format="zar_cents"
-              label="revenue"
-            />
-          </ChartTile>
-        </div>
-      </Section>
-
-      {/* ── Monthly trend ───────────────────────────────────────────── */}
-      <Section
-        title="Revenue by month"
-        note={momGrowthPct != null ? `${momGrowthPct >= 0 ? "+" : ""}${momGrowthPct.toFixed(0)}% vs last month` : "last 12 months"}
-      >
-        <PanelCard title="Monthly revenue" subtitle="paid revenue per calendar month (SAST), test orders excluded">
-          {monthSeries.length === 0 ? (
-            <Empty msg="No paid months yet — this fills in as real orders land." />
-          ) : (
-            <LineChart data={monthSeries} height={200} color="#C4622D" fill="rgba(196,98,45,0.10)" format="zar_cents" label="revenue" />
-          )}
-        </PanelCard>
-      </Section>
-
-      {/* ── Funnel ───────────────────────────────────────────────────── */}
-      <Section title="Conversion funnel" note={`sessions reaching each stage · ${win.label.toLowerCase()}`}>
-        <FunnelChart data={funnel} />
-      </Section>
-
-      {/* ── Channels (funnel + economics by source) ─────────────────── */}
-      <Section title="Channels" note="where each source converts">
-        <PanelCard title="By source" subtitle="Sessions, funnel rates and revenue per traffic source">
-          <ChannelTable rows={sourceFunnel} />
-        </PanelCard>
-      </Section>
-
-      {/* ── Sample packs (separate funnel; never enter the configurator) ── */}
-      <Section title="Sample packs" note="the R150-credit funnel · separate from the wallpaper funnel above">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <SmallStat label="Sample adds"   value={fmtInt(sampleAdds)}   sub="sessions that added a sample pack" />
-          <SmallStat label="Sample orders" value={fmtInt(sampleOrders)} sub={`paid · ${win.label.toLowerCase()}`} />
-          <SmallStat
-            label="Add → order"
-            value={sampleAdds > 0 ? `${Math.round((sampleOrders / sampleAdds) * 100)}%` : "—"}
-            sub="sample add to paid sample"
-          />
-        </div>
-      </Section>
-
-      {/* ── Acquisition ──────────────────────────────────────────────── */}
-      <Section title="Acquisition" note={win.label.toLowerCase()}>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <PanelCard title="Top sources" subtitle="Paid orders by UTM source/medium">
-            {attribution.length === 0 ? <Empty msg="No paid orders in this window yet." /> : (
-              <Table
-                head={["Source / Medium", "Orders", "Revenue", "AOV"]}
-                rows={attribution.map((r) => ([
-                  <div key="src">
-                    <div className="font-medium text-stone-900">{r.utm_source}</div>
-                    <div className="text-xs text-stone-500">
-                      {r.utm_medium}{r.utm_campaign !== "(none)" ? ` · ${r.utm_campaign}` : ""}
-                    </div>
-                  </div>,
-                  fmtInt(r.orders),
-                  formatZarCents(r.revenue_cents),
-                  formatZarCents(Math.round(r.revenue_cents / r.orders)),
-                ]))}
-                align={["left", "right", "right", "right"]}
-              />
-            )}
-          </PanelCard>
-
-          <PanelCard title="Devices" subtitle="Sessions by device type">
-            <DeviceBars mobile={deviceRows.mobile} desktop={deviceRows.desktop} unknown={deviceRows.unknown} />
-          </PanelCard>
-
-          <PanelCard title="Top landing pages" subtitle="First page visited per session">
-            {landingRows.length === 0 ? <Empty msg="No landings in this window." /> : (
-              <Table
-                head={["Path", "Sessions"]}
-                rows={landingRows.map((r) => [
-                  <code key="p" className="rounded bg-stone-100 px-1.5 py-0.5 text-xs">{r.path}</code>,
-                  fmtInt(r.sessions),
-                ])}
-                align={["left", "right"]}
-              />
-            )}
-          </PanelCard>
-
-          <PanelCard title="Top countries" subtitle="From visitor IP">
-            {countryRows.length === 0 ? <Empty msg="No geo data yet." /> : (
-              <Table
-                head={["Country", "Sessions"]}
-                rows={countryRows.map((r) => [
-                  r.country,
-                  fmtInt(r.sessions),
-                ])}
-                align={["left", "right"]}
-              />
-            )}
-          </PanelCard>
-        </div>
-      </Section>
-
-      {/* ── Behaviour ──────────────────────────────────────────────── */}
-      <Section title="Behaviour" note={win.label.toLowerCase()}>
-        <PanelCard title="Top pages" subtitle="Pageviews per path in window">
-          {topPagesRows.length === 0 ? <Empty msg="No pageviews yet." /> : (
-            <Table
-              head={["Path", "Views"]}
-              rows={topPagesRows.map((r) => [
-                <code key="p" className="rounded bg-stone-100 px-1.5 py-0.5 text-xs">{r.path}</code>,
-                fmtInt(r.views),
-              ])}
-              align={["left", "right"]}
-            />
-          )}
-        </PanelCard>
-      </Section>
-
-      {/* ── Customers ────────────────────────────────────────────────── */}
-      <Section title="Customers" note={win.label.toLowerCase()}>
-        <div className="grid gap-6 lg:grid-cols-3">
-          <PanelCard title="New vs returning" subtitle="By orders this window">
-            <div className="space-y-2">
-              <SplitBar
-                a={{ label: "New",       value: newCustomers,       color: "bg-pw-accent" }}
-                b={{ label: "Returning", value: returningCustomers, color: "bg-stone-700" }}
-              />
-              {newCustomers === 0 && returningCustomers === 0 && (
-                <p className="pt-2 text-sm text-stone-500">No paid wallpaper orders in this window.</p>
-              )}
+      {/* ════ BAND 2 · WHERE MONEY LEAKS ════ */}
+      <Band label="Where money leaks">
+        <PanelCard id="funnel" title="Conversion funnel" subtitle={`sessions reaching each stage · ${win.label.toLowerCase()}`}>
+          {biggestLeak && (
+            <div className="mb-3 rounded-lg border border-pw-accent/30 bg-pw-accent-soft/60 px-4 py-2.5 text-sm text-stone-800">
+              <span className="font-medium text-pw-accent">Biggest leak:</span> {biggestLeak.from} → {biggestLeak.to} · <span className="font-medium">{biggestLeak.lostPct}% lost</span> ({biggestLeak.lostCount.toLocaleString()} of {biggestLeak.fromCount.toLocaleString()} sessions)
             </div>
-          </PanelCard>
+          )}
+          <FunnelChart data={funnel} />
+        </PanelCard>
 
-          <PanelCard title="Top customers (lifetime)" subtitle="By total spend">
-            {(topCustomersRows.data ?? []).length === 0 ? <Empty msg="No customers yet." /> : (
-              <Table
-                head={["Customer", "Orders", "Lifetime"]}
-                rows={(topCustomersRows.data ?? []).map((c) => [
-                  <div key="c" className="min-w-0">
-                    <Link href={`/admin/customers/${c.id}`} className="block truncate font-medium text-stone-900 hover:text-amber-700">
-                      {c.name ?? c.email}
-                    </Link>
-                    {c.name && <div className="truncate text-xs text-stone-500">{c.email}</div>}
-                  </div>,
-                  fmtInt(c.total_orders ?? 0),
-                  formatZarCents(c.total_spent_cents ?? 0),
-                ])}
-                align={["left", "right", "right"]}
-              />
-            )}
-          </PanelCard>
-
-          <PanelCard title="Abandoned carts" subtitle="Carts with items, idle ≥ 1h, never paid">
-            <div className="space-y-3">
-              <div>
-                <p className="text-3xl font-semibold tabular-nums text-stone-900">{fmtInt(abandonedAgg.count)}</p>
-                <p className="text-sm text-stone-600">≈ {formatZarCents(abandonedAgg.items_value_cents)} of unrealised revenue</p>
-              </div>
-              {abandonedAgg.items.length > 0 ? (
-                <ul className="divide-y divide-stone-100 border-t border-stone-100">
-                  {abandonedAgg.items.map((it, i) => (
-                    <li key={i} className="flex items-center justify-between gap-2 py-1.5 text-sm">
-                      <span className="min-w-0 truncate text-stone-700">{it.name || it.email || "Guest"}</span>
-                      <span className="shrink-0 tabular-nums text-stone-900">{formatZarCents(it.value_cents)}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-xs text-stone-500">No abandoned carts with items right now.</p>
-              )}
-              <p className="text-xs text-stone-500">
-                Recovery emails are your cheapest revenue (Resend is live) — wire the abandoned-cart flow to win these back.
-              </p>
-            </div>
-          </PanelCard>
-        </div>
-      </Section>
-
-      {/* ── Retention ────────────────────────────────────────────────── */}
-      <Section title="Retention" note="lifetime · paid customers only">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <SmallStat label="Paying customers" value={fmtInt(payingCustomers)} sub="placed a paid order" />
-          <SmallStat
-            label="Repeat rate"
-            value={repeatRatePct == null ? "—" : `${repeatRatePct.toFixed(0)}%`}
-            sub={`${repeatCustomers} bought 2+ times`}
-          />
-          <SmallStat
-            label="Orders / customer"
-            value={payingCustomers > 0 ? ordersPerCust.toFixed(2) : "—"}
-            sub="lifetime average"
-          />
-          <SmallStat
-            label="Avg LTV"
-            value={payingCustomers > 0 ? formatZarCents(avgLtvCents) : "—"}
-            sub="revenue per customer"
-          />
-        </div>
-      </Section>
-
-      {/* ── Install split — primary insight ─────────────────────────── */}
-      <Section title="Install method" note="Pro install drives the highest AOV — track its share">
-        <div className="grid gap-6 lg:grid-cols-3">
-          <PanelCard title="DIY vs Pro" subtitle={`Wallpaper orders · ${win.label.toLowerCase()}`}>
-            {totalInstallOrders === 0 ? <Empty msg="No wallpaper orders in this window." /> : (
-              <SplitBar
-                a={{ label: "DIY",         value: diyOrders, color: "bg-stone-700" }}
-                b={{ label: "Pro install", value: proOrders, color: "bg-purple-600" }}
-              />
-            )}
-          </PanelCard>
-          <SmallStat
-            label="DIY orders"
-            value={fmtInt(diyOrders)}
-            sub={diyOrders > 0 ? `AOV ${formatZarCents(diyAovCents)}` : "in this window"}
-          />
-          <SmallStat
-            label="Pro install orders"
-            value={fmtInt(proOrders)}
-            sub={proOrders > 0 ? `AOV ${formatZarCents(proAovCents)} · ${formatZarCents(proRevenue)} total` : "in this window"}
-          />
-        </div>
-      </Section>
-
-      {/* ── Products ─────────────────────────────────────────────────── */}
-      <Section title="Product mix" note={`wallpaper only · ${win.label.toLowerCase()}`}>
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <PanelCard title="Finish × install" subtitle="Orders, m², and revenue">
-              {product.length === 0 ? <Empty msg="No wallpaper orders in this window." /> : (
+            <PanelCard title="Channels" subtitle="where each source converts, ranked by revenue">
+              <ChannelTable rows={sourceFunnel} />
+            </PanelCard>
+          </div>
+          <div id="carts">
+            <PanelCard title="Abandoned carts" subtitle="items, idle ≥ 1h, never paid">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-3xl font-semibold tabular-nums text-stone-900">{fmtInt(abandonedAgg.count)}</p>
+                  <p className="text-sm text-stone-600">≈ {formatZarCents(abandonedAgg.items_value_cents)} of unrealised revenue</p>
+                </div>
+                {abandonedAgg.items.length > 0 ? (
+                  <ul className="divide-y divide-stone-100 border-t border-stone-100">
+                    {abandonedAgg.items.map((it, i) => (
+                      <li key={i} className="flex items-center justify-between gap-2 py-1.5 text-sm">
+                        <span className="min-w-0 truncate text-stone-700">{it.name || it.email || "Guest"}</span>
+                        <span className="shrink-0 tabular-nums text-stone-900">{formatZarCents(it.value_cents)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-stone-500">No abandoned carts with items right now.</p>
+                )}
+                <p className="text-xs text-stone-500">
+                  Recovery emails are your cheapest revenue (Resend is live) — wire the abandoned-cart flow to win these back.
+                </p>
+              </div>
+            </PanelCard>
+          </div>
+        </div>
+      </Band>
+
+      {/* ════ BAND 3 · DEEP DIVES ════ */}
+      <Band label="Deep dives">
+        <Section title="Trend" note={`${win.label.toLowerCase()} vs previous period`}>
+          <MetricTrend metrics={trendMetrics} />
+        </Section>
+
+        <Section
+          title="Revenue by month"
+          note={momGrowthPct != null ? `${momGrowthPct >= 0 ? "+" : ""}${momGrowthPct.toFixed(0)}% vs last month` : "last 12 months"}
+        >
+          <PanelCard title="Monthly revenue" subtitle="paid revenue per calendar month (SAST), test orders excluded">
+            {monthSeries.length === 0 ? (
+              <Empty msg="No paid months yet — this fills in as real orders land." />
+            ) : (
+              <MonthBars data={monthSeries} />
+            )}
+          </PanelCard>
+        </Section>
+
+        <Section title="Traffic & behaviour" note={win.label.toLowerCase()}>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PanelCard title="Visitors & engagement" subtitle="this period">
+              <div className="grid grid-cols-2 gap-3">
+                <SmallStat label="Visitors" value={fmtInt(currentVisitors ?? 0)} sub={win.vsLabel} />
+                <SmallStat label="Bounce rate" value={bounceRate == null ? "—" : `${bounceRate.toFixed(1)}%`} sub="single-page sessions" />
+              </div>
+              <div className="mt-4"><DeviceBars mobile={deviceRows.mobile} desktop={deviceRows.desktop} unknown={deviceRows.unknown} /></div>
+            </PanelCard>
+
+            <PanelCard title="Top landing pages" subtitle="first page per session">
+              {landingRows.length === 0 ? <Empty msg="No landings yet — first pages will rank here." /> : (
+                <RankedList rows={landingRows.map((r) => ({ label: r.path, value: r.sessions }))} unit="sessions" mono />
+              )}
+            </PanelCard>
+
+            <PanelCard title="Top pages" subtitle="pageviews per path">
+              {topPagesRows.length === 0 ? <Empty msg="No pageviews yet — busiest pages will rank here." /> : (
+                <RankedList rows={topPagesRows.map((r) => ({ label: r.path, value: r.views }))} unit="views" mono />
+              )}
+            </PanelCard>
+
+            <PanelCard title="Top countries" subtitle="from visitor IP">
+              {countryRows.length === 0 ? <Empty msg="No geo data yet — visitor countries will rank here." /> : (
+                <RankedList rows={countryRows.map((r) => ({ label: r.country, value: r.sessions }))} unit="sessions" />
+              )}
+            </PanelCard>
+          </div>
+        </Section>
+
+        <Section title="Customers & retention" note="lifetime · paid customers only">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <PanelCard title="New vs returning" subtitle="by orders this period">
+              <div className="space-y-2">
+                <SplitBar
+                  a={{ label: "New",       value: newCustomers,       color: "bg-pw-accent" }}
+                  b={{ label: "Returning", value: returningCustomers, color: "bg-stone-700" }}
+                />
+                {newCustomers === 0 && returningCustomers === 0 && (
+                  <p className="pt-2 text-sm text-stone-500">No paid wallpaper orders in this period.</p>
+                )}
+              </div>
+            </PanelCard>
+
+            <PanelCard title="Repeat purchase" subtitle="share of paying customers">
+              {payingCustomers === 0 ? <Empty msg="Fills in after your first paying customers." /> : (
+                <div className="space-y-3">
+                  <RepeatTailBar one={repeat1} two={repeat2} threePlus={repeat3p} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <SmallStat label="Repeat rate" value={repeatRatePct == null ? "—" : `${repeatRatePct.toFixed(0)}%`} sub={`${repeatCustomers} bought 2+`} />
+                    <SmallStat label="Avg LTV" value={formatZarCents(avgLtvCents)} sub={`${ordersPerCust.toFixed(2)} orders/cust`} />
+                  </div>
+                </div>
+              )}
+            </PanelCard>
+
+            <PanelCard title="Top customers (lifetime)" subtitle="by total spend">
+              {(topCustomersRows.data ?? []).length === 0 ? <Empty msg="No customers yet." /> : (
                 <Table
-                  head={COSTS_CONFIGURED ? ["Finish", "Install", "Orders", "m²", "Revenue", "Margin"] : ["Finish", "Install", "Orders", "m²", "Revenue"]}
-                  rows={product.map((r) => {
-                    const cells: React.ReactNode[] = [
-                      <span key="f" className="capitalize">{r.finish}</span>,
-                      r.application === "diy" || r.application === "diy_kit"
-                        ? <span className="text-stone-700">DIY{r.application === "diy_kit" ? " kit" : ""}</span>
-                        : r.application === "pro_installer"
-                          ? <span className="font-medium text-purple-700">Pro</span>
-                          : r.application,
-                      fmtInt(r.orders),
-                      r.total_sqm.toFixed(1),
-                      formatZarCents(r.revenue_cents),
-                    ];
-                    if (COSTS_CONFIGURED) {
-                      const cogs = ["satin", "matte", "linen"].includes(r.finish)
-                        ? (cogsForFinishCents(r.finish as WallpaperMaterial, r.total_sqm, r.orders) ?? null)
-                        : null;
-                      const mPct = cogs != null && r.revenue_cents > 0 ? ((r.revenue_cents - cogs) / r.revenue_cents) * 100 : null;
-                      cells.push(
-                        mPct != null
-                          ? <span key="m" className={mPct < 30 ? "text-amber-700" : "text-stone-900"}>{`${Math.round(mPct)}%`}</span>
-                          : <span key="m" className="text-stone-400">—</span>,
-                      );
-                    }
-                    return cells;
-                  })}
-                  align={COSTS_CONFIGURED ? ["left", "left", "right", "right", "right", "right"] : ["left", "left", "right", "right", "right"]}
+                  head={["Customer", "Orders", "Lifetime"]}
+                  rows={(topCustomersRows.data ?? []).map((c) => [
+                    <div key="c" className="min-w-0">
+                      <Link href={`/admin/customers/${c.id}`} className="block truncate font-medium text-stone-900 hover:text-pw-accent">
+                        {c.name ?? c.email}
+                      </Link>
+                      {c.name && <div className="truncate text-xs text-stone-500">{c.email}</div>}
+                    </div>,
+                    fmtInt(c.total_orders ?? 0),
+                    formatZarCents(c.total_spent_cents ?? 0),
+                  ])}
+                  align={["left", "right", "right"]}
                 />
               )}
             </PanelCard>
           </div>
+        </Section>
 
-          <div className="space-y-3">
-            <SmallStat label="Wallpaper orders"    value={fmtInt(wallpaperOrders)}   sub={`in ${win.label.toLowerCase()}`} />
-            <SmallStat label="Avg order m²"        value={avgOrderSqm.toFixed(2)}    sub="per wallpaper order" />
-            <SmallStat label="Total m² printed"    value={totalSqm.toFixed(1)}       sub={win.label.toLowerCase()} />
+        <details className="group rounded-xl border border-stone-200 bg-white">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3 transition-colors hover:bg-stone-50">
+            <span className="text-sm font-semibold text-stone-900">Audience &amp; product</span>
+            <span aria-hidden className="text-xs text-stone-400 transition-transform group-open:rotate-90">›</span>
+          </summary>
+          <div className="space-y-6 border-t border-stone-200 p-5">
+            <div className="grid gap-6 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <PanelCard title="Finish × install" subtitle="orders, m², revenue, margin">
+                  {product.length === 0 ? <Empty msg="No wallpaper orders yet — your finish mix will appear here." /> : (
+                    <Table
+                      head={COSTS_CONFIGURED ? ["Finish", "Install", "Orders", "m²", "Revenue", "Margin"] : ["Finish", "Install", "Orders", "m²", "Revenue"]}
+                      rows={product.map((r) => {
+                        const cells: React.ReactNode[] = [
+                          <span key="f" className="capitalize">{r.finish}</span>,
+                          r.application === "diy" || r.application === "diy_kit"
+                            ? <span className="text-stone-700">DIY{r.application === "diy_kit" ? " kit" : ""}</span>
+                            : r.application === "pro_installer"
+                              ? <span className="font-medium text-pw-accent">Pro</span>
+                              : r.application,
+                          fmtInt(r.orders),
+                          r.total_sqm.toFixed(1),
+                          formatZarCents(r.revenue_cents),
+                        ];
+                        if (COSTS_CONFIGURED) {
+                          const cogs = ["satin", "matte", "linen"].includes(r.finish)
+                            ? (cogsForFinishCents(r.finish as WallpaperMaterial, r.total_sqm, r.orders) ?? null)
+                            : null;
+                          const mPct = cogs != null && r.revenue_cents > 0 ? ((r.revenue_cents - cogs) / r.revenue_cents) * 100 : null;
+                          cells.push(
+                            mPct != null
+                              ? <span key="m" className={mPct < 30 ? "text-amber-700" : "text-stone-900"}>{`${Math.round(mPct)}%`}</span>
+                              : <span key="m" className="text-stone-400">—</span>,
+                          );
+                        }
+                        return cells;
+                      })}
+                      align={COSTS_CONFIGURED ? ["left", "left", "right", "right", "right", "right"] : ["left", "left", "right", "right", "right"]}
+                    />
+                  )}
+                </PanelCard>
+              </div>
+              <div className="space-y-3">
+                <SmallStat label="Wallpaper orders" value={fmtInt(wallpaperOrders)} sub="this period" />
+                <SmallStat label="Avg order m²"     value={avgOrderSqm.toFixed(2)}  sub="per wallpaper order" />
+                <SmallStat label="Total m² printed" value={totalSqm.toFixed(1)}     sub={win.label.toLowerCase()} />
+              </div>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <PanelCard title="Install method" subtitle="Pro install drives the highest AOV">
+                {totalInstallOrders === 0 ? <Empty msg="No wallpaper orders yet — DIY vs Pro split appears here." /> : (
+                  <div className="space-y-3">
+                    <SplitBar
+                      a={{ label: "DIY",         value: diyOrders, color: "bg-stone-700" }}
+                      b={{ label: "Pro install", value: proOrders, color: "bg-pw-accent" }}
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <SmallStat label="DIY orders" value={fmtInt(diyOrders)} sub={diyOrders > 0 ? `AOV ${formatZarCents(diyAovCents)}` : "—"} />
+                      <SmallStat label="Pro orders" value={fmtInt(proOrders)} sub={proOrders > 0 ? `AOV ${formatZarCents(proAovCents)}` : "—"} />
+                    </div>
+                  </div>
+                )}
+              </PanelCard>
+
+              <PanelCard title="Sample packs" subtitle="the R150-credit funnel">
+                <FunnelChart data={[
+                  { rank: 1, stage: "sample_added", sessions: sampleAdds,   own: sampleAdds },
+                  { rank: 2, stage: "sample_paid",  sessions: sampleOrders, own: sampleOrders },
+                ]} />
+                <p className="mt-2 text-xs text-stone-500">
+                  Add → order {sampleAdds > 0 ? `${Math.round((sampleOrders / sampleAdds) * 100)}%` : "—"} · sample buyers are warm wallpaper leads.
+                </p>
+              </PanelCard>
+            </div>
           </div>
-        </div>
-      </Section>
+        </details>
+      </Band>
 
-      {/* ── Finances ─────────────────────────────────────────────────── */}
-      <Section title="Finances" note="Estimates based on PayFast standard rate (3.5% + R2)">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <PanelCard title="Sales" subtitle={win.label.toLowerCase()}>
-            <FinanceTable rows={[
-              ["Gross sales (subtotal + discounts)", grossSales],
-              ["Discounts",                          -discountsTotal],
-              ["Net sales (subtotal)",               netSales],
-              ["Shipping collected",                 shippingTotal],
-              ["Refunds",                            -refundsTotal],
-              ["Total collected",                    totalCollected],
-            ]} />
-            {discountAgg.count > 0 && (
-              <p className="mt-3 text-xs text-stone-500">
-                {discountAgg.count} order{discountAgg.count === 1 ? "" : "s"} used a discount code · total {formatZarCents(discountAgg.total_cents)}
-              </p>
-            )}
-          </PanelCard>
+      {/* ════ BAND 4 · FINANCE & OPS ════ */}
+      <Band label="Finance &amp; ops">
+        <Section title="Finances" note="estimates · PayFast 3.5% + R2">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PanelCard title="To your bank (est.)" subtitle="collected → net deposit, this period">
+              <p className="text-3xl font-semibold tabular-nums text-stone-900">{formatZarCents(netDeposit)}</p>
+              <p className="mt-0.5 text-xs text-stone-500">after card fees + refunds</p>
+              <div className="mt-4"><FinanceWaterfall steps={waterfall} /></div>
+            </PanelCard>
 
-          <PanelCard title="Estimated payouts" subtitle={`PayFast fees + VAT (${(VAT_PCT * 100).toFixed(0)}% if registered)`}>
-            <FinanceTable rows={[
-              ["Total collected",                  totalCollected],
-              ["Estimated card fees (3.5% + R2)",  -cardFees],
-              ["Estimated net deposit",            netDeposit],
-            ]} />
-            <FinanceTable rows={[
-              ["VAT-inclusive subtotal",           netSales],
-              ["Estimated VAT (15%) if registered", vatEstimate],
-              ["Net of VAT",                       netSales - vatEstimate],
-            ]} className="mt-4" />
-            <p className="mt-3 text-xs text-stone-500">
-              Fees and VAT are <strong>estimates</strong>. Real PayFast settlement may vary by plan;
-              VAT applies only if you are registered for it. Source the exact numbers from your
-              PayFast dashboard for tax submission.
-            </p>
-          </PanelCard>
-        </div>
-      </Section>
+            <PanelCard title="Sales breakdown" subtitle={win.label.toLowerCase()}>
+              <FinanceTable rows={[
+                ["Gross sales (subtotal + discounts)", grossSales],
+                ["Discounts",                          -discountsTotal],
+                ["Net sales (subtotal)",               netSales],
+                ["Shipping collected",                 shippingTotal],
+                ["Refunds",                            -refundsTotal],
+                ["Total collected",                    totalCollected],
+              ]} />
+              {discountAgg.count > 0 && (
+                <p className="mt-3 text-xs text-stone-500">
+                  {discountAgg.count} order{discountAgg.count === 1 ? "" : "s"} used a discount code · total {formatZarCents(discountAgg.total_cents)}
+                </p>
+              )}
+              <details className="mt-3 text-xs">
+                <summary className="cursor-pointer text-stone-500">VAT estimate (if registered)</summary>
+                <FinanceTable rows={[
+                  ["VAT-inclusive subtotal",            netSales],
+                  ["Estimated VAT (15%) if registered", vatEstimate],
+                  ["Net of VAT",                        netSales - vatEstimate],
+                ]} className="mt-2" />
+                <p className="mt-2 text-stone-500">Fees and VAT are estimates. Confirm exact figures in your PayFast dashboard for tax.</p>
+              </details>
+            </PanelCard>
+          </div>
 
+          <div className="mt-6">
+            <UnitEconomics
+              marginCents={marginCents}
+              marginPct={marginPct}
+              netSales={wallpaperRevenue}
+              cogsCents={cogsCents}
+              costsConfigured={COSTS_CONFIGURED}
+              roas={roas}
+              cacCents={cacCents}
+              ltvCacRatio={ltvCacRatio}
+              avgLtvCents={avgLtvCents}
+              adSpendConfigured={AD_SPEND_CONFIGURED}
+            />
+          </div>
+        </Section>
+
+        <section id="operations">
+          <details className="group rounded-xl border border-stone-200 bg-white">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-stone-50">
+              <div className="flex items-center gap-3">
+                <span aria-hidden className={`h-2 w-2 rounded-full ${anyHealthWarn ? "bg-amber-500" : "bg-green-500"}`} />
+                <span className="text-sm font-semibold text-stone-900">System &amp; tracking health</span>
+                <span className="text-xs text-stone-500">{anyHealthWarn ? "Needs attention" : "All systems nominal"}</span>
+              </div>
+              <span aria-hidden className="text-xs text-stone-400 transition-transform group-open:rotate-90">›</span>
+            </summary>
+            <div className="space-y-4 border-t border-stone-200 p-5">
+              <MetaHealthCard
+                sent24h={capiSent24h}
+                failures24h={capiFailures24h}
+                purchase24h={capiPurchase24h}
+                lastSentAt={capiLastSentAt}
+                byType={Array.from(capiByType.entries()).map(([type, count]) => ({ type, count }))}
+                paidOrders={currentOrders}
+              />
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <HealthTile label="Last paid order"
+                  value={lastPaymentEvt.data ? agoString(lastPaymentEvt.data.created_at) : "Never"}
+                  tone={healthTones[0]}
+                  sub={lastPaymentEvt.data ? `Webhook ${new Date(lastPaymentEvt.data.created_at).toLocaleString("en-ZA", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : "No PayFast ITN yet"} />
+                <HealthTile label="Email drainer"
+                  value={lastDrainEvt.data ? `Ran ${agoString(lastDrainEvt.data.created_at)}` : "Never run"}
+                  tone={healthTones[1]}
+                  sub={!resendKeySetCheck.set ? "RESEND_API_KEY not set" : "Drains the email queue"} />
+                <HealthTile label="Email queue"
+                  value={`${pendingEmails.count ?? 0} pending`}
+                  tone={healthTones[2]}
+                  sub={(failedEmailsRecent.data?.length ?? 0) > 0 ? `${failedEmailsRecent.data?.length} failed in 24h` : "No failures in 24h"} />
+                <HealthTile label="Reconciliation"
+                  value={lastReconcileEvt.data ? `Ran ${agoString(lastReconcileEvt.data.created_at)}` : "Never run"}
+                  tone={healthTones[3]}
+                  sub="Daily payment reconcile cron" />
+                <HealthTile label="Traffic (last hour)"
+                  value={`${(eventsLastHour.count ?? 0).toLocaleString()} events`}
+                  tone={healthTones[4]}
+                  sub={(eventsLastHour.count ?? 0) > 0 ? "Tracker pipeline alive" : "No traffic — pre-launch"} />
+              </div>
+              {(failedEmailsRecent.data?.length ?? 0) > 0 && (
+                <details className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <summary className="cursor-pointer text-sm font-medium text-amber-900">Recent email failures ({failedEmailsRecent.data?.length})</summary>
+                  <ul className="mt-3 space-y-2">
+                    {(failedEmailsRecent.data ?? []).map((r) => (
+                      <li key={r.id} className="text-xs text-amber-900/80">
+                        <span className="font-mono">{r.type}</span>{" · "}
+                        {r.last_attempt_at && new Date(r.last_attempt_at).toLocaleString("en-ZA")}
+                        {r.error && <p className="mt-0.5 font-mono text-[11px] text-amber-900/70">{r.error}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          </details>
+        </section>
+      </Band>
     </div>
   );
 }
@@ -1342,10 +1247,10 @@ function Section({
 }
 
 function PanelCard({
-  title, subtitle, children,
-}: { title: string; subtitle?: string; children: React.ReactNode }) {
+  title, subtitle, children, id,
+}: { title: string; subtitle?: string; children: React.ReactNode; id?: string }) {
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+    <div id={id} className="scroll-mt-20 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
       <div className="mb-3">
         <h3 className="text-sm font-semibold text-stone-900">{title}</h3>
         {subtitle && <p className="mt-0.5 text-xs text-stone-500">{subtitle}</p>}
@@ -1378,18 +1283,6 @@ function StatCard({
         {delta}
         {sub && <span className="text-xs text-stone-500">{sub}</span>}
       </div>
-    </div>
-  );
-}
-
-function ChartTile({ label, total, children }: { label: string; total: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="mb-2 flex items-baseline justify-between">
-        <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{label}</p>
-        <p className="text-base font-semibold tabular-nums text-stone-900">{total}</p>
-      </div>
-      {children}
     </div>
   );
 }
@@ -1585,41 +1478,56 @@ function GoalStrip({
           </p>
         )}
       </div>
-      {hasGoal && (
-        <div className="mt-4">
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
-            <div className="h-full rounded-full bg-pw-accent" style={{ width: `${pct}%` }} />
+      {hasGoal && (() => {
+        const pacePct = Math.min(100, Math.max(0, (dayOfMonth / daysInMonth) * 100));
+        const behind  = pct < pacePct;
+        return (
+          <div className="mt-4">
+            <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
+              <div className="h-full rounded-full bg-pw-accent" style={{ width: `${pct}%` }} />
+              {behind && <div className="absolute top-0 h-full bg-amber-200/70" style={{ left: `${pct}%`, width: `${Math.max(0, pacePct - pct)}%` }} />}
+              <div className="absolute top-0 h-full w-0.5 bg-stone-600" style={{ left: `${pacePct}%` }} title="today's pace" />
+            </div>
+            <div className="mt-1.5 flex justify-between text-xs text-stone-500">
+              <span>{(goalPct as number).toFixed(0)}% to goal · <span className={behind ? "text-amber-700" : "text-green-700"}>{behind ? "behind today's pace" : "ahead of pace"}</span></span>
+              <span>{formatZarCents(goalCents)} target</span>
+            </div>
           </div>
-          <div className="mt-1.5 flex justify-between text-xs text-stone-500">
-            <span>{(goalPct as number).toFixed(0)}% to goal</span>
-            <span>{formatZarCents(goalCents)} target</span>
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
 
-type Insight = { tone: "danger" | "warn" | "info"; title: string; text: string };
+type Insight = { tone: "danger" | "warn" | "info"; title: string; text: string; anchor?: string };
 
 function InsightsPanel({ insights }: { insights: Insight[] }) {
   const dot: Record<Insight["tone"], string> = {
     danger: "bg-red-500", warn: "bg-amber-500", info: "bg-blue-500",
   };
+  const row = (ins: Insight, i: number) => (
+    <li key={i} className="flex gap-3">
+      <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dot[ins.tone]}`} />
+      <div className="min-w-0">
+        {ins.anchor
+          ? <a href={`#${ins.anchor}`} className="text-sm font-medium text-stone-900 hover:text-pw-accent">{ins.title} →</a>
+          : <p className="text-sm font-medium text-stone-900">{ins.title}</p>}
+        {ins.text && <p className="text-sm text-stone-600">{ins.text}</p>}
+      </div>
+    </li>
+  );
+  const head = insights.slice(0, 3);
+  const rest = insights.slice(3);
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h2 className="text-sm font-semibold text-stone-900">What to do</h2>
-      <ul className="mt-3 space-y-3">
-        {insights.map((ins, i) => (
-          <li key={i} className="flex gap-3">
-            <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dot[ins.tone]}`} />
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-stone-900">{ins.title}</p>
-              {ins.text && <p className="text-sm text-stone-600">{ins.text}</p>}
-            </div>
-          </li>
-        ))}
-      </ul>
+    <div className="scroll-mt-20 rounded-xl border border-l-4 border-stone-200 border-l-pw-accent bg-white p-5 shadow-sm">
+      <h2 className="text-sm font-semibold text-stone-900">What to do next</h2>
+      <ul className="mt-3 space-y-3">{head.map(row)}</ul>
+      {rest.length > 0 && (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs font-medium text-stone-500">{rest.length} more</summary>
+          <ul className="mt-3 space-y-3">{rest.map((ins, i) => row(ins, i + 3))}</ul>
+        </details>
+      )}
     </div>
   );
 }
@@ -1673,28 +1581,54 @@ function ChannelTable({
 }: {
   rows: { source: string; landed: number; config: number; cart: number; paid: number; revenue_cents: number }[];
 }) {
-  if (rows.length === 0) return <Empty msg="No traffic in this window yet." />;
-  const pctOf = (n: number, dnm: number) => (dnm > 0 ? `${Math.round((n / dnm) * 100)}%` : "—");
+  if (rows.length === 0) return <Empty msg="No traffic yet — your sources will rank here once visitors arrive." />;
+  const maxRev = Math.max(1, ...rows.map((r) => r.revenue_cents));
+  const pctOf  = (n: number, dnm: number) => (dnm > 0 ? `${Math.round((n / dnm) * 100)}%` : "—");
   return (
-    <div>
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        {rows.map((r) => (
+          <div key={r.source} className="flex items-center gap-3">
+            <span className="w-24 shrink-0 truncate text-sm text-stone-700">{r.source}</span>
+            <div className="h-5 flex-1 overflow-hidden rounded bg-stone-100">
+              <div className="h-full rounded bg-pw-accent" style={{ width: `${Math.max(2, (r.revenue_cents / maxRev) * 100)}%` }} />
+            </div>
+            <span className="w-20 shrink-0 text-right text-sm tabular-nums text-stone-900">{formatZarCents(r.revenue_cents)}</span>
+          </div>
+        ))}
+      </div>
       <Table
-        head={["Source", "Sessions", "Config", "Cart", "Orders", "CR", "Revenue", "ROAS"]}
+        head={["Source", "Sessions", "Funnel", "Orders", "CR"]}
         rows={rows.map((r) => ([
           <span key="s" className="font-medium text-stone-900">{r.source}</span>,
           fmtInt(r.landed),
-          pctOf(r.config, r.landed),
-          pctOf(r.cart, r.landed),
+          <MiniFunnel key="mf" landed={r.landed} config={r.config} cart={r.cart} paid={r.paid} />,
           fmtInt(r.paid),
           <span key="cr" className={r.paid > 0 ? "font-medium text-stone-900" : "text-stone-400"}>{pctOf(r.paid, r.landed)}</span>,
-          formatZarCents(r.revenue_cents),
-          <span key="roas" className="text-stone-400">—</span>,
         ]))}
-        align={["left", "right", "right", "right", "right", "right", "right", "right"]}
+        align={["left", "right", "left", "right", "right"]}
       />
-      <p className="mt-3 text-xs text-stone-500">
-        Add ad spend per source to unlock ROAS, CAC and profit per channel.
+      <p className="text-xs text-stone-500">
+        Connect Meta ad spend (set MONTHLY_AD_SPEND_CENTS) to unlock per-channel ROAS &amp; CAC.
       </p>
     </div>
+  );
+}
+
+function MiniFunnel({ landed, config, cart, paid }: { landed: number; config: number; cart: number; paid: number }) {
+  const max = Math.max(1, landed);
+  const segs = [
+    { v: landed, c: "bg-stone-300" },
+    { v: config, c: "bg-stone-400" },
+    { v: cart,   c: "bg-pw-accent-mid" },
+    { v: paid,   c: "bg-pw-accent" },
+  ];
+  return (
+    <span className="inline-flex h-5 w-24 items-end gap-0.5" title={`landed ${landed} · config ${config} · cart ${cart} · paid ${paid}`}>
+      {segs.map((s, i) => (
+        <span key={i} className={`flex-1 rounded-sm ${s.c}`} style={{ height: `${Math.max(10, (s.v / max) * 100)}%` }} />
+      ))}
+    </span>
   );
 }
 
@@ -1784,6 +1718,7 @@ function buildInsights(d: {
       tone: worst.drop >= 0.8 ? "danger" : "warn",
       title: `Biggest drop-off: ${STAGE_LABELS[worst.from]} to ${STAGE_LABELS[worst.from + 1]}`,
       text: `${Math.round(worst.drop * 100)}% of sessions are lost at this step. Best place to focus CRO next.`,
+      anchor: "funnel",
     });
   }
 
@@ -1825,7 +1760,7 @@ function buildInsights(d: {
 
   // Abandoned cart value
   if (d.abandonedValueCents >= 100000) {
-    out.push({ tone: "warn", title: `${formatZarCents(d.abandonedValueCents)} sitting in abandoned carts`, text: "Abandoned-cart recovery email is your cheapest revenue. Wire it up and shorten the cron." });
+    out.push({ tone: "warn", title: `${formatZarCents(d.abandonedValueCents)} sitting in abandoned carts`, text: "Abandoned-cart recovery email is your cheapest revenue. Wire it up and shorten the cron.", anchor: "carts" });
   }
 
   // High bounce
@@ -1845,4 +1780,105 @@ function buildInsights(d: {
 
   const rank: Record<Insight["tone"], number> = { danger: 0, warn: 1, info: 2 };
   return out.sort((a, b) => rank[a.tone] - rank[b.tone]).slice(0, 5);
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Revamp building blocks (4-band layout)
+// ──────────────────────────────────────────────────────────────────────────
+
+function Band({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-6">
+      <div className="flex items-center gap-3">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">{label}</span>
+        <span aria-hidden className="h-px flex-1 bg-stone-200" />
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function RankedList({ rows, unit, mono }: { rows: { label: string; value: number }[]; unit: string; mono?: boolean }) {
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  return (
+    <ul className="space-y-1.5">
+      {rows.slice(0, 8).map((r, i) => (
+        <li key={i} className="flex items-center gap-3">
+          <div className="relative min-w-0 flex-1 overflow-hidden rounded bg-stone-50">
+            <div className="absolute inset-y-0 left-0 rounded bg-pw-accent-soft" style={{ width: `${(r.value / max) * 100}%` }} />
+            <span className={`relative block truncate px-2 py-1 text-stone-700 ${mono ? "font-mono text-xs" : "text-sm"}`}>{r.label}</span>
+          </div>
+          <span className="shrink-0 text-sm tabular-nums text-stone-900">{r.value.toLocaleString()}</span>
+        </li>
+      ))}
+      <li className="pt-1 text-[11px] uppercase tracking-wider text-stone-400">{unit}</li>
+    </ul>
+  );
+}
+
+function RepeatTailBar({ one, two, threePlus }: { one: number; two: number; threePlus: number }) {
+  const total = one + two + threePlus;
+  if (total === 0) return null;
+  const segs = [
+    { label: "1 order",   value: one,       color: "bg-stone-300" },
+    { label: "2 orders",  value: two,       color: "bg-pw-accent-mid" },
+    { label: "3+ orders", value: threePlus, color: "bg-pw-accent" },
+  ];
+  return (
+    <div className="space-y-2">
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
+        {segs.map((s) => (s.value > 0 ? <div key={s.label} className={s.color} style={{ width: `${(s.value / total) * 100}%` }} /> : null))}
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-600">
+        {segs.map((s) => (
+          <span key={s.label} className="inline-flex items-center gap-1.5">
+            <span aria-hidden className={`inline-block h-2.5 w-2.5 rounded-sm ${s.color}`} />
+            {s.label} <span className="text-stone-500">{s.value} ({Math.round((s.value / total) * 100)}%)</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FinanceWaterfall({ steps }: { steps: { label: string; value: number; kind: "start" | "neg" | "total" }[] }) {
+  const max = Math.max(1, ...steps.map((s) => Math.abs(s.value)));
+  return (
+    <div className="space-y-2">
+      {steps.map((s, i) => {
+        const neg = s.value < 0;
+        const isTotal = s.kind === "total";
+        const w = (Math.abs(s.value) / max) * 100;
+        return (
+          <div key={i} className="flex items-center gap-3">
+            <span className={`w-24 shrink-0 text-sm ${isTotal ? "font-medium text-stone-900" : "text-stone-600"}`}>{s.label}</span>
+            <div className="h-4 flex-1 overflow-hidden rounded bg-stone-50">
+              <div className={`h-full rounded ${isTotal ? "bg-stone-800" : neg ? "bg-red-300" : "bg-pw-accent"}`} style={{ width: `${Math.max(2, w)}%` }} />
+            </div>
+            <span className={`w-20 shrink-0 text-right text-sm tabular-nums ${isTotal ? "font-semibold text-stone-900" : neg ? "text-red-700" : "text-stone-900"}`}>
+              {neg ? "−" : ""}{formatZarCents(Math.abs(s.value))}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MonthBars({ data }: { data: { day: string; value: number }[] }) {
+  const months = data.slice(-12);
+  const max = Math.max(1, ...months.map((d) => d.value));
+  return (
+    <div className="flex h-44 items-end gap-2">
+      {months.map((m) => {
+        const label = new Date(`${m.day}-01T00:00:00+02:00`).toLocaleDateString("en-ZA", { month: "short" });
+        return (
+          <div key={m.day} className="flex flex-1 flex-col items-center justify-end gap-1" title={`${m.day}: ${formatZarCents(m.value)}`}>
+            <div className="w-full rounded-t bg-pw-accent" style={{ height: `${Math.max(2, (m.value / max) * 100)}%` }} />
+            <span className="text-[10px] text-stone-500">{label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
