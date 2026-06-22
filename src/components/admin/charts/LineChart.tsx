@@ -112,8 +112,28 @@ export function LineChart({
     ? compareData!.slice(0, data.length).map((d, i) => ({ x: xAt(i), y: yAt(Number(d.value)), d, i }))
     : [];
 
-  const toPath = (pts: { x: number; y: number }[]) =>
-    pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  // Smooth (Catmull-Rom → cubic bezier) so the line reads as a soft Shopify-style
+  // curve, not angular segments. Control-point Y is clamped to the plot area so
+  // neither the line nor the area fill ever overshoots the baseline or the top.
+  const yMin = padTop, yMax = padTop + innerH;
+  const clampY = (v: number) => Math.max(yMin, Math.min(yMax, v));
+  const toPath = (pts: { x: number; y: number }[]) => {
+    if (pts.length === 0) return "";
+    if (pts.length < 3) return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+    const d = [`M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] ?? pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] ?? p2;
+      const c1x = p1.x + (p2.x - p0.x) / 6;
+      const c1y = clampY(p1.y + (p2.y - p0.y) / 6);
+      const c2x = p2.x - (p3.x - p1.x) / 6;
+      const c2y = clampY(p2.y - (p3.y - p1.y) / 6);
+      d.push(`C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`);
+    }
+    return d.join(" ");
+  };
   const linePath = toPath(points);
   const fillPath = `${linePath} L${points[points.length - 1].x.toFixed(1)},${(padTop + innerH).toFixed(1)} L${points[0].x.toFixed(1)},${(padTop + innerH).toFixed(1)} Z`;
   const comparePath = comparePoints.length > 0 ? toPath(comparePoints) : "";
