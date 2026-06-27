@@ -447,13 +447,13 @@ export function PreviewEditStep({
             variant="warning"
             title={
               quality.level === "too_low"
-                ? "Will look soft on a wall this big"
-                : "Sharpest at slightly smaller sizes"
+                ? "A note on resolution"
+                : "Prints beautifully, sharpest at smaller sizes"
             }
           >
             {quality.level === "too_low"
-              ? "It'll look fine from across the room but soft up close. Zoom in to crop tighter, use a higher-resolution image, or reduce the wall."
-              : "Looks fine from normal viewing distance. Zoom in for a tighter crop if you want it sharper up close."}{" "}
+              ? "On a wall this size it prints fine from across the room, just a little softer up close. For extra sharpness, zoom in to crop tighter, use a higher-resolution source, or choose a smaller wall."
+              : "At normal viewing distance this looks crisp and clean. If you'd like it sharper up close, zoom in for a tighter crop."}{" "}
             Crispest up to <strong className="text-pw-ink">{formatMaxSizeCm(quality.maxWidthM, quality.maxHeightM)}</strong>.
           </ConfigAlert>
         </div>

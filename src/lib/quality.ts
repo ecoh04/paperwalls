@@ -21,7 +21,7 @@ export const MIN_PX_PER_MM = 0.5;
 export const TOO_LOW_THRESHOLD = MIN_PX_PER_MM * 0.4;   // 0.20 px/mm ≈ 5 dpi
 
 /** Below this multiple the image is borderline — softer up close, fine from across the room. */
-export const BORDERLINE_THRESHOLD = MIN_PX_PER_MM * 1.1; // 0.55 px/mm ≈ 14 dpi
+export const BORDERLINE_THRESHOLD = MIN_PX_PER_MM * 1.3; // 0.65 px/mm ≈ 16.5 dpi
 
 export type QualityLevel = "good" | "borderline" | "too_low";
 

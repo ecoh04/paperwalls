@@ -88,6 +88,15 @@ function saveCart(items: CartItem[]): boolean {
   }
 }
 
+// Read a browser cookie. Used for Meta's _fbp/_fbc, forwarded to the server so
+// the CAPI AddToCart mirror matches the buyer at high quality.
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = document.cookie.match(new RegExp("(?:^|; )" + escaped + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 function loadOrCreateSessionId(): string {
   if (typeof window === "undefined") return "";
   try {
@@ -247,18 +256,43 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
-    // Meta Pixel: AddToCart. event_id minted here is what server-side
-    // CAPI will dedup against if/when we mirror this event server-side.
+    // Meta Pixel: AddToCart. event_id minted here is shared with the server
+    // CAPI mirror below so Meta dedups the two into one event.
     const eventId = mintEventId("AddToCart");
+    const contentId = item.type === "sample_pack" ? "sample_pack" : "custom_wallpaper";
+    const valueZar  = item.subtotalCents / 100;
     metaPixelTrack("AddToCart", {
       event_id:     eventId,
       value_cents:  item.subtotalCents,
       currency:     "ZAR",
       content_type: item.type === "sample_pack" ? "sample_pack" : "wallpaper",
-      content_ids:  [item.type === "sample_pack" ? "sample_pack" : "custom_wallpaper"],
+      content_ids:  [contentId],
       content_name: item.type === "sample_pack" ? "Sample pack" : `Custom wallpaper (${item.material})`,
       num_items:    1,
     });
+
+    // Meta CAPI: AddToCart — fired here, 1:1 with the pixel above, sharing the
+    // SAME event_id for dedup. This is the moment of the real add, so it never
+    // fires on quantity edits or the debounced /api/cart/sync re-sync. fbp/fbc
+    // are read from cookies; the server skips the send gracefully if absent.
+    // Fire-and-forget: a CAPI failure must never break add-to-cart.
+    fetch("/api/track", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action:       "capi_add_to_cart",
+        event_id:     eventId,
+        value:        valueZar,
+        currency:     "ZAR",
+        content_type: item.type === "sample_pack" ? "sample_pack" : "wallpaper",
+        content_ids:  [contentId],
+        contents:     [{ id: contentId, quantity: 1, item_price: valueZar }],
+        num_items:    1,
+        fbp:          readCookie("_fbp"),
+        fbc:          readCookie("_fbc"),
+      }),
+      keepalive: true,
+    }).catch(() => {});
   }, [router]);
 
   const removeItem = useCallback((id: string) => {

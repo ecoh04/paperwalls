@@ -11,6 +11,10 @@ import { notifyOps } from "@/lib/alerts";
 import { calculateSubtotalCents } from "@/lib/pricing";
 import type { ShippingProvince } from "@/types/order";
 
+// Multi-wall checkouts ship a large body (15-30 MB) and upload several print
+// images, which can outrun the ~15s serverless default. Allow up to 60s.
+export const maxDuration = 60;
+
 // Sample-pack price is the canonical server-side number. Anything else from
 // the client gets rejected. Mirrors src/app/samples/page.tsx.
 const SAMPLE_PACK_PRICE_CENTS = 30_000;
@@ -384,12 +388,11 @@ export async function POST(request: Request) {
       // Upload to a tmp path keyed by a fresh UUID so concurrent checkouts can't collide.
       // We rename to orders/PW-XXXX-N.jpg below, after the DB hands back order_number.
       const uploadId = crypto.randomUUID();
-      const urls: string[] = [];
-      for (let j = 0; j < images.length; j++) {
-        const path = `tmp/${uploadId}-${j}.jpg`;
-        const stored = await uploadPrintImage(images[j], path);
-        urls.push(stored);
-      }
+      // Upload images in parallel. Promise.all preserves input order, so the
+      // tmp/<uuid>-<j>.jpg index scheme stays aligned with the later rename step.
+      const urls = await Promise.all(
+        images.map((img, j) => uploadPrintImage(img, `tmp/${uploadId}-${j}.jpg`)),
+      );
 
       const wallWidth  = item.walls?.[0]?.widthM  ?? item.widthM;
       const wallHeight = item.walls?.[0]?.heightM ?? item.heightM;

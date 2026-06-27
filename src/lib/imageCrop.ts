@@ -35,10 +35,10 @@ export interface ContainCropParams {
 }
 
 /** Cap longest edge of the export so cart localStorage stays under quota. */
-const OUT_MAX_PX = 4000;
+const OUT_MAX_PX = 3000;
 
-/** JPEG quality — 0.9 keeps prints sharp without bloating storage. */
-const OUT_QUALITY = 0.9;
+/** JPEG quality — 0.82 keeps prints sharp without bloating storage. */
+const OUT_QUALITY = 0.82;
 
 async function loadImageBitmap(imageUrl: string): Promise<ImageBitmap | HTMLImageElement> {
   const response = await fetch(imageUrl);

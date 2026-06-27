@@ -171,6 +171,11 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
         content_ids:  items.map((i) => i.type === "sample_pack" ? "sample_pack" : "custom_wallpaper"),
       });
 
+      // Abort just under the 60s server cap so a stalled request fails with a
+      // friendly message instead of hanging on the buyer's screen.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 55_000);
+
       try {
         const res = await fetch("/api/checkout/create", {
           method: "POST",
@@ -187,6 +192,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
             fbc:                readCookie("_fbc"),
             attribution:        readAttribution(),
           }),
+          signal: controller.signal,
         });
         const data = await res.json();
         if (!res.ok) {
@@ -205,6 +211,7 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
       } catch {
         onError("Network error. Please check your connection and try again.");
       } finally {
+        clearTimeout(timeoutId);
         setSubmitting(false);
       }
     },

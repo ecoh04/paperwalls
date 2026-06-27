@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { sendMetaConversion } from "@/lib/meta/capi";
 
 // First-party analytics ingest. Receives a batch of events from the browser
 // (sent via fetch keepalive / sendBeacon) and writes them straight into
@@ -63,16 +64,86 @@ function isUuid(s: unknown): s is string {
   return typeof s === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 }
 
+// ── Meta CAPI: AddToCart ──────────────────────────────────────────────────
+// Mirror the browser-pixel AddToCart server-side, dedup'd by sharing the same
+// event_id the pixel used. Fired exactly once per real add from CartContext
+// (NOT on quantity edits or the debounced cart re-sync). A clamp on number
+// keeps a crafted body from inflating the reported value. Never throws.
+type CapiAddToCartBody = {
+  event_id?:    string;
+  value?:       number;   // ZAR (already divided from cents client-side)
+  currency?:    string;
+  content_type?: string;
+  content_ids?: string[];
+  contents?:    Array<{ id: string; quantity: number; item_price?: number }>;
+  num_items?:   number;
+  fbp?:         string | null;
+  fbc?:         string | null;
+};
+
+async function handleCapiAddToCart(req: Request, b: CapiAddToCartBody): Promise<NextResponse> {
+  // event_id is mandatory for dedup. Without it, skip rather than double-count.
+  if (!b.event_id || typeof b.event_id !== "string") {
+    return new NextResponse(null, { status: 204 });
+  }
+  const fbp = typeof b.fbp === "string" && b.fbp.trim() ? b.fbp.trim() : null;
+  const fbc = typeof b.fbc === "string" && b.fbc.trim() ? b.fbc.trim() : null;
+  // No first-party cookies → match quality is too low to be useful; the pixel
+  // already fired, so skip the CAPI send gracefully.
+  if (!fbp && !fbc) {
+    return new NextResponse(null, { status: 204 });
+  }
+
+  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+  const num = (v: unknown): number | undefined =>
+    typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined;
+
+  // sendMetaConversion never throws; awaiting it here is safe because the audit
+  // insert must finish before this serverless function freezes.
+  await sendMetaConversion({
+    event_name: "AddToCart",
+    event_id:   b.event_id,
+    event_source_url: process.env.NEXT_PUBLIC_APP_URL || undefined,
+    user_data: {
+      fbp,
+      fbc,
+      client_ip: clientIp,
+      client_ua: req.headers.get("user-agent") ?? null,
+    },
+    custom_data: {
+      currency:     typeof b.currency === "string" ? b.currency : "ZAR",
+      value:        num(b.value),
+      content_type: typeof b.content_type === "string" ? b.content_type : undefined,
+      content_ids:  Array.isArray(b.content_ids) ? b.content_ids.slice(0, 20).map(String) : undefined,
+      contents:     Array.isArray(b.contents) ? b.contents.slice(0, 20) : undefined,
+      num_items:    num(b.num_items),
+    },
+  });
+
+  return new NextResponse(null, { status: 204 });
+}
+
 export async function POST(req: Request) {
   // Fast 204 — never stall the client.
   try {
     if (!supabaseAdmin) return new NextResponse(null, { status: 204 });
 
     const body = (await req.json().catch(() => null)) as null | {
+      action?:     unknown;
       session_id?: unknown;
       events?:     unknown;
       session?:    unknown;
     };
+
+    // Dedicated CAPI AddToCart action — fired 1:1 with the browser pixel.
+    if (body && body.action === "capi_add_to_cart") {
+      try {
+        return await handleCapiAddToCart(req, body as CapiAddToCartBody);
+      } catch {
+        // A CAPI failure must never break add-to-cart (pixel already fired).
+        return new NextResponse(null, { status: 204 });
+      }
+    }
 
     if (!body || !isUuid(body.session_id) || !Array.isArray(body.events)) {
       return new NextResponse(null, { status: 204 });
