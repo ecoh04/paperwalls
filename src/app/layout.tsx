@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   description:
     "Design your custom wallpaper. Upload your image, enter dimensions, choose your style. Printed in South Africa.",
   applicationName: "PaperWalls",
-  alternates: {
-    canonical: "/",
-  },
+  // No global canonical: a root-level canonical is inherited by every route,
+  // making each page declare the homepage as its canonical (kills SEO on the
+  // product/sample pages). Next self-canonicalizes each page to its own URL.
   openGraph: {
     type:        "website",
     locale:      "en_ZA",
@@ -74,6 +74,9 @@ export default function RootLayout({
             instant (DNS/TLS already warmed). Preload the two hot font weights
             (400 body, 900 headings) — same-origin woff2, hoisted to <head>. */}
         <link rel="preconnect" href="https://www.payfast.co.za" />
+        <link rel="dns-prefetch" href="https://www.payfast.co.za" />
+        {/* Warm the Meta Pixel CDN connection (pixel loads afterInteractive on every page). */}
+        <link rel="preconnect" href="https://connect.facebook.net" />
         <link rel="preload" href="/fonts/satoshi-400.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/satoshi-900.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         {/* Organization structured data for Google (rich results / knowledge panel). */}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin as supabase } from "@/lib/supabaseAdmin";
+import { uploadCartPreview } from "@/lib/storage";
 import type { CartItem } from "@/types/cart";
 
 /**
@@ -30,19 +31,21 @@ export async function POST(request: Request) {
       utm_term,
       fbclid,
       gclid,
+      image_preview,
     } = body as {
-      session_id?:   string;
-      items?:        CartItem[];
-      user_agent?:   string;
-      referrer?:     string;
-      landing_page?: string;
-      utm_source?:   string;
-      utm_medium?:   string;
-      utm_campaign?: string;
-      utm_content?:  string;
-      utm_term?:     string;
-      fbclid?:       string;
-      gclid?:        string;
+      session_id?:    string;
+      items?:         CartItem[];
+      user_agent?:    string;
+      referrer?:      string;
+      landing_page?:  string;
+      utm_source?:    string;
+      utm_medium?:    string;
+      utm_campaign?:  string;
+      utm_content?:   string;
+      utm_term?:      string;
+      fbclid?:        string;
+      gclid?:         string;
+      image_preview?: string;
     };
 
     if (!session_id || typeof session_id !== "string") {
@@ -80,15 +83,19 @@ export async function POST(request: Request) {
     // ── Upsert active cart ────────────────────────────────────────────────────
     const { data: existingCart } = await supabase
       .from("carts")
-      .select("id")
+      .select("id, image_preview_path")
       .eq("session_id", session_id)
       .eq("status", "active")
       .maybeSingle();
 
     let cartId: string;
+    // Track whether this cart already has a stored preview so we only upload
+    // once per cart (repeated debounced syncs must not re-upload).
+    let hasPreviewPath = false;
 
     if (existingCart?.id) {
       cartId = existingCart.id;
+      hasPreviewPath = !!existingCart.image_preview_path;
       await supabase.from("carts")
         .update({ updated_at: new Date().toISOString() })
         .eq("id", cartId);
@@ -104,6 +111,23 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
       cartId = newCart.id;
+    }
+
+    // ── Best-effort cart preview upload (abandoned-cart email hero) ────────────
+    // Additive + non-breaking: stores the preview's storage PATH (private
+    // bucket, signed at send time). Guarded so we only upload once per cart;
+    // must never throw out of the handler or alter the success path.
+    if (
+      typeof image_preview === "string" &&
+      image_preview.length > 0 &&
+      !hasPreviewPath
+    ) {
+      try {
+        const path = await uploadCartPreview(cartId, image_preview);
+        await supabase.from("carts").update({ image_preview_path: path }).eq("id", cartId);
+      } catch (err) {
+        console.warn("[cart/sync] preview upload skipped:", err instanceof Error ? err.message : err);
+      }
     }
 
     // ── Replace cart_items ────────────────────────────────────────────────────

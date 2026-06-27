@@ -164,6 +164,55 @@ function captureAttribution(): SessionAttribution {
   }
 }
 
+// ── Abandoned-cart preview ──────────────────────────────────────────────────
+// Downscale a wallpaper image into a small JPEG data URL for the abandoned-cart
+// email hero. Kept tiny so cart-sync payloads stay small. Fully failure-safe:
+// any error (no canvas, bad image, tainted source) resolves to null and the
+// caller simply omits the field, so the sync behaves exactly as before.
+const PREVIEW_MAX_EDGE = 600; // px, long edge
+const PREVIEW_QUALITY  = 0.7; // JPEG quality
+
+function downscalePreview(srcDataUrl: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      if (typeof document === "undefined" || !srcDataUrl) {
+        resolve(null);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth || img.width;
+          const h = img.naturalHeight || img.height;
+          if (!w || !h) {
+            resolve(null);
+            return;
+          }
+          const scale = Math.min(1, PREVIEW_MAX_EDGE / Math.max(w, h));
+          const outW = Math.max(1, Math.round(w * scale));
+          const outH = Math.max(1, Math.round(h * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = outW;
+          canvas.height = outH;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(null);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, outW, outH);
+          resolve(canvas.toDataURL("image/jpeg", PREVIEW_QUALITY));
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = srcDataUrl;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -174,6 +223,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const attribution               = useRef<SessionAttribution>({});
   const syncTimer                 = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender             = useRef(true);
+  // Cache the downscaled abandoned-cart preview so the debounced sync does not
+  // re-encode on every tick. Keyed by the source image so a new design
+  // recomputes; same image reuses the cached JPEG (or cached null on failure).
+  const previewCache              = useRef<{ key: string; value: string | null } | null>(null);
 
   const openCart  = useCallback(() => setIsCartOpen(true),  []);
   const closeCart = useCallback(() => setIsCartOpen(false), []);
@@ -190,7 +243,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     (currentSessionId: string, currentItems: CartItem[]) => {
       if (!currentSessionId) return;
       if (syncTimer.current) clearTimeout(syncTimer.current);
-      syncTimer.current = setTimeout(() => {
+      syncTimer.current = setTimeout(async () => {
+        // Best-effort abandoned-cart preview: downscale the first wallpaper
+        // item's image, computed at most once per source image (cached in a
+        // ref). Never blocks or breaks the sync — on null/failure the field
+        // is simply omitted and the POST is identical to before.
+        let imagePreview: string | null = null;
+        try {
+          const firstWallpaper = currentItems.find(
+            (i): i is Extract<CartItem, { type: "wallpaper" }> => i.type === "wallpaper",
+          );
+          const src = firstWallpaper?.imageDataUrl || firstWallpaper?.imageDataUrls?.[0];
+          if (src) {
+            const key = `${firstWallpaper!.id}:${src.length}`;
+            if (previewCache.current?.key === key) {
+              imagePreview = previewCache.current.value;
+            } else {
+              imagePreview = await downscalePreview(src);
+              previewCache.current = { key, value: imagePreview };
+            }
+          }
+        } catch {
+          imagePreview = null;
+        }
+
         fetch("/api/cart/sync", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
@@ -200,6 +276,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             user_agent:   typeof navigator !== "undefined" ? navigator.userAgent : undefined,
             referrer:     typeof document  !== "undefined" ? document.referrer || undefined : undefined,
             ...attribution.current,
+            ...(imagePreview ? { image_preview: imagePreview } : {}),
           }),
         }).catch(() => {});
       }, 900);

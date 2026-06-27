@@ -204,18 +204,43 @@ export function renderAdminNewOrder(args: {
   };
 }
 
-export function renderAbandonedCart(args: { customer_name: string; resume_url: string }) {
-  const subject = "Your design is still saved";
+export function renderAbandonedCart(args: { customer_name: string; resume_url: string; image_preview_url?: string; kind?: "wallpaper" | "sample" }) {
   const first = args.customer_name?.trim().split(" ")[0] || "Hello";
-  const body = `
+  const isSample = args.kind === "sample";
+  const subject   = isSample ? "Your sample pack is still in your cart" : "Your design is still saved";
+  const preheader = isSample ? "Your sample pack is one click away." : "Your saved configuration is one click away.";
+
+  // Editorial hero of the buyer's saved design. Wallpaper only (a sample pack
+  // carries no design); email-safe table cell, inline styles. Absent => no hero.
+  const hero = (!isSample && args.image_preview_url)
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 26px 0;">
+    <tr>
+      <td>
+        <img src="${args.image_preview_url}" alt="Your saved design" width="480" style="display:block;width:100%;max-width:100%;height:auto;border-radius:12px;border:1px solid ${BORDER};" />
+      </td>
+    </tr>
+  </table>`
+    : "";
+
+  const body = isSample
+    ? `
+    ${eyebrow("Still in your cart")}
+    ${h1(`${first}, your sample pack is waiting.`)}
+    ${p("Your sample pack is still in your cart. Order it and we will post the swatches to you, so you can see and feel the finishes before you commit to a wall.")}
+    ${button(args.resume_url, "Complete your order")}
+    ${muted("Not the right time? No matter. This is the only reminder you will get.")}
+  `
+    : `
     ${eyebrow("Still saved")}
     ${h1(`${first}, we saved your design.`)}
+    ${hero}
     ${p("Your configuration is exactly where you left it, measurements and all. Pick it back up whenever you are ready.")}
     ${button(args.resume_url, "Finish your order")}
     ${muted("Not the right time? No matter. This is the only reminder you will get.")}
   `;
+
   return {
     subject,
-    html: shell({ preheader: "Your saved configuration is one click away.", bodyHtml: body }),
+    html: shell({ preheader, bodyHtml: body }),
   };
 }

@@ -34,6 +34,29 @@ export async function uploadPrintImage(dataUrl: string, path: string): Promise<s
 }
 
 /**
+ * Upload a downscaled cart-preview JPEG (base64 data URL) into the private
+ * print-files bucket at a deterministic per-cart path. Returns the storage
+ * PATH (not a URL) so the abandoned-cart drainer can sign it on demand at
+ * send time. upsert:true so a re-sync overwrites cleanly. Throws on error;
+ * callers wrap best-effort so a failed preview never breaks cart-sync.
+ */
+export async function uploadCartPreview(cartId: string, dataUrl: string): Promise<string> {
+  const supabase = requireAdmin();
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) throw new Error("Invalid data URL");
+  const buffer = Buffer.from(match[2], "base64");
+  const contentType = match[1] || "image/jpeg";
+  const path = `cart-previews/${cartId}.jpg`;
+
+  const { error } = await supabase.storage.from(BUCKET).upload(path, buffer, {
+    contentType,
+    upsert: true,
+  });
+  if (error) throw new Error(`Cart preview upload failed: ${error.message}`);
+  return path;
+}
+
+/**
  * Move an object inside the print-files bucket. Used to rename tmp uploads
  * to their permanent order-numbered path once the order row exists.
  */

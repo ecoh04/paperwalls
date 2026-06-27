@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendEmail } from "@/lib/email/send";
 import { notifyOps } from "@/lib/alerts";
 import { cronAuthorized } from "@/lib/cron-auth";
+import { signedPrintUrl } from "@/lib/storage";
 import {
   renderOrderConfirmed,
   renderOrderShipped,
@@ -113,9 +114,46 @@ export async function GET(req: Request) {
         if (!customer) throw new Error(`customer ${customerId} not found`);
         toEmail = customer.email as string;
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://paperwalls.co.za";
+
+        // Best-effort: sign the saved design preview at SEND time (private
+        // bucket, no public URL). 7-day TTL covers the abandoned-cart window.
+        // Any failure (no cart_id, no path, signing error) just sends the
+        // email without the image — never blocks the send.
+        let imagePreviewUrl: string | undefined;
+        let cartKind: "wallpaper" | "sample" = "wallpaper";
+        try {
+          const meta = (row.metadata as Record<string, unknown> | null) ?? {};
+          const cartId = typeof meta.cart_id === "string" ? meta.cart_id : null;
+          if (cartId) {
+            const { data: cart } = await supabaseAdmin
+              .from("carts")
+              .select("image_preview_path")
+              .eq("id", cartId)
+              .single();
+            const path = cart?.image_preview_path as string | null | undefined;
+            if (path) {
+              imagePreviewUrl = await signedPrintUrl(path, 60 * 60 * 24 * 7);
+            }
+            // Word the email for what is actually in the cart: a sample pack has
+            // no design, so the "we saved your design" copy must not apply to it.
+            const { data: ci } = await supabaseAdmin
+              .from("cart_items")
+              .select("product_type")
+              .eq("cart_id", cartId);
+            const lines = (ci ?? []) as { product_type: string | null }[];
+            if (lines.length > 0) {
+              cartKind = lines.some((r) => r.product_type === "wallpaper") ? "wallpaper" : "sample";
+            }
+          }
+        } catch (err) {
+          console.warn("[cron drain-emails] abandoned-cart preview skipped:", err instanceof Error ? err.message : err);
+        }
+
         const rendered = renderAbandonedCart({
-          customer_name: (customer.name as string) ?? "",
-          resume_url:    `${baseUrl}/cart`,
+          customer_name:     (customer.name as string) ?? "",
+          resume_url:        `${baseUrl}/cart`,
+          image_preview_url: imagePreviewUrl,
+          kind:              cartKind,
         });
         subject = rendered.subject;
         html    = rendered.html;
