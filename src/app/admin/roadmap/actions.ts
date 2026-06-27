@@ -5,7 +5,9 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { revalidatePath } from "next/cache";
 
 // The 5 statuses the founder can move an item between. Mirrors the DB CHECK.
-export const ROADMAP_STATUSES = ["done", "now", "next", "later", "parked"] as const;
+// NOT exported: a "use server" file may only export async functions, so this
+// value stays module-local. The type is erased at build, so it's safe to export.
+const ROADMAP_STATUSES = ["done", "now", "next", "later", "parked"] as const;
 export type RoadmapStatus = (typeof ROADMAP_STATUSES)[number];
 
 // Set a roadmap item's status. Admin-gated; writes through the service-role
