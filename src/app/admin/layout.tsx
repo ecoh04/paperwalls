@@ -50,6 +50,7 @@ export default async function AdminLayout({
                 Insights
               </span>
               <Link href="/admin/analytics"   className="text-sm font-medium text-stone-600 hover:text-stone-900">Analytics</Link>
+              <Link href="/admin/roadmap"     className="text-sm font-medium text-stone-600 hover:text-stone-900">Roadmap</Link>
               <Link href="/admin/setup"       className="text-sm font-medium text-stone-600 hover:text-stone-900">Setup</Link>
             </nav>
           </div>
