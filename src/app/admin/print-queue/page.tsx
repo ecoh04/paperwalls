@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signedPrintUrl } from "@/lib/storage";
-import { MATERIAL_LABELS, APPLICATION_LABELS, PROVINCE_LABELS, formatZarCents } from "@/lib/admin-labels";
-import type { WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
+import { WALLPAPER_TYPE_LABELS, MATERIAL_LABELS, APPLICATION_LABELS, PROVINCE_LABELS, formatZarCents } from "@/lib/admin-labels";
+import type { WallpaperType, WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 import { MoveToProductionButton } from "@/components/admin/MoveToProductionButton";
 import { RefreshButton } from "@/components/admin/RefreshButton";
 import { CopyButton } from "@/components/admin/CopyButton";
@@ -25,6 +25,7 @@ type Row = {
   wall_height_m:      number | null;
   total_sqm:          number | null;
   walls_spec:         { widthM: number; heightM: number }[] | null;
+  wallpaper_type:     string | null;
   wallpaper_style:    string | null;
   application_method: string | null;
   image_url:          string | null;
@@ -40,12 +41,12 @@ function parsePaths(urls: unknown): string[] {
 
 function formatWalls(row: Row): string {
   if (row.wall_count === 1) {
-    return `${Math.round(Number(row.wall_width_m) * 100)} × ${Math.round(Number(row.wall_height_m) * 100)} cm`;
+    return `W ${Math.round(Number(row.wall_width_m) * 100)} cm x H ${Math.round(Number(row.wall_height_m) * 100)} cm`;
   }
   if (row.walls_spec?.length) {
     return row.walls_spec
-      .map((w) => `${Math.round(w.widthM * 100)}×${Math.round(w.heightM * 100)}`)
-      .join(" · ") + " cm";
+      .map((w, i) => `Wall ${i + 1}: W ${Math.round(w.widthM * 100)} x H ${Math.round(w.heightM * 100)} cm`)
+      .join(" · ");
   }
   return `${row.wall_count} walls`;
 }
@@ -56,7 +57,7 @@ export default async function PrintQueuePage() {
   const { data: orders, error } = await supabase
     .from("orders")
     .select(
-      "id, order_number, status, product_type, customer_name, customer_phone, city, province, postal_code, wall_count, wall_width_m, wall_height_m, total_sqm, walls_spec, wallpaper_style, application_method, image_url, image_urls, total_cents, created_at"
+      "id, order_number, status, product_type, customer_name, customer_phone, city, province, postal_code, wall_count, wall_width_m, wall_height_m, total_sqm, walls_spec, wallpaper_type, wallpaper_style, application_method, image_url, image_urls, total_cents, created_at"
     )
     .in("status", ["new", "in_production"])
     .eq("product_type", "wallpaper")
@@ -267,7 +268,12 @@ export default async function PrintQueuePage() {
                         {Number(row.total_sqm).toFixed(2)} m² · {formatZarCents(row.total_cents)}
                       </p>
                     )}
-                    <p className="mt-2 text-sm text-stone-900">
+                    <p className="mt-2 text-sm font-medium text-stone-900">
+                      {row.wallpaper_type
+                        ? WALLPAPER_TYPE_LABELS[row.wallpaper_type as WallpaperType] ?? row.wallpaper_type
+                        : "Type not set"}
+                    </p>
+                    <p className="mt-0.5 text-sm text-stone-900">
                       <span className="font-medium">{MATERIAL_LABELS[(row.wallpaper_style as WallpaperMaterial)] ?? row.wallpaper_style ?? "—"}</span>
                       <span className="text-stone-400"> · </span>
                       <span>{APPLICATION_LABELS[(row.application_method as ApplicationMethod) ?? "diy"]}</span>

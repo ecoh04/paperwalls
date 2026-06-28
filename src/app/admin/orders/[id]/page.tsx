@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signedPrintUrls } from "@/lib/storage";
 import {
   ORDER_STATUS_LABELS,
+  WALLPAPER_TYPE_LABELS,
   MATERIAL_LABELS,
   APPLICATION_LABELS,
   PROVINCE_LABELS,
@@ -24,7 +25,7 @@ import { ResendEmailButtons } from "@/components/admin/ResendEmailButtons";
 import { OrderTypeBadge } from "@/components/admin/OrderTypeBadge";
 import { EmailHistoryPanel } from "@/components/admin/EmailHistoryPanel";
 import { CopyButton } from "@/components/admin/CopyButton";
-import type { OrderStatus, WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
+import type { OrderStatus, WallpaperType, WallpaperMaterial, ApplicationMethod, ShippingProvince } from "@/types/order";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,7 @@ type Row = {
   image_urls: string[] | null;
   walls_spec: { widthM: number; heightM: number }[] | null;
   image_quality: { level: string; pxPerMm: number; widthPx: number; heightPx: number } | null;
+  wallpaper_type: string | null;
   wallpaper_style: string | null;
   application_method: string | null;
   tracking_number: string | null;
@@ -401,24 +403,38 @@ export default async function AdminOrderDetailPage({
           <h2 className="text-lg font-semibold text-stone-900">Print specs</h2>
           <dl className="mt-4 space-y-3">
             <div>
+              <dt className="text-xs font-medium uppercase tracking-wider text-stone-500">Type</dt>
+              <dd className="mt-0.5 font-medium text-stone-900">
+                {row.wallpaper_type
+                  ? WALLPAPER_TYPE_LABELS[row.wallpaper_type as WallpaperType] ?? row.wallpaper_type
+                  : "Not set"}
+              </dd>
+            </div>
+            <div>
               <dt className="text-xs font-medium uppercase tracking-wider text-stone-500">Wall(s)</dt>
               <dd className="mt-0.5 font-medium text-stone-900">
                 {row.wall_count === 1 ? (
                   <>
-                    {Math.round(Number(row.wall_width_m) * 100)} × {Math.round(Number(row.wall_height_m) * 100)} cm
+                    W {Math.round(Number(row.wall_width_m) * 100)} cm&nbsp;&nbsp;x&nbsp;&nbsp;H {Math.round(Number(row.wall_height_m) * 100)} cm
                     {row.total_sqm ? ` (${Number(row.total_sqm).toFixed(2)} m²)` : ""}
                   </>
                 ) : row.walls_spec?.length ? (
                   <>
-                    {row.wall_count} walls:{" "}
-                    {row.walls_spec
-                      .map((w) => `${Math.round(w.widthM * 100)}×${Math.round(w.heightM * 100)} cm`)
-                      .join(", ")}
-                    {row.total_sqm ? ` (${Number(row.total_sqm).toFixed(2)} m² total)` : ""}
+                    {row.wall_count} walls:
+                    <ul className="mt-1 space-y-0.5">
+                      {row.walls_spec.map((w, i) => (
+                        <li key={i}>
+                          Wall {i + 1}: W {Math.round(w.widthM * 100)} cm&nbsp;&nbsp;x&nbsp;&nbsp;H {Math.round(w.heightM * 100)} cm
+                        </li>
+                      ))}
+                    </ul>
+                    {row.total_sqm ? (
+                      <span className="text-sm font-normal text-stone-600">{Number(row.total_sqm).toFixed(2)} m² total</span>
+                    ) : null}
                   </>
                 ) : (
                   <>
-                    {row.wall_count} × {Math.round(Number(row.wall_width_m) * 100)} × {Math.round(Number(row.wall_height_m) * 100)} cm
+                    {row.wall_count} x (W {Math.round(Number(row.wall_width_m) * 100)} cm&nbsp;&nbsp;x&nbsp;&nbsp;H {Math.round(Number(row.wall_height_m) * 100)} cm)
                     {row.total_sqm ? ` (${Number(row.total_sqm).toFixed(2)} m² total)` : ""}
                   </>
                 )}
