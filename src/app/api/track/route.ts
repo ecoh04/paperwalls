@@ -74,6 +74,7 @@ type CapiAddToCartBody = {
   value?:       number;   // ZAR (already divided from cents client-side)
   currency?:    string;
   content_type?: string;
+  content_category?: string;   // 'wallpaper' | 'sample'
   content_ids?: string[];
   contents?:    Array<{ id: string; quantity: number; item_price?: number }>;
   num_items?:   number;
@@ -111,12 +112,13 @@ async function handleCapiAddToCart(req: Request, b: CapiAddToCartBody): Promise<
       client_ua: req.headers.get("user-agent") ?? null,
     },
     custom_data: {
-      currency:     typeof b.currency === "string" ? b.currency : "ZAR",
-      value:        num(b.value),
-      content_type: typeof b.content_type === "string" ? b.content_type : undefined,
-      content_ids:  Array.isArray(b.content_ids) ? b.content_ids.slice(0, 20).map(String) : undefined,
-      contents:     Array.isArray(b.contents) ? b.contents.slice(0, 20) : undefined,
-      num_items:    num(b.num_items),
+      currency:         typeof b.currency === "string" ? b.currency : "ZAR",
+      value:            num(b.value),
+      content_type:     typeof b.content_type === "string" ? b.content_type : undefined,
+      content_category: typeof b.content_category === "string" ? b.content_category : undefined,
+      content_ids:      Array.isArray(b.content_ids) ? b.content_ids.slice(0, 20).map(String) : undefined,
+      contents:         Array.isArray(b.contents) ? b.contents.slice(0, 20) : undefined,
+      num_items:        num(b.num_items),
     },
   });
 

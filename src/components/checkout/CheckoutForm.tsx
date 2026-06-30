@@ -163,12 +163,13 @@ export function CheckoutForm({ items, sessionId, onSuccess, onError }: CheckoutF
       // dedupes against this pixel event.
       const checkoutEventId = mintEventId("InitiateCheckout");
       metaPixelTrack("InitiateCheckout", {
-        event_id:     checkoutEventId,
-        value_cents:  totalCents,
-        currency:     "ZAR",
-        num_items:    items.length,
-        content_type: "product",
-        content_ids:  items.map((i) => i.type === "sample_pack" ? "sample_pack" : "custom_wallpaper"),
+        event_id:         checkoutEventId,
+        value_cents:      totalCents,
+        currency:         "ZAR",
+        num_items:        items.length,
+        content_type:     "product",
+        content_category: items.some((i) => i.type === "wallpaper") ? "wallpaper" : "sample",
+        content_ids:      items.map((i) => i.type === "sample_pack" ? "sample_pack" : "custom_wallpaper"),
       });
 
       // Abort just under the 60s server cap so a stalled request fails with a

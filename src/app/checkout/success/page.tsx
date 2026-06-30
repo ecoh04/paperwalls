@@ -128,6 +128,13 @@ export default async function CheckoutSuccessPage({
     (o) => o.status !== "pending" && o.status !== "cancelled",
   );
 
+  // Split the Purchase pixel by kind so it dedups against (and matches) the
+  // server CAPI: a mixed order is tagged 'wallpaper' (higher-value intent).
+  const purchaseCategory = orders.some((o) => o.product_type === "wallpaper") ? "wallpaper" : "sample";
+  const purchaseSkus = Array.from(
+    new Set(orders.map((o) => (o.product_type === "sample_pack" ? "sample_pack" : "custom_wallpaper"))),
+  );
+
   return (
     <Suspense>
       <CartClearOnMount />
@@ -136,6 +143,8 @@ export default async function CheckoutSuccessPage({
           orderNumbers={orderNumbers}
           valueCents={orders.reduce((s, o) => s + Number(o.total_cents ?? 0), 0)}
           numItems={orders.length}
+          contentCategory={purchaseCategory}
+          contentIds={purchaseSkus}
         />
       )}
 

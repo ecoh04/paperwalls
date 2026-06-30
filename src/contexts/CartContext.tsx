@@ -337,15 +337,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // CAPI mirror below so Meta dedups the two into one event.
     const eventId = mintEventId("AddToCart");
     const contentId = item.type === "sample_pack" ? "sample_pack" : "custom_wallpaper";
+    const contentCategory = item.type === "sample_pack" ? "sample" : "wallpaper";
     const valueZar  = item.subtotalCents / 100;
     metaPixelTrack("AddToCart", {
-      event_id:     eventId,
-      value_cents:  item.subtotalCents,
-      currency:     "ZAR",
-      content_type: item.type === "sample_pack" ? "sample_pack" : "wallpaper",
-      content_ids:  [contentId],
-      content_name: item.type === "sample_pack" ? "Sample pack" : `Custom wallpaper (${item.material})`,
-      num_items:    1,
+      event_id:         eventId,
+      value_cents:      item.subtotalCents,
+      currency:         "ZAR",
+      content_type:     "product",
+      content_category: contentCategory,
+      content_ids:      [contentId],
+      content_name:     item.type === "sample_pack" ? "Sample pack" : `Custom wallpaper (${item.material})`,
+      num_items:        1,
     });
 
     // Meta CAPI: AddToCart — fired here, 1:1 with the pixel above, sharing the
@@ -357,16 +359,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        action:       "capi_add_to_cart",
-        event_id:     eventId,
-        value:        valueZar,
-        currency:     "ZAR",
-        content_type: item.type === "sample_pack" ? "sample_pack" : "wallpaper",
-        content_ids:  [contentId],
-        contents:     [{ id: contentId, quantity: 1, item_price: valueZar }],
-        num_items:    1,
-        fbp:          readCookie("_fbp"),
-        fbc:          readCookie("_fbc"),
+        action:           "capi_add_to_cart",
+        event_id:         eventId,
+        value:            valueZar,
+        currency:         "ZAR",
+        content_type:     "product",
+        content_category: contentCategory,
+        content_ids:      [contentId],
+        contents:         [{ id: contentId, quantity: 1, item_price: valueZar }],
+        num_items:        1,
+        fbp:              readCookie("_fbp"),
+        fbc:              readCookie("_fbc"),
       }),
       keepalive: true,
     }).catch(() => {});

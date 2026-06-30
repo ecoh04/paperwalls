@@ -297,7 +297,7 @@ export async function POST(request: Request) {
         })
         .in("order_number", orderNumbers)
         .eq("status", "pending")
-        .select("id, order_number, customer_id, customer_email");
+        .select("id, order_number, customer_id, customer_email, product_type");
 
       if (updateError) {
         console.error("[PayFast ITN] Orders update error", updateError.message);
@@ -460,6 +460,14 @@ export async function POST(request: Request) {
           userAgent = (sess?.user_agent as string | null) ?? null;
         }
         const sortedNumbers = [...orderNumbers].sort();
+        // Split the two purchase kinds so Meta can optimize/report them apart:
+        // a R300 sample buyer and a R2,500 wallpaper buyer are different people.
+        // A mixed order (wallpaper + sample) is tagged 'wallpaper' (the higher-value intent).
+        const hasWallpaper = paidRows.some((o) => o.product_type === "wallpaper");
+        const purchaseCategory = hasWallpaper ? "wallpaper" : "sample";
+        const purchaseSkus = Array.from(
+          new Set(paidRows.map((o) => (o.product_type === "sample_pack" ? "sample_pack" : "custom_wallpaper"))),
+        );
         const purchaseCapi = await sendMetaConversion({
           event_name: "Purchase",
           event_id:   `purchase:${sortedNumbers.join(",")}`,
@@ -483,12 +491,13 @@ export async function POST(request: Request) {
             client_ua:    userAgent,
           },
           custom_data: {
-            currency:    "ZAR",
-            value:       amountGross,
-            content_ids: orderNumbers,
-            content_type: "product",
-            num_items:   orderNumbers.length,
-            order_id:    sortedNumbers.join(","),
+            currency:         "ZAR",
+            value:            amountGross,
+            content_ids:      purchaseSkus,
+            content_type:     "product",
+            content_category: purchaseCategory,
+            num_items:        orderNumbers.length,
+            order_id:         sortedNumbers.join(","),
           },
           meta: { order_id: orderId, customer_id: customerId ?? undefined },
         });

@@ -642,11 +642,12 @@ export async function POST(request: Request) {
               client_ua:    request.headers.get("user-agent") ?? null,
             },
             custom_data: {
-              currency:     "ZAR",
-              value:        createdOrders.reduce((s, o) => s + (o.subtotal_cents as number), 0) / 100,
-              num_items:    cart.length,
-              content_type: "product",
-              content_ids:  cart.map((i) => (i.type === "sample_pack" ? "sample_pack" : "custom_wallpaper")),
+              currency:         "ZAR",
+              value:            createdOrders.reduce((s, o) => s + (o.subtotal_cents as number), 0) / 100,
+              num_items:        cart.length,
+              content_type:     "product",
+              content_category: cart.some((i) => i.type === "wallpaper") ? "wallpaper" : "sample",
+              content_ids:      cart.map((i) => (i.type === "sample_pack" ? "sample_pack" : "custom_wallpaper")),
             },
             meta: { customer_id: customerId ?? undefined },
           });

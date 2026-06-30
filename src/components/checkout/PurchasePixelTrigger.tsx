@@ -11,27 +11,30 @@ import { metaPixelTrack } from "@/components/MetaPixel";
 // the actual pixel call.
 
 type Props = {
-  orderNumbers: string[];
-  valueCents:   number;
-  numItems:     number;
+  orderNumbers:    string[];
+  valueCents:      number;
+  numItems:        number;
+  contentCategory: string;    // 'wallpaper' | 'sample'
+  contentIds:      string[];  // product SKUs, e.g. ['custom_wallpaper']
 };
 
 function purchaseEventId(orderNumbers: string[]): string {
   return `purchase:${[...orderNumbers].sort().join(",")}`;
 }
 
-export function PurchasePixelTrigger({ orderNumbers, valueCents, numItems }: Props) {
+export function PurchasePixelTrigger({ orderNumbers, valueCents, numItems, contentCategory, contentIds }: Props) {
   useEffect(() => {
     if (orderNumbers.length === 0) return;
     metaPixelTrack("Purchase", {
-      event_id:    purchaseEventId(orderNumbers),
-      value_cents: valueCents,
-      currency:    "ZAR",
-      num_items:   numItems,
-      content_type: "product",
-      content_ids:  orderNumbers,
+      event_id:         purchaseEventId(orderNumbers),
+      value_cents:      valueCents,
+      currency:         "ZAR",
+      num_items:        numItems,
+      content_type:     "product",
+      content_category: contentCategory,
+      content_ids:      contentIds,
     });
-  }, [orderNumbers, valueCents, numItems]);
+  }, [orderNumbers, valueCents, numItems, contentCategory, contentIds]);
 
   return null;
 }

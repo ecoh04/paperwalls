@@ -49,14 +49,15 @@ type UserData = {
 };
 
 type CustomData = {
-  currency?:      string;
-  value?:         number;
-  content_ids?:   string[];
-  content_name?:  string;
-  content_type?:  string;
-  contents?:      Array<{ id: string; quantity: number; item_price?: number }>;
-  num_items?:     number;
-  order_id?:      string;
+  currency?:         string;
+  value?:            number;
+  content_ids?:      string[];
+  content_name?:     string;
+  content_type?:     string;
+  content_category?: string;   // 'wallpaper' | 'sample' — splits the two purchase kinds
+  contents?:         Array<{ id: string; quantity: number; item_price?: number }>;
+  num_items?:        number;
+  order_id?:         string;
 };
 
 type SendArgs = {
@@ -140,6 +141,7 @@ export async function sendMetaConversion(args: SendArgs): Promise<{ ok: boolean;
     if (args.custom_data.content_ids)  cd.content_ids  = args.custom_data.content_ids;
     if (args.custom_data.content_name) cd.content_name = args.custom_data.content_name;
     if (args.custom_data.content_type) cd.content_type = args.custom_data.content_type;
+    if (args.custom_data.content_category) cd.content_category = args.custom_data.content_category;
     if (args.custom_data.contents)     cd.contents     = args.custom_data.contents;
     if (args.custom_data.num_items != null) cd.num_items = args.custom_data.num_items;
     if (args.custom_data.order_id)     cd.order_id     = args.custom_data.order_id;
