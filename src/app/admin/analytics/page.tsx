@@ -206,8 +206,6 @@ export default async function AnalyticsPage({
   const previousRevenue = sumRev(previousRows);
   const currentOrders   = sumOrders(currentRows);
   const previousOrders  = sumOrders(previousRows);
-  const currentAov      = currentOrders  > 0 ? Math.round(currentRevenue  / currentOrders)  : 0;
-  const previousAov     = previousOrders > 0 ? Math.round(previousRevenue / previousOrders) : 0;
   const currentRefunds  = sumRef(currentRows);
 
   // ── System health (window-independent — always 'right now')
@@ -469,9 +467,9 @@ export default async function AnalyticsPage({
       .gte("created_at", win.start).lt("created_at", win.end)
       .not("session_id", "is", null),
 
-    // Paid sample-pack orders in window
+    // Paid sample-pack orders in window (rows, so we can sum revenue too)
     supabase.from("orders")
-      .select("id", { count: "exact", head: true })
+      .select("total_cents")
       .eq("product_type", "sample_pack")
       .gte("created_at", win.start).lt("created_at", win.end)
       .not("status", "in", "(pending,cancelled)")
@@ -482,7 +480,7 @@ export default async function AnalyticsPage({
 
   // ── Extra data: Meta CAPI health, retention, monthly revenue trend ───────
   const monthTrendStart = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const [capiRows, retentionRows, monthTrendRows] = await Promise.all([
+  const [capiRows, retentionRows, monthTrendRows, cohortRows] = await Promise.all([
     // Meta CAPI audit — last 24h of server sends, newest first
     supabase.from("capi_events")
       .select("event_type, status, created_at")
@@ -496,6 +494,15 @@ export default async function AnalyticsPage({
     supabase.from("v_daily_revenue")
       .select("day, paid_revenue_cents, paid_orders")
       .gte("day", monthTrendStart),
+    // Sample -> wallpaper cohort (all-time, customer-level): did sample buyers
+    // come back for wallpaper? This is the whole point of the R300 tripwire.
+    supabase.from("orders")
+      .select("customer_id, product_type, created_at")
+      .not("status", "in", "(pending,cancelled)")
+      .is("refunded_at", null)
+      .is("deleted_at", null)
+      .eq("is_test", false)
+      .not("customer_id", "is", null),
   ]);
 
   // Build daily sessions array (SAST-bucketed)
@@ -672,8 +679,10 @@ export default async function AnalyticsPage({
     .slice(0, 6);
 
   // Sample packs (a separate, shorter funnel — they never enter the configurator)
-  const sampleAdds   = new Set(((sampleAddRows.data ?? []) as { session_id: string }[]).map((r) => r.session_id)).size;
-  const sampleOrders = sampleOrdersRes.count ?? 0;
+  const sampleAdds      = new Set(((sampleAddRows.data ?? []) as { session_id: string }[]).map((r) => r.session_id)).size;
+  const sampleOrderRows = (sampleOrdersRes.data ?? []) as { total_cents: number }[];
+  const sampleOrders    = sampleOrderRows.length;
+  const sampleRevenue   = sampleOrderRows.reduce((s, r) => s + Number(r.total_cents), 0);
 
   // Month-to-date revenue + run-rate (goal tracker, window-independent)
   const mtdRows    = (monthRevenueRows.data ?? []) as { day: string; paid_revenue_cents: number; paid_orders: number }[];
@@ -699,6 +708,15 @@ export default async function AnalyticsPage({
   const marginCents = cogsCents != null ? wallpaperRevenue - cogsCents : null;
   const marginPct   = cogsCents != null && wallpaperRevenue > 0 ? ((wallpaperRevenue - cogsCents) / wallpaperRevenue) * 100 : null;
 
+  // ── Per-product AOV + conversion. The headline AOV/CR are WALLPAPER (the real
+  // product); blending the R300 sample understates wallpaper AOV and inflates the
+  // conversion rate. Samples are shown alongside, never silently merged in. ────
+  const wallpaperAov = wallpaperOrders > 0 ? Math.round(wallpaperRevenue / wallpaperOrders) : 0;
+  const sampleAov    = sampleOrders   > 0 ? Math.round(sampleRevenue / sampleOrders)        : 0;
+  const visitorsN    = currentVisitors ?? 0;
+  const wallpaperCr  = visitorsN > 0 ? (wallpaperOrders / visitorsN) * 100 : 0;
+  const sampleCr     = visitorsN > 0 ? (sampleOrders   / visitorsN) * 100 : 0;
+
   // ── Meta CAPI health (24h server-send audit) ─────────────────────────────
   const capiList = (capiRows.data ?? []) as { event_type: string; status: string; created_at: string }[];
   const capiByType = new Map<string, number>();
@@ -715,6 +733,35 @@ export default async function AnalyticsPage({
   const repeatRatePct   = payingCustomers > 0 ? (repeatCustomers / payingCustomers) * 100 : null;
   const avgLtvCents     = payingCustomers > 0 ? Math.round(retList.reduce((s, c) => s + Number(c.total_spent_cents), 0) / payingCustomers) : 0;
   const ordersPerCust   = payingCustomers > 0 ? retList.reduce((s, c) => s + Number(c.total_orders), 0) / payingCustomers : 0;
+
+  // ── Sample → wallpaper cohort (all-time): of customers who paid for a sample,
+  // how many later paid for wallpaper? This is whether the R300 tripwire works. ─
+  type CohortOrder = { customer_id: string; product_type: string; created_at: string };
+  const firstSampleMs     = new Map<string, number>();
+  const wallpaperMsByCust = new Map<string, number[]>();
+  for (const r of (cohortRows.data ?? []) as CohortOrder[]) {
+    const t = new Date(r.created_at).getTime();
+    if (r.product_type === "sample_pack") {
+      const cur = firstSampleMs.get(r.customer_id);
+      if (cur === undefined || t < cur) firstSampleMs.set(r.customer_id, t);
+    } else if (r.product_type === "wallpaper") {
+      const arr = wallpaperMsByCust.get(r.customer_id) ?? [];
+      arr.push(t);
+      wallpaperMsByCust.set(r.customer_id, arr);
+    }
+  }
+  const sampleBuyers = firstSampleMs.size;
+  let sampleConverted = 0, daysToConvertSum = 0, daysToConvertN = 0;
+  firstSampleMs.forEach((sampleMs, cid) => {
+    const laterWp = (wallpaperMsByCust.get(cid) ?? []).filter((t) => t >= sampleMs);
+    if (laterWp.length > 0) {
+      sampleConverted++;
+      daysToConvertSum += (Math.min(...laterWp) - sampleMs) / DAY_MS;
+      daysToConvertN++;
+    }
+  });
+  const sampleToWallpaperPct = sampleBuyers > 0 ? (sampleConverted / sampleBuyers) * 100 : null;
+  const avgDaysToConvert     = daysToConvertN > 0 ? Math.round(daysToConvertSum / daysToConvertN) : null;
 
   // ── Monthly revenue trend (last ~12 months, SAST) ────────────────────────
   const monthAgg = new Map<string, number>();
@@ -943,35 +990,33 @@ export default async function AnalyticsPage({
         <StatCard
           compact
           label="Net profit"
-          value={`${netProfitCents < 0 ? "-" : ""}${formatZarCents(Math.abs(netProfitCents))}`}
-          status={netProfitCents > 0 ? "good" : netProfitCents < 0 ? "bad" : "neutral"}
-          sub="after ad spend"
+          value={adSpendSet ? `${netProfitCents < 0 ? "-" : ""}${formatZarCents(Math.abs(netProfitCents))}` : "—"}
+          status={adSpendSet ? (netProfitCents > 0 ? "good" : netProfitCents < 0 ? "bad" : "neutral") : "neutral"}
+          sub={adSpendSet ? "after ad spend" : "enter ad spend below"}
         />
         <StatCard
           compact
           label="Orders"
           value={fmtInt(currentOrders)}
           delta={<DeltaIndicator current={currentOrders} previous={previousOrders} label={win.vsLabel} />}
-          sub={currentRefunds > 0 ? `${currentRefunds} refunded` : undefined}
+          sub={(wallpaperOrders > 0 || sampleOrders > 0)
+            ? `${wallpaperOrders} wallpaper · ${sampleOrders} sample${currentRefunds > 0 ? ` · ${currentRefunds} ref` : ""}`
+            : (currentRefunds > 0 ? `${currentRefunds} refunded` : undefined)}
           spark={showSpark ? <SparklineChart data={sparkOf(ordData)} color="#1A1714" /> : undefined}
         />
         <StatCard
           compact
-          label="Conversion rate"
-          value={conversionRate > 0 ? `${conversionRate.toFixed(2)}%` : "—"}
-          status={conversionRate >= 2 ? "good" : conversionRate > 0 && conversionRate < 1 ? "bad" : "neutral"}
-          delta={<DeltaIndicator current={Number(conversionRate.toFixed(2))} previous={Number(prevConversionRate.toFixed(2))} label={win.vsLabel} />}
+          label="Wallpaper conv."
+          value={wallpaperCr > 0 ? `${wallpaperCr.toFixed(2)}%` : "—"}
+          status={wallpaperCr >= 1 ? "good" : "neutral"}
+          sub={`${sampleCr.toFixed(2)}% on samples`}
           spark={showSpark ? <SparklineChart data={sparkOf(crData)} color="#0F6E56" /> : undefined}
         />
         <StatCard
           compact
-          label="AOV"
-          value={currentOrders > 0 ? formatZarCents(currentAov) : "—"}
-          delta={
-            previousOrders > 0
-              ? <DeltaIndicator current={currentAov} previous={previousAov} label={win.vsLabel} />
-              : <span className="text-xs text-stone-400">{win.vsLabel}</span>
-          }
+          label="Wallpaper AOV"
+          value={wallpaperOrders > 0 ? formatZarCents(wallpaperAov) : "—"}
+          sub={sampleOrders > 0 ? `${formatZarCents(sampleAov)} sample` : "no samples yet"}
         />
       </div>
 
@@ -1002,12 +1047,13 @@ export default async function AnalyticsPage({
           <PanelCard title="Profit after ad spend" subtitle={`${win.label.toLowerCase()} · revenue to net`}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className={`text-3xl font-semibold tabular-nums ${netProfitCents >= 0 ? "text-green-700" : "text-red-700"}`}>
+                <p className={`text-3xl font-semibold tabular-nums ${!adSpendSet ? "text-stone-900" : netProfitCents >= 0 ? "text-green-700" : "text-red-700"}`}>
                   {netProfitCents < 0 ? "−" : ""}{formatZarCents(Math.abs(netProfitCents))}
                 </p>
                 <p className="mt-0.5 text-xs text-stone-500">
-                  {netMarginPct != null ? `${netMarginPct.toFixed(0)}% net margin` : "after fees, refunds and ad spend"}
-                  {newCacCents != null ? ` · CAC ${formatZarCents(newCacCents)} / new customer` : ""}
+                  {!adSpendSet
+                    ? "before ad spend — enter spend for true net profit"
+                    : `${netMarginPct != null ? `${netMarginPct.toFixed(0)}% net margin` : "after fees, refunds and ad spend"}${newCacCents != null ? ` · CAC ${formatZarCents(newCacCents)} / new customer` : ""}`}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">
@@ -1144,7 +1190,7 @@ export default async function AnalyticsPage({
         </div>
       )}
 
-      {(wallpaperOrders > 0 || sampleAdds > 0) && (
+      {(wallpaperOrders > 0 || sampleAdds > 0 || sampleBuyers > 0) && (
         <div className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
@@ -1189,7 +1235,7 @@ export default async function AnalyticsPage({
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-3">
             <PanelCard title="Install method" subtitle="Pro install drives the highest AOV">
               {totalInstallOrders === 0 ? <Empty msg="No wallpaper orders yet. DIY vs Pro split appears here." /> : (
                 <div className="space-y-3">
@@ -1205,14 +1251,30 @@ export default async function AnalyticsPage({
               )}
             </PanelCard>
 
-            <PanelCard title="Sample packs" subtitle="the R150-credit funnel">
+            <PanelCard title="Sample packs" subtitle="this period · the R150-credit funnel">
               <FunnelChart data={[
                 { rank: 1, stage: "sample_added", sessions: sampleAdds,   own: sampleAdds },
                 { rank: 2, stage: "sample_paid",  sessions: sampleOrders, own: sampleOrders },
               ]} />
               <p className="mt-2 text-xs text-stone-500">
-                Add to order {sampleAdds > 0 ? `${Math.round((sampleOrders / sampleAdds) * 100)}%` : "—"} · sample buyers are warm wallpaper leads.
+                Add to order {sampleAdds > 0 ? `${Math.round((sampleOrders / sampleAdds) * 100)}%` : "—"}.
               </p>
+            </PanelCard>
+
+            <PanelCard title="Sample → wallpaper" subtitle="all-time · do sample buyers come back">
+              {sampleBuyers === 0 ? <Empty msg="No sample buyers yet. Lights up once samples sell." /> : (
+                <div className="space-y-1.5">
+                  <p className="text-3xl font-semibold tabular-nums text-stone-900">
+                    {sampleToWallpaperPct != null ? `${Math.round(sampleToWallpaperPct)}%` : "—"}
+                  </p>
+                  <p className="text-sm text-stone-600">
+                    {sampleConverted} of {sampleBuyers} sample buyer{sampleBuyers === 1 ? "" : "s"} bought wallpaper
+                  </p>
+                  <p className="text-xs text-stone-500">
+                    {avgDaysToConvert != null ? `avg ${avgDaysToConvert} day${avgDaysToConvert === 1 ? "" : "s"} to convert` : "none have converted yet"}
+                  </p>
+                </div>
+              )}
             </PanelCard>
           </div>
         </div>
